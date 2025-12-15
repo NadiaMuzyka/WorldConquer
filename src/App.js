@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState } from 'react';
-import {Routes, Route, useNavigate, useParams} from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Client } from 'boardgame.io/react';
 import { SocketIO } from 'boardgame.io/multiplayer';
 import { RiskGame } from './game';  
@@ -69,17 +69,6 @@ const GamePage = () => {
 };
 
 // --- 3. APP PRINCIPALE CON LE ROTTE ---
-const App = () => {
-  return (
-    <Routes>
-      {/* Rotta Base: La Lobby */}
-      <Route path="/" element={<LobbyPage />} />
-      
-      {/* Rotta Dinamica: La Partita */}
-      {/* :matchID è il parametro variabile (es. partita123) */}
-      <Route path="/game/:matchID" element={<GamePage />} />
-    </Routes>
-  );
-};
-
-export default App;
+// In Data Mode, App.js può essere una semplice shell o vuoto, oppure puoi esportare solo le pagine.
+// Esportiamo le pagine per l'uso in Routes.js
+export { LobbyPage, GamePage };

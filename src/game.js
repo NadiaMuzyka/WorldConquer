@@ -1,59 +1,52 @@
-// src/Game.js
-import { INVALID_MOVE } from 'boardgame.io/core';
-import { RISK_ADJACENCY } from './components/Constants/adjacency';
-import { COUNTRY_COLORS } from './components/Constants/colors';  
+// src/game.js
+const { INVALID_MOVE } = require('boardgame.io/core');
+const { COUNTRY_COLORS } = require('./components/Constants/colors');
 
-
-// Funzione per creare lo stato iniziale dei colori
-function getInitialColors() {
-  return { ...COUNTRY_COLORS };
-}
-
-// Definiamo il gioco
-export const RiskGame = {
-  // 'setup' definisce lo stato iniziale del gioco (il "G")
+// Definiamo il gioco (CommonJS per compatibilità con server.js)
+const RiskGame = {
+  // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: () => ({
-    countryColors: getInitialColors(),
-    originalColors: getInitialColors(), // Salviamo i colori originali
-    selectedCountry: null, // Tiene traccia del paese selezionato
+    countryColors: { ...COUNTRY_COLORS }, // Colori estetici mappa
+    troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
+    owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
   }),
 
-  // 'moves' definisce le azioni che i giocatori possono fare
   moves: {
-    clickCountry: ({ G, playerID }, countryId) => {
-      // G è lo stato del gioco. Lo modifichiamo direttamente.
-      
-      // Controlliamo se è un ID valido
-      if (G.countryColors[countryId] === undefined) {
-        return INVALID_MOVE; // Mossa non valida
+    clickCountry: ({ G, playerID, events }, countryId) => {
+      if (!playerID) return INVALID_MOVE; // deve esistere un giocatore
+
+      // Assicura la forma dello stato
+      if (!G.troops) G.troops = {};
+      if (!G.owners) G.owners = {};
+      if (!G.countryColors) G.countryColors = { ...COUNTRY_COLORS };
+
+      // ID valido?
+      if (G.countryColors[countryId] === undefined) return INVALID_MOVE;
+
+      const currentOwner = G.owners[countryId];
+
+      // Caso 1: Terra di nessuno -> Diventa mia
+      if (currentOwner === undefined) {
+        G.owners[countryId] = String(playerID); // usa gli ID nativi "0","1","2"
+        G.troops[countryId] = 1;
+      }
+      // Caso 2: È già mia -> Rinforzo
+      else if (currentOwner === String(playerID)) {
+        G.troops[countryId] += 1;
+      }
+      // Caso 3: Nemica -> mossa non valida
+      else {
+        return INVALID_MOVE;
       }
 
-      // Se clicco sullo stesso paese, ripristino tutto ai colori originali
-      if (G.selectedCountry === countryId) {
-        // Ripristino i colori originali
-        Object.keys(G.countryColors).forEach(id => {
-          G.countryColors[id] = G.originalColors[id];
-        });
-        G.selectedCountry = null;
-        return;
-      }
-
-      // Ripristino tutti i colori originali
-      Object.keys(G.countryColors).forEach(id => {
-        G.countryColors[id] = G.originalColors[id];
-      });
-
-      // Colora il paese cliccato di nero
-      G.countryColors[countryId] = 'black';
-      G.selectedCountry = countryId;
-
-      // Colora i confinanti di bianco
-      const neighbors = RISK_ADJACENCY[countryId] || [];
-      neighbors.forEach(neighborId => {
-        if (G.countryColors[neighborId] !== undefined) {
-          G.countryColors[neighborId] = '#cccccc';
-        }
-      });
+      events.endTurn();
     },
   },
+  
+  turn: {
+    minMoves: 1,
+    maxMoves: 1,
+  }
 };
+
+module.exports = { RiskGame };

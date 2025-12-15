@@ -1,4 +1,4 @@
-export const COUNTRY_COLORS = {
+const COUNTRY_COLORS = {
   // Colori iniziali dall'SVG di Inkscape
   'IND': '#338000',
   'MOR': '#44c36a',
@@ -43,3 +43,11 @@ export const COUNTRY_COLORS = {
   'SBR': '#55d400',
   'IDN': '#2a7fff',
 };
+
+const PLAYER_COLORS = {
+  "0": "#d32f2f", // Rosso (Player 1)
+  "1": "#1976d2", // Blu (Player 2)
+  "2": "#388e3c"  // Verde (Player 3)
+};
+
+module.exports = { COUNTRY_COLORS, PLAYER_COLORS };

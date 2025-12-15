@@ -1,5 +1,5 @@
 // Mappa delle connessioni: KEY = Paese, VALUE = Array di paesi confinanti
-export const RISK_ADJACENCY = {
+const RISK_ADJACENCY = {
   // --- NORD AMERICA ---
   ALK: ['TNO', 'ALB', 'KMK'], // Alaska -> Connette anche a Kamchatka (KMK)
   ALB: ['ALK', 'TNO', 'ONT', 'US_OCC'], // Alberta
@@ -54,3 +54,5 @@ export const RISK_ADJACENCY = {
   NGU: ['IDN', 'AU_OR', 'AU_OCC'], // Nuova Guinea -> Nota: Nel Risiko classico spesso si connette a AU_OR e AU_OCC
   AU_OCC: ['IDN', 'NGU', 'AU_OR'] // Australia Occidentale
 };
+
+module.exports = { RISK_ADJACENCY };

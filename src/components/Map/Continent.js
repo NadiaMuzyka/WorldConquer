@@ -8,10 +8,9 @@ export function Continent({ name, countries, G, onCountryClick }) {
         <Country
           key={countryData.id}
           data={countryData}
-          // Recuperiamo il colore dallo stato G di boardgame.io
-          color={G.countryColors[countryData.id]}
-          // Recuperiamo le truppe (ipotizzando tu abbia G.troops)
-          troops={G.troops ? G.troops[countryData.id] : 0}
+          // Nota: l'owner può essere "0" (player 0) quindi non usiamo controlli truthy
+          owner={G.owners ? G.owners[countryData.id] : null}
+          troops={G.troops ? (G.troops[countryData.id] || 0) : 0}
           onClick={onCountryClick}
         />
       ))}

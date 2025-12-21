@@ -2,17 +2,12 @@ import React from 'react';
 
 export function MaritimeLines({ lines }) {
   return (
-    <g className="pointer-events-none opacity-50">
+    <g className="pointer-events-none">
       {lines.map((line) => (
         <path
           key={line.id}
           d={line.d}
-          fill="none"
-          stroke="#ffffffff"
-          strokeWidth="2"
-          // Stroke dasharray 4,4 crea il tratteggio
-          strokeDasharray="4,4" 
-          className="stroke-black"
+          className="fill-none stroke-white stroke-[4px] [stroke-dasharray:4,4] opacity-70"
         />
       ))}
     </g>

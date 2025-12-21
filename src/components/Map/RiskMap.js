@@ -13,7 +13,7 @@ export function RiskMap({ G, moves }) {
     <svg
       version="1.1"
       viewBox="-50 40 1150 650"
-      className="w-full h-full block bg-[#b2dfee]"
+      className="w-full h-full block bg-[#173c55]"
     >
       {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}
       <MaritimeLines lines={MARITIME_LINES} />

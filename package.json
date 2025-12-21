@@ -9,9 +9,10 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.13.2",
     "boardgame.io": "^0.50.2",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
-    "react-router-dom": "^7.10.1",
+    "lodash": "^4.17.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
@@ -19,7 +20,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "init-tailwind": "tailwindcss init -p"
   },
   "eslintConfig": {
     "extends": [
@@ -38,5 +40,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
   }
 }

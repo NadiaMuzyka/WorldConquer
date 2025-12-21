@@ -16,7 +16,7 @@ export function Country({ data, owner, troops, onClick }) {
         id={data.id}
         d={data.path}
         fill={staticMapColor}
-        stroke="#555"
+        stroke="#4c4c4cff"
         strokeWidth="1"
         onMouseEnter={(e) => e.target.style.fillOpacity = 0.8}
         onMouseLeave={(e) => e.target.style.fillOpacity = 1}

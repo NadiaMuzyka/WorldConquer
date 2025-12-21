@@ -51,3 +51,4 @@ const PLAYER_COLORS = {
 };
 
 module.exports = { COUNTRY_COLORS, PLAYER_COLORS };
+

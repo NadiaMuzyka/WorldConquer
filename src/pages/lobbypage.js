@@ -4,6 +4,7 @@ import FilterContainer from '../components/Lobby/FilterContainer';
 import Button from '../components/UI/Button';
 
 // --- 1. COMPONENTE LOBBY
+
 const LobbyPage = () => {
   const navigate = useNavigate();
 

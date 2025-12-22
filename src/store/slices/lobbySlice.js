@@ -4,16 +4,21 @@ import { createSlice } from '@reduxjs/toolkit';
 const lobbySlice = createSlice({
   name: 'lobby',
   initialState: {
-    games: [],
+    games: [], // Qui arriveranno i dati da Firebase
     status: 'idle',
     filters: {
-      playerRange: [3, 6], // Array [min, max] per lo Slider
-      pubblic: true, 
+      playerRange: [3, 6],
+      pubblic: true, // Ho mantenuto il tuo nome variabile (nota: typo 'pubblic')
       private: false,      
       friends: false,       
     }
   },
   reducers: {
+    // Aggiorna la lista quando il DB cambia
+    syncMatches: (state, action) => {
+      state.games = action.payload; 
+      state.status = 'active';
+    },
     setFilter: (state, action) => {
       const { name, value } = action.payload;
       state.filters[name] = value;
@@ -21,7 +26,7 @@ const lobbySlice = createSlice({
     resetFilters: (state) => {
       state.filters = {
         playerRange: [3, 6],
-        public: true,
+        pubblic: true, // Corretto per matchare l'initialState
         private: false,
         friends: false
       };
@@ -29,6 +34,7 @@ const lobbySlice = createSlice({
   }
 });
 
-export const { setFilter, resetFilters } = lobbySlice.actions;
+// Esportiamo le azioni e il reducer
+export const { setFilter, resetFilters, syncMatches } = lobbySlice.actions;
 export const selectFilters = (state) => state.lobby.filters; 
 export default lobbySlice.reducer;

@@ -1,7 +1,6 @@
 // src/firebase/firebaseConfig.js
-
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore"; // <--- Importiamo Firestore
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -14,6 +13,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const db = getFirestore(app); // <--- Creiamo il collegamento al DB
 
-export { app, analytics };
+export { app, db }; // <--- Lo esportiamo per usarlo nella Lobby

@@ -24,11 +24,6 @@ export default function RangeSlider() {
 
   return (
     <Box className="flex flex-col gap-2">
-      <Box className="flex justify-between items-center">
-        <Typography className="font-bold text-[16px] tracking-[0.2px] uppercase text-white">
-          Giocatori
-        </Typography>
-      </Box>
 
       {/* --- 2. RIGA DEI NUMERETTI --- */}
       <Box className="flex justify-between px-[10px] mb-[-5px]">
@@ -54,6 +49,8 @@ export default function RangeSlider() {
         disableSwap
         // Stile custom per matchare Figma
         sx={{
+          width: '92%',
+          margin: '0 auto',
           color: '#38C7D7',
           height: 8,
           '& .MuiSlider-track': {
@@ -61,7 +58,7 @@ export default function RangeSlider() {
           },
           '& .MuiSlider-thumb': {
             height: 24,
-            width: 24,
+            width: 22,
             backgroundColor: '#fff',
             border: '2px solid currentColor',
             '&:focus, &:hover, &.Mui-active, &.Mui-focusVisible': {

@@ -8,7 +8,8 @@ const lobbySlice = createSlice({
     status: 'idle',
     filters: {
       playerRange: [3, 6],
-      pubblic: true, // Ho mantenuto il tuo nome variabile (nota: typo 'pubblic')
+      mode: 'tutte', 
+      public: true, 
       private: false,      
       friends: false,       
     }
@@ -26,7 +27,8 @@ const lobbySlice = createSlice({
     resetFilters: (state) => {
       state.filters = {
         playerRange: [3, 6],
-        pubblic: true, // Corretto per matchare l'initialState
+        mode: 'tutte',
+        public: true, 
         private: false,
         friends: false
       };

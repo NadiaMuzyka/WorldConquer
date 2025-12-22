@@ -1,44 +1,99 @@
 import React from 'react';
-import { Timer } from './Timer';
-import { PhaseInfo } from './PhaseInfo';
-import { Button } from '../UI/Button';
+import { Flag, ArrowRight } from 'lucide-react';
+import Timer from './Timer';         // Assicurati che il file esista (step precedente)
+import PhaseInfo from './PhaseInfo'; // Assicurati che il file esista (step precedente)
 
-const FlagIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    width="40" 
-    height="40" 
-    fill="currentColor"
-  >
-    <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
-  </svg>
-);
+export const Navbar = ({ 
+  // Props Partita
+  phase, 
+  gameCode, 
+  playerTurn, 
+  onLeave, 
+  timer = "00:00", // Default se non passato
+  
+  // Props Lobby/Generiche
+  mode = "lobby", 
+  userAvatar 
+}) => {
 
-export const Navbar = ({ phase = "PREPARAZIONE", onLeave, gameCode, playerTurn }) => {
-  return (
-    <div className="w-full h-[102px] bg-[#1c1c1c]/80 shadow-md flex items-center justify-between px-5 box-border relative z-[100]">
-      <div className="flex items-center w-[200px]">
-        <Timer />
-      </div>
-      
-      <div className="flex items-center justify-center flex-1">
-        {/* Passing the flag icon as requested */}
-        <PhaseInfo phase={phase} icon={<FlagIcon />} />
-      </div>
+  // --- LOGICA SMART ---
+  // Se è presente la prop 'phase', forza la modalità GAME
+  const isGameMode = mode === "game" || !!phase;
 
-      <div className="flex flex-col items-end justify-center w-[200px] gap-2">
-        <Button onClick={onLeave}>
-          ABBANDONA <span className="text-[18px]">➜</span>
-        </Button>
+  // --- STILI BASE (CSS Figma) ---
+  const baseClasses = "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1c1c1c]/80 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300";
+  
+  // Altezza: 102px per Game, 86px per Lobby
+  const heightClass = isGameMode ? "h-[102px]" : "h-[86px]";
+
+  // ===========================================================================
+  // MODALITÀ: GAME (Layout Timer | Fase | Esci)
+  // ===========================================================================
+  if (isGameMode) {
+    return (
+      <nav className={`${baseClasses} ${heightClass}`}>
         
-        {/* Debug Info */}
-        <div className="text-[#ccc] text-[10px] font-mono">
-          <span>Code: {gameCode}</span>
-          <span> | </span>
-          <span>Turn: {playerTurn}</span>
+        {/* 1. TIMER (Sinistra) */}
+        <div className="flex items-center">
+            {/* Se vuoi mostrare anche il gameCode, puoi metterlo qui vicino al timer */}
+            <div className="flex flex-col items-center">
+               <Timer time={timer} />
+               {/* Opzionale: Mostra GameCode piccolo sotto il timer se utile */}
+               {/* <span className="text-[10px] text-gray-500 mt-1">{gameCode}</span> */}
+            </div>
         </div>
+
+        {/* 2. FASE (Centro Assoluto) */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <PhaseInfo phase={phase} />
+        </div>
+
+        {/* 3. BOTTONE ABBANDONA (Destra) */}
+        <div className="flex items-center justify-end">
+          <button 
+            onClick={onLeave}
+            className="group w-[160px] h-[34px] bg-[#38C7D7] hover:bg-[#2dbdc0] rounded-[25px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md"
+          >
+            <span className="font-bold text-[16px] text-[#192832] tracking-[0.2px] uppercase">
+              Abbandona
+            </span>
+            <ArrowRight className="w-[19px] h-[19px] text-[#192832] group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+
+      </nav>
+    );
+  }
+
+  // ===========================================================================
+  // MODALITÀ: LOBBY (Default)
+  // ===========================================================================
+  return (
+    <nav className={`${baseClasses} ${heightClass}`}>
+      
+      {/* SX: Logo e Brand */}
+      <div className="flex items-center gap-5">
+        <div className="relative w-[54px] h-[54px] flex items-center justify-center">
+           <Flag className="w-[40px] h-[40px] text-[#38C7D7] fill-current" />
+        </div>
+        <span className="font-bold text-[32px] text-white tracking-[0.2px] hidden md:block">
+          WorldConquer
+        </span>
       </div>
-    </div>
+
+      {/* DX: Profilo Utente */}
+      <div className="flex items-center gap-6 pr-4">
+         <div className="w-[64px] h-[64px] rounded-full border-2 border-[#38C7D7] bg-[#2C333A] overflow-hidden cursor-pointer hover:opacity-90 transition shadow-lg">
+             <img 
+               src={userAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
+               alt="User" 
+               className="w-full h-full object-cover" 
+             />
+         </div>
+      </div>
+
+    </nav>
   );
 };
+
+export default Navbar;

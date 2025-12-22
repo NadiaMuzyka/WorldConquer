@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const PhaseInfo = ({ phase, icon }) => {
+const PhaseInfo = ({ phase, icon }) => {
   return (
     <div className="relative w-[647px] h-[68px] flex items-center justify-center">
       {/* Decorative Background (Simplified) */}
@@ -17,3 +17,5 @@ export const PhaseInfo = ({ phase, icon }) => {
     </div>
   );
 };
+
+export default PhaseInfo;

@@ -1,25 +1,27 @@
 import React from 'react';
-import './SearchBox.css'; // Assumo tu abbia un file CSS per lo stile dell'input
+import { Search } from 'lucide-react';
 
-const SearchBox = ({ value, onChange, onEnter, text }) => {
-  
-  // Gestiamo il tasto Invio per comodità, anche se il bottone è fuori
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && onEnter) {
-      onEnter();
-    }
-  };
-
+const SearchBox = ({ placeholder = "Inserisci nome e codice partita..." }) => {
   return (
-    <div className="search-box-container">
-      <input
-        type="text"
-        className="search-input"
-        placeholder="Cerca una lobby..."
-        value={value}         // Controllato dal genitore
-        onChange={onChange}   // Notifica il genitore
-        onKeyDown={handleKeyDown}
-      />
+    <div className="bg-[#1B2227] p-4 rounded-lg shadow-[0px_4px_4px_rgba(0,0,0,0.25)] flex flex-col gap-2">
+      
+      {/* Header: Icona + Scritta CERCA */}
+      <div className="flex items-center gap-2 mb-1">
+         <Search className="w-6 h-6 text-white" />
+         <span className="font-roboto font-bold text-[20px] tracking-[0.2px] text-white">
+           CERCA
+         </span>
+      </div>
+
+      {/* Input Field Stile Figma */}
+      <div className="relative w-full h-[31px]">
+         <input
+           type="text"
+           placeholder={placeholder}
+           className="w-full h-full bg-[#D9D9D9] rounded-[13px] px-4 text-[12px] text-[#5F6368] font-medium placeholder-[#5F6368] focus:outline-none focus:ring-2 focus:ring-[#38C7D7]"
+         />
+      </div>
+      
     </div>
   );
 };

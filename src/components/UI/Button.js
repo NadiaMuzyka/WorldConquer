@@ -7,8 +7,8 @@ const VARIANTS = {
   cyan: "bg-[#38C7D7] text-[#192832] hover:bg-[#2EB0BF] border border-transparent",
   
   // 2. Stile "Crea Nuova Partita" (Giallo Oro) - Basato su Cattura.PNG
-  yellow: "bg-[#FFC800] text-[#192832] hover:bg-[#E5B400] shadow-md hover:shadow-lg border border-transparent",
-  
+  yellow: "bg-[#FEC417] text-[#1B2227] hover:bg-[#E5B000] shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border border-transparent",  
+
   // 3. Stile "Applica Filtri" (Trasparente con bordo)
   outline: "bg-transparent border border-gray-500 text-white hover:border-white hover:bg-white/10",
   
@@ -21,7 +21,7 @@ const SIZES = {
   // Piccolo e compatto (Es. bottone freccia o tag)
   xs: "px-2 py-1 text-xs",
 
-  // Standard (Es. "Partecipa") - Mantiene le tue misure originali
+  // Standard 
   sm: "px-6 py-1.5 text-[15px] min-w-[120px] h-[34px]", 
   
   // Medio (Standard generico)
@@ -29,6 +29,8 @@ const SIZES = {
   
   // Grande (Es. "Crea Nuova Partita") - Più alto e spazioso
   lg: "px-8 py-3 text-lg font-bold w-full h-[50px]", 
+
+  create: "w-[267px] h-[42px] text-[20px] font-bold tracking-[0.2px]",
 };
 
 export const Button = ({ 

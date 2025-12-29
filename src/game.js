@@ -4,6 +4,7 @@ const { COUNTRY_COLORS } = require('./components/Constants/colors');
 
 // Definiamo il gioco (CommonJS per compatibilità con server.js)
 const RiskGame = {
+  name: 'risk',
   // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: () => ({
     countryColors: { ...COUNTRY_COLORS }, // Colori estetici mappa

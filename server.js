@@ -1,35 +1,18 @@
-// server.js
+// server.js (VERSIONE CORRETTA - RAM ONLY)
 const { Server, Origins } = require('boardgame.io/server');
 const { RiskGame } = require('./src/game'); 
-// 1. Importiamo Firestore di Admin (per inizializzare il DB)
-const { Firestore } = require('firebase-admin/firestore');
-const admin = require('firebase-admin');
-
-// 2. CORREZIONE IMPORTANTE:
-// La libreria esporta 'Firestore', ma noi la rinominiamo 'FirebaseAdapter'
-// per non fare confusione con quella sopra.
-const { Firestore: FirebaseAdapter } = require('bgio-firebase');
-
-const serviceAccount = require('./serviceAccountKey.json'); 
-
-// 3. Inizializza Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-const db = admin.firestore();
-
-// 4. Configura l'Adapter usando la classe rinominata
-const firebaseAdapter = new FirebaseAdapter({
-  firestore: db,
-  root: 'matches', 
-});
 
 const server = Server({
+  // 1. Carichiamo il gioco
   games: [RiskGame],
+
+  // 2. ABILITIAMO CORS (Fondamentale per far parlare React porta 3000 con Server porta 8000)
   origins: [Origins.LOCALHOST], 
-  db: firebaseAdapter, 
+  
+  // 3. NESSUN DATABASE (db: ...)
+  // Il server userà la RAM. Veloce, zero conflitti con la Lobby.
 });
 
 server.run(8000, () => {
-  console.log("🚀 SERVER RISIKO ATTIVO sulla porta 8000 (Connesso a Firebase)");
+  console.log("🚀 SERVER RISIKO (RAM) ATTIVO sulla porta 8000");
 });

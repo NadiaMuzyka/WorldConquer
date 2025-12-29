@@ -32,11 +32,18 @@ const lobbySlice = createSlice({
         private: false,
         friends: false
       };
-    }
+    },
+    enterMatch: (state, action) => {
+      state.currentMatchId = action.payload; // Salviamo l'ID della partita
+    },
+    // NUOVA AZIONE: Quando esce
+    leaveMatch: (state) => {
+      state.currentMatchId = null;
   }
+  },
 });
 
 // Esportiamo le azioni e il reducer
-export const { setFilter, resetFilters, syncMatches } = lobbySlice.actions;
+export const { setFilter, resetFilters, syncMatches, enterMatch, leaveMatch } = lobbySlice.actions;
 export const selectFilters = (state) => state.lobby.filters; 
 export default lobbySlice.reducer;

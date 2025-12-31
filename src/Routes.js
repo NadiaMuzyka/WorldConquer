@@ -7,6 +7,7 @@ import { LoginPage } from "./components/UI/Login";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
+import {LoggatoPage} from "./components/UI/Loggato";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -25,13 +26,16 @@ export async function lobbyAuthLoader() {
 }
 
 const router = createBrowserRouter([
+  //Questa è la lobby semplificata
   {
     path: "/",
     element: <LobbyPage />, //TODO: Da cambiare in home page utente non autenticato!
   },
+  //Questa per ora deve essere inaccessibile (sarebbe la pagina alla quale si arriva dopo il login)
+  //Ma per questioni di test ora vengo temporaneamente reindirizzato a loggato
   {
     path: "/lobby",
-    element: <LobbyPage />,
+    element: <LoggatoPage />,  //TODO: Cambiare in <LobbyPage /> quando si vuole testare la lobby
     loader: lobbyAuthLoader,
     loadingElement: <Spinner />,
   },

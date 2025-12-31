@@ -1,5 +1,6 @@
 // src/firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore"; // <--- Importiamo Firestore
 
 const firebaseConfig = {
@@ -14,5 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app); // <--- Creiamo il collegamento al DB
+const auth = getAuth(app);
 
-export { app, db }; // <--- Lo esportiamo per usarlo nella Lobby
+export { app, db, auth }; // <--- Lo esportiamo per usarlo nella Lobby

@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { login } from '../../firebase/auth';
 import { useSelector } from 'react-redux';
 
-
-export const LoginPage = () => {
+export const LoginPage = ({ error: errorProp = "" }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [error, setError] = useState(errorProp);
 
     // Puoi leggere lo stato dal tuo nuovo slice
     const { user } = useSelector((state) => state.auth);
@@ -16,6 +15,8 @@ export const LoginPage = () => {
         const result = await login(email, password);
         if (!result.success) {
             setError(result.error);
+        } else {
+            setError("");
         }
     };
 
@@ -25,7 +26,7 @@ export const LoginPage = () => {
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
             <form onSubmit={handleLogin} className="p-8 bg-gray-800 rounded shadow-xl w-80">
                 <h2 className="text-xl mb-4 text-center">WorldConquer Login</h2>
-                {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+                {(error || errorProp) && <p className="text-red-500 text-sm mb-2">{error || errorProp}</p>}
                 <input
                     className="w-full mb-2 p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500"
                     type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)}

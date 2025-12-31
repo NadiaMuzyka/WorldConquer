@@ -28,19 +28,19 @@ const LobbyPage = () => {
   useEffect(() => {
     // Ascoltiamo la collezione 'matches' in tempo reale
     const q = query(collection(db, 'matches'));
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const matchesFromDB = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        
+
         // Mappiamo i dati per la GameCard
         matchesFromDB.push({
           matchID: doc.id,
           id: doc.id,
-          name: data.name || `PARTITA ${doc.id.slice(0,4)}`, 
+          name: data.name || `PARTITA ${doc.id.slice(0, 4)}`,
           players: data.players || [],
-          playersCurrent: (data.players || []).length, 
+          playersCurrent: (data.players || []).length,
           playersMax: data.playersMax || 6, // Default a 6 se manca
           gameover: data.gameover,
           status: data.status,
@@ -50,7 +50,7 @@ const LobbyPage = () => {
           image: data.image // Avatar dell'host o immagine custom
         });
       });
-      
+
       // Salviamo in Redux
       dispatch(syncMatches(matchesFromDB));
     });
@@ -66,13 +66,13 @@ const LobbyPage = () => {
     return games.filter((match) => {
       const tableSize = match.playersMax;
       const [min, max] = filters.playerRange;
-      
+
       // 1. Filtro Range Giocatori
       const isRangeOk = tableSize >= min && tableSize <= max;
-      
+
       // 2. Filtro Stato (Nascondi partite finite)
-      const isOngoing = !match.gameover; 
-      
+      const isOngoing = !match.gameover;
+
       // 3. Filtro Ricerca (Nome o ID)
       const search = (filters.search || '').toLowerCase();
       const matchName = (match.name || '').toLowerCase();
@@ -85,18 +85,18 @@ const LobbyPage = () => {
 
   // --- 3. NAVIGAZIONE ---
   const createMatch = () => {
-    navigate('/create'); 
+    navigate('/create');
   };
 
   return (
     <div className="relative min-h-screen w-full bg-[#173C55] overflow-y-auto font-roboto text-white">
-      
+
       {/* NAVBAR */}
       <Navbar mode="lobby" user={currentUser} />
 
       {/* LAYOUT PRINCIPALE */}
       <div className="flex justify-between items-start pt-[120px] pb-10 px-6 xl:px-12 gap-8 w-full max-w-[2000px] mx-auto">
-        
+
         {/* COLONNA SX: FILTRI */}
         <aside className="hidden xl:block w-[323px] shrink-0 sticky top-[120px]">
           <FilterContainer />
@@ -104,36 +104,36 @@ const LobbyPage = () => {
 
         {/* COLONNA CENTRALE: LISTA PARTITE */}
         <main className="flex-1 min-w-0">
-          <GameContainer 
-            matches={filteredGames} 
-            // Nota: Non passiamo più onJoin={...} perché GameCard fa tutto da sola
+          <GameContainer
+            matches={filteredGames}
+          // Nota: Non passiamo più onJoin={...} perché GameCard fa tutto da sola
           />
         </main>
 
         {/* COLONNA DX: SIDEBAR & CREATE */}
         <aside className="hidden xl:flex flex-col w-[323px] shrink-0 gap-5 sticky top-[120px]">
-          
+
           <SearchBox />
-          
+
           <div className="bg-[#1B2227] rounded-lg shadow-md p-4 flex flex-col h-[500px]">
-             <div className="flex items-center gap-2 mb-4 border-b border-gray-600 pb-2">
-                <Users className="w-6 h-6 text-[#38C7D7]" />
-                <span className="font-bold text-[18px]">AMICI ONLINE</span>
-             </div>
-             <div className="flex-1 flex items-center justify-center text-gray-500 text-sm border-2 border-dashed border-gray-600 rounded-lg">
-                Nessun amico online
-             </div>
+            <div className="flex items-center gap-2 mb-4 border-b border-gray-600 pb-2">
+              <Users className="w-6 h-6 text-[#38C7D7]" />
+              <span className="font-bold text-[18px]">AMICI ONLINE</span>
+            </div>
+            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm border-2 border-dashed border-gray-600 rounded-lg">
+              Nessun amico online
+            </div>
           </div>
 
           <div>
-             <Button 
-               variant="yellow" 
-               size="lg" 
-               onClick={createMatch} 
-               className="gap-2 uppercase w-full shadow-md"
-             >
-                <Plus className="w-6 h-6" /> Crea Partita
-             </Button>
+            <Button
+              variant="yellow"
+              size="lg"
+              onClick={createMatch}
+              className="gap-2 uppercase w-full shadow-md"
+            >
+              <Plus className="w-6 h-6" /> Crea Partita
+            </Button>
           </div>
 
         </aside>

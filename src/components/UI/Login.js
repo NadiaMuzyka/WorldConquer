@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { login } from '../../firebase/auth';
 import { useSelector } from 'react-redux';
 
+
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -18,7 +19,7 @@ export const LoginPage = () => {
         }
     };
 
-    if (user) return <p>Sei già loggato come {user.email}</p>;
+    if (user) return;
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">

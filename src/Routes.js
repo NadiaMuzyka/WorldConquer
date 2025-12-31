@@ -11,6 +11,10 @@ import { LoginPage } from "./components/UI/Login";
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <LobbyPage />, //TODO: Da cambiare in home page utente non autenticato!
+  },
+  {
+    path: "/lobby",
     element: <LobbyPage />,
   },
   {

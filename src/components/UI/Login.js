@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { login } from '../firebase/auth'; // Importa la tua funzione professionale
+import { login } from '../../firebase/auth';
 import { useSelector } from 'react-redux';
 
 export const LoginPage = () => {

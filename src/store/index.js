@@ -8,6 +8,7 @@ import { onUserStateChange } from '../firebase/auth';
 const store = configureStore({
   reducer: {
     lobby: lobbyReducer,
+    auth: authReducer,
   },
 }); 
 

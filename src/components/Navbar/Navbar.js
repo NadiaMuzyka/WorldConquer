@@ -92,7 +92,7 @@ export const Navbar = ({
             src={userAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
             alt="User"
             className="w-full h-full object-cover"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/lobby")}
           />
         </div>
       </div>

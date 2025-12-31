@@ -1,11 +1,11 @@
 // src/firebase/auth.js
 import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import app from "./firebaseConfig";
+import { app } from "./firebaseConfig";
 
 const auth = getAuth(app);
 
 /**
- * Maps Firebase error codes to user-friendly messages
+ * Mappa i codici di errore Firebase in messaggi user-friendly
  */
 const getErrorMessage = (errorCode) => {
   const errorMessages = {
@@ -27,10 +27,10 @@ const getErrorMessage = (errorCode) => {
 };
 
 /**
- * Logs in a user with email and password
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<Object>} User credential object or error
+ * Effettua il login di un utente con email e password
+ * @param {string} email - Email dell'utente
+ * @param {string} password - Password dell'utente
+ * @returns {Promise<Object>} Oggetto con credenziali utente o errore
  */
 export const login = async (email, password) => {
   try {
@@ -47,10 +47,10 @@ export const login = async (email, password) => {
 };
 
 /**
- * Registers a new user with email and password
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<Object>} User credential object or error
+ * Registra un nuovo utente con email e password
+ * @param {string} email - Email dell'utente
+ * @param {string} password - Password dell'utente
+ * @returns {Promise<Object>} Oggetto con credenziali utente o errore
  */
 export const register = async (email, password) => {
   try {
@@ -68,8 +68,8 @@ export const register = async (email, password) => {
 
 
 /**
- * Logs out the current user
- * @returns {Promise<Object>} Success status or error
+ * Effettua il logout dell'utente corrente
+ * @returns {Promise<Object>} Stato di successo o errore
  */
 export const logout = async () => {
   try {
@@ -84,11 +84,17 @@ export const logout = async () => {
     };
   }
 };
+
+/**
+ * Ascolta i cambiamenti dello stato di autenticazione
+ * @param {Function} callback - Funzione callback da eseguire al cambio di stato
+ * @returns {Function} Funzione per annullare la sottoscrizione
+ */
 export const onUserStateChange = (callback) => onAuthStateChanged(auth, callback);
 
 /**
- * Logs in a user with Google
- * @returns {Promise<Object>} User credential object or error
+ * Effettua il login dell'utente con Google
+ * @returns {Promise<Object>} Oggetto con credenziali utente o errore
  */
 export const loginWithGoogle = async () => {
   try {

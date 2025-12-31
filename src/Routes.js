@@ -8,6 +8,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
 import {LoggatoPage} from "./components/UI/Loggato";
+import HomePage from "./components/UI/Home";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -19,8 +20,8 @@ export async function lobbyAuthLoader() {
       resolve(firebaseUser);
     });
   });
-  if (!user) {
-    throw redirect("/login");
+  if (user) {
+    throw redirect("/lobby");
   }
   return null;
 }
@@ -29,15 +30,15 @@ const router = createBrowserRouter([
   //Questa è la lobby semplificata
   {
     path: "/",
-    element: <LobbyPage />, //TODO: Da cambiare in home page utente non autenticato!
-  },
-  //Questa per ora deve essere inaccessibile (sarebbe la pagina alla quale si arriva dopo il login)
-  //Ma per questioni di test ora vengo temporaneamente reindirizzato a loggato
-  {
-    path: "/lobby",
-    element: <LoggatoPage />,  //TODO: Cambiare in <LobbyPage /> quando si vuole testare la lobby
+    element: <HomePage />,
     loader: lobbyAuthLoader,
     loadingElement: <Spinner />,
+  },
+
+  {
+    path: "/lobby",
+    element: <LobbyPage />,
+    
   },
   {
     path: "/game/:matchId",

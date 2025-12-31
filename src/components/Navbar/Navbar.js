@@ -1,8 +1,9 @@
 import React from 'react';
-import { Flag, ArrowRight } from 'lucide-react';
+import { Flag, ArrowRight, LogOut } from 'lucide-react';
 import Timer from './Timer';         // Assicurati che il file esista (step precedente)
 import PhaseInfo from './PhaseInfo'; // Assicurati che il file esista (step precedente)
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../../firebase/auth'; 
 
 export const Navbar = ({
   // Props Partita
@@ -23,6 +24,13 @@ export const Navbar = ({
   // --- LOGICA SMART ---
   // Se è presente la prop 'phase', forza la modalità GAME
   const isGameMode = mode === "game" || !!phase;
+
+  const handleLogout = async () => {
+    const result = await logout();
+    if (result.success) {
+      navigate('/');
+    }
+  };
 
   // --- STILI BASE (CSS Figma) ---
   const baseClasses = "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1c1c1c]/80 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300";
@@ -86,13 +94,23 @@ export const Navbar = ({
       </div>
 
       {/* DX: Profilo Utente */}
-      <div className="flex items-center gap-6 pr-4">
-        <div className="w-[64px] h-[64px] rounded-full border-2 border-[#38C7D7] bg-[#2C333A] overflow-hidden cursor-pointer hover:opacity-90 transition shadow-lg">
+      <div className="flex items-center gap-4 pr-4">
+        {/* Bottone Logout */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all active:scale-95 shadow-md"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5 text-white" />
+          <span className="text-white font-medium text-sm">Logout</span>
+        </button>
+
+        {/* Avatar */}
+        <div className="w-[64px] h-[64px] rounded-full border-2 border-[#38C7D7] bg-[#2C333A] overflow-hidden shadow-lg">
           <img
             src={userAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
             alt="User"
             className="w-full h-full object-cover"
-            onClick={() => navigate("/lobby")}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { login } from '../../firebase/auth';
+import { login, logout } from '../../firebase/auth';
 import { useSelector } from 'react-redux';
 
 export const LoginPage = ({ error: errorProp = "" }) => {
@@ -20,7 +20,30 @@ export const LoginPage = ({ error: errorProp = "" }) => {
         }
     };
 
-    if (user) return;
+    const handleLogout = async () => {
+        const result = await logout();
+        if (!result.success) {
+            setError(result.error);
+        }
+    };
+
+    if (user) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
+                <div className="p-8 bg-gray-800 rounded shadow-xl w-80 text-center">
+                    <h2 className="text-xl mb-4">Benvenuto!</h2>
+                    <p className="text-gray-300 mb-2">Sei già loggato come:</p>
+                    <p className="text-blue-400 font-semibold mb-6">{user.email}</p>
+                    <button 
+                        onClick={handleLogout}
+                        className="w-full bg-red-600 py-2 rounded hover:bg-red-700 transition"
+                    >
+                        Logout
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">

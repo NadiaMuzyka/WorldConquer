@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux'; // <--- 1. IMPORT REDUX
+import { useDispatch } from 'react-redux'; 
 import { ArrowLeft, Users, Lock, Globe, Swords, Zap, Shield } from 'lucide-react';
 import bcrypt from 'bcryptjs';
-import { doc, setDoc } from 'firebase/firestore'; 
+// import { doc, setDoc } from 'firebase/firestore'; 
 
 // Components
 import Navbar from '../components/Navbar/Navbar';
@@ -36,50 +36,37 @@ const CreateMatchPage = () => {
     setLoading(true);
 
     try {
-        // 1. CREA SU SERVER BOARDGAME.IO (RAM)
+        // 1. PREPARA I DATI PER IL SERVER
+        // Passiamo tutto ciò che serve a Firestore dentro 'setupData'
+        const matchData = {
+            matchName,
+            playersMax,
+            mode: gameMode,
+            isPrivate,
+            password: isPrivate ? password : null, // (Idealmente hashala qui o lato server)
+            hostId: currentUser.id,
+            hostName: currentUser.name,
+            hostAvatar: currentUser.avatar
+        };
+
+        // 2. CHIAMA IL SERVER (Lui creerà RTDB e Firestore)
         const { matchID } = await lobbyClient.createMatch('risk', {
             numPlayers: playersMax,
-            setupData: { mode: gameMode }
+            setupData: matchData 
         });
 
-        // 2. GESTIONE PASSWORD
-        let finalPassword = null;
-        if (isPrivate && password) {
-            const salt = bcrypt.genSaltSync(10);
-            finalPassword = bcrypt.hashSync(password, salt);
-        }
+        console.log(`Partita ${matchID} creata dal server.`);
 
-        // 3. SCRIVI SU FIREBASE (PERSISTENZA)
-        // Nota: Qui definisci l'Host come player "0"
-        await setDoc(doc(db, 'matches', matchID), {
-            matchID: matchID,
-            name: matchName,
-            players: [{
-                id: "0", 
-                name: currentUser.name, 
-                avatar: currentUser.avatar
-            }],
-            playersMax: playersMax,
-            createdAt: new Date().toISOString(),
-            gameover: false,
-            status: 'OPEN',
-            mode: gameMode,
-            isPrivate: isPrivate,
-            password: finalPassword 
-        });
-
-        console.log(`Partita ${matchID} creata e sincronizzata.`);
-
-        // 4. JOIN AUTOMATICO (Ottieni credenziali Boardgame.io)
+        // 3. JOIN AUTOMATICO
+        // Importante: Passiamo 'avatar' dentro 'data' perché boardgame.io salva 'name' e 'data'
         const { playerCredentials } = await lobbyClient.joinMatch('risk', matchID, {
             playerID: "0",
             playerName: currentUser.name,
+            data: { avatar: currentUser.avatar } 
         });
 
-        // 5. AGGIORNA REDUX (Importante!)
-        dispatch(enterMatch(matchID)); // <--- 4. DISPATCH AZIONE
-
-        // 6. VAI AL GIOCO
+        // 4. REDUX E NAVIGAZIONE 
+        dispatch(enterMatch(matchID)); 
         navigate(`/game/${matchID}`, { 
             state: { 
                 playerID: "0", 
@@ -88,11 +75,11 @@ const CreateMatchPage = () => {
         });
 
     } catch (error) {
-        console.error("Errore creazione partita:", error);
-        alert("Errore durante la creazione. Assicurati che il server di gioco (porta 8000) sia attivo.");
+        console.error("Errore creazione:", error);
+        alert("Impossibile contattare il server (porta 8000).");
         setLoading(false);
     }
-  };
+};
 
 
   return (

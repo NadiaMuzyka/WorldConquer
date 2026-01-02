@@ -2,8 +2,6 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../firebase/firebaseConfig';
 import { enterMatch } from '../../store/slices/lobbySlice';
 import { getCurrentUser } from '../../utils/getUser';
 import { lobbyClient } from '../../lobbyClient'; // Import fondamentale per le credenziali
@@ -21,38 +19,29 @@ const GameCard = ({ match }) => {
   const maxCount = playersMax || 6;
   const isFull = currentCount >= maxCount;
 
-  // --- LOGICA DI JOIN ROBUSTA ---
+  // --- LOGICA DI JOIN ---
   const handleJoin = async () => {
-    
-    // A. Controllo se sono già dentro (Rientro veloce)
+    // 1. Rientro Veloce
     const existingPlayer = (players || []).find(p => p.name === currentUser.name);
-    
     if (existingPlayer) {
-        // Se sono già dentro, provo a recuperare le credenziali dal server se possibile,
-        // altrimenti navigo sperando che il client le abbia in cache o gestisco il caso.
-        // Per ora rientriamo col vecchio ID.
+        console.log("Rientro in partita...");
         dispatch(enterMatch(id));
         navigate(`/game/${id}`, { state: { playerID: existingPlayer.id } });
         return;
     }
 
-    // B. Controlli Pre-Join
-    if (isFull) {
-        alert("La partita è piena!");
-        return;
-    }
-
+    // 2. Controlli Base
+    if (isFull) { alert("Partita piena!"); return; }
     if (isPrivate && password) {
-        const inputPwd = prompt("🔒 Inserisci la password della stanza:");
-        if (inputPwd === null) return; 
-        if (!bcrypt.compareSync(inputPwd, password)) {
-            alert("❌ Password errata!");
-            return;
+        const inputPwd = prompt("🔒 Password:");
+        if (!inputPwd || !bcrypt.compareSync(inputPwd, password)) {
+            alert("Password errata!"); return;
         }
     }
 
-    // C. Calcolo del Posto Libero (Seat ID)
-    const takenSeats = (players || []).map(p => p.id);
+    // 3. CALCOLO POSTO (Logica Pulita)
+    // Ci fidiamo che Firestore contenga ID validi ("0", "1", "2") grazie all'Adapter.
+    const takenSeats = (players || []).map(p => String(p.id));
     let mySeatID = null;
     
     for (let i = 0; i < maxCount; i++) {
@@ -63,40 +52,28 @@ const GameCard = ({ match }) => {
     }
 
     if (mySeatID === null) {
-        alert("Errore: Nessun posto libero trovato.");
+        alert("Errore: Nessun posto libero.");
         return;
     }
 
     try {
-        // D. RICHIEDI CREDENZIALI AL SERVER (Boardgame.io)
+        // 4. Join al Server
         const { playerCredentials } = await lobbyClient.joinMatch('risk', id, {
             playerID: mySeatID,
             playerName: currentUser.name,
+            data: { 
+                avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + currentUser.name 
+            }
         });
 
-        // E. Aggiornamento Firebase
-        const matchRef = doc(db, 'matches', id);
-        await updateDoc(matchRef, {
-            players: arrayUnion({
-                id: mySeatID,
-                name: currentUser.name,
-                avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"
-            })
-        });
-
-        // F. Redux & Navigazione CON CREDENZIALI
         dispatch(enterMatch(id)); 
-        
         navigate(`/game/${id}`, { 
-            state: { 
-                playerID: mySeatID,
-                credentials: playerCredentials 
-            } 
+            state: { playerID: mySeatID, credentials: playerCredentials } 
         });
 
     } catch (error) {
-        console.error("Errore durante il join:", error);
-        alert("Impossibile entrare nella partita. Riprova.");
+        console.error("Join Error:", error);
+        alert(error.message.includes("409") ? "Posto già occupato." : error.message);
     }
   };
 

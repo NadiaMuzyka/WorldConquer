@@ -1,14 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit';
 
 import lobbyReducer from './slices/lobbySlice';
+import matchReducer from './slices/matchSlice';
 
 import authReducer, { setAuthUser, clearAuthUser } from './slices/authSlice';
 import { onUserStateChange } from '../firebase/auth'; 
+
 
 const store = configureStore({
   reducer: {
     lobby: lobbyReducer,
     auth: authReducer,
+    match: matchReducer,
   },
 }); 
 

@@ -184,7 +184,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Minimo 6 caratteri"
-                        icon={Lock}
                         required
                     />
 
@@ -196,7 +195,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="Ripeti la password"
-                        icon={Lock}
                         required
                     />
                 </>
@@ -246,7 +244,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                 type="date"
                 value={formData.birthDate}
                 onChange={handleChange}
-                icon={Calendar}
                 required
                 className="mb-4"
             />

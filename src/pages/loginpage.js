@@ -80,7 +80,6 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                icon={Lock}
                 required
                 className="mb-4"
             />

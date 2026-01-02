@@ -12,7 +12,7 @@ import TextInput from '../components/UI/TextInput';
 
 // Utils & Config
 import { db } from '../firebase/firebaseConfig';
-import { lobbyClient } from '../lobbyClient';
+import { lobbyClient } from '../client/lobbyClient';
 import { getCurrentUser } from '../utils/getUser';
 import { enterMatch } from '../store/slices/lobbySlice'; // <--- 2. IMPORT AZIONE
 

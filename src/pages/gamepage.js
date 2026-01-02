@@ -5,18 +5,7 @@ import { db } from '../firebase/firebaseConfig';
 import { getCurrentUser } from '../utils/getUser';
 
 // BOARDGAME.IO
-import { Client } from 'boardgame.io/react';
-import { SocketIO } from 'boardgame.io/multiplayer';
-import { RiskGame } from '../game';   
-import { RiskBoard } from '../RiskBoard'; 
-
-// Client Setup
-const RiskClient = Client({
-  game: RiskGame,
-  board: RiskBoard,
-  multiplayer: SocketIO({ server: 'localhost:8000' }),
-  debug: true,
-});
+import RiskClient from '../client/RiskClient';
 
 const GamePage = () => {
   const { matchId } = useParams();

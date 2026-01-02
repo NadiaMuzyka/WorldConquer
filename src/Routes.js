@@ -38,7 +38,6 @@ const router = createBrowserRouter([
   {
     path: "/lobby",
     element: <LobbyPage />,
-    
   },
   {
     path: "/game/:matchId",

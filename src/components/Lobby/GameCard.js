@@ -6,7 +6,7 @@ import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
 import { enterMatch } from '../../store/slices/lobbySlice';
 import { getCurrentUser } from '../../utils/getUser';
-import { lobbyClient } from '../../lobbyClient'; // Import fondamentale per le credenziali
+import { lobbyClient } from '../../client/lobbyClient'; // Import fondamentale per le credenziali
 
 const GameCard = ({ match }) => {
   const dispatch = useDispatch();

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { logout } from '../../firebase/auth';
 import auth from '../../firebase/auth';
 import { getUserData } from '../../firebase/db';
-import ProfileDropdown from '../UI/ProfileDropdown';
+import ProfileDropdown from './ProfileDropdown';
 
 export const Navbar = ({
   // Props Partita

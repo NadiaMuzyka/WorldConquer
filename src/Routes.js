@@ -9,6 +9,7 @@ import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
 import HomePage from "./pages/homepage";
 import RegistrationPage from "./pages/registrationpage";
+import ErrorPage from "./pages/errorpage";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -33,27 +34,37 @@ const router = createBrowserRouter([
     element: <HomePage />,
     loader: lobbyAuthLoader,
     loadingElement: <Spinner />,
+    errorElement: <ErrorPage />,
   },
 
   {
     path: "/lobby",
     element: <LobbyPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/game/:matchId",
     element: <GamePage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/create",
     element: <CreateMatchPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/login",
     element: <LoginPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/register",
     element: <RegistrationPage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "*",
+    element: <ErrorPage />,
   }
 ]);
 

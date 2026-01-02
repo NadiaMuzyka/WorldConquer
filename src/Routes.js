@@ -7,7 +7,7 @@ import { LoginPage } from "./pages/loginpage";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
-import HomePage from "./components/UI/Home";
+import HomePage from "./pages/homepage";
 import RegistrationPage from "./pages/registrationpage";
 
 // Loader for the root route ("/")

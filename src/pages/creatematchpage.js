@@ -14,6 +14,7 @@ import TextInput from '../components/UI/TextInput';
 import { db } from '../firebase/firebaseConfig';
 import { lobbyClient } from '../client/lobbyClient';
 import { getCurrentUser } from '../utils/getUser';
+import { auth } from '../firebase/firebaseConfig';
 import { enterMatch } from '../store/slices/lobbySlice'; // <--- 2. IMPORT AZIONE
 
 const CreateMatchPage = () => {
@@ -29,6 +30,7 @@ const CreateMatchPage = () => {
    const [loading, setLoading] = useState(false);
 
    const currentUser = getCurrentUser();
+   const firebaseUser = auth.currentUser;
 
    // --- LOGICA DI CREAZIONE ---
    const handleSubmit = async (e) => {
@@ -57,7 +59,8 @@ const CreateMatchPage = () => {
             players: [{
                id: "0",
                name: currentUser.name,
-               avatar: currentUser.avatar
+               avatar: currentUser.avatar,
+               firebasePlayerID: firebaseUser?.uid || null
             }],
             playersMax: playersMax,
             createdAt: new Date().toISOString(),

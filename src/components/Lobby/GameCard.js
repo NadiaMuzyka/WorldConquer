@@ -7,11 +7,13 @@ import { db } from '../../firebase/firebaseConfig';
 import { enterMatch } from '../../store/slices/lobbySlice';
 import { getCurrentUser } from '../../utils/getUser';
 import { lobbyClient } from '../../client/lobbyClient'; // Import fondamentale per le credenziali
+import auth from '../../firebase/auth';
 
 const GameCard = ({ match }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
+  const firebaseUser = auth.currentUser; // Ottieni l'utente Firebase autenticato
 
   // 1. Destrutturazione Dati
   const { id, name, players, playersMax, image, isPrivate, password } = match; 
@@ -80,7 +82,8 @@ const GameCard = ({ match }) => {
             players: arrayUnion({
                 id: mySeatID,
                 name: currentUser.name,
-                avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"
+                avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest",
+                firebasePlayerID: firebaseUser?.uid || null
             })
         });
 

@@ -8,6 +8,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
 import HomePage from "./components/UI/Home";
+import RegistrationPage from "./pages/registrationpage";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -49,6 +50,10 @@ const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/register",
+    element: <RegistrationPage />,
   }
 ]);
 

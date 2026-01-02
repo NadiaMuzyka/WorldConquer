@@ -4,6 +4,80 @@ import app from "./firebaseConfig";
 
 const db = getFirestore(app);
 
+/**
+ * Salva i dati utente su Firestore
+ * @param {string} uid - ID univoco dell'utente Firebase
+ * @param {Object} userData - Dati utente da salvare
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const saveUserData = async (uid, userData) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, {
+      ...userData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving user data:', error.code, error.message);
+    return { 
+      success: false, 
+      error: 'Errore durante il salvataggio dei dati utente',
+      errorCode: error.code 
+    };
+  }
+};
+
+/**
+ * Ottiene i dati utente da Firestore
+ * @param {string} uid - ID univoco dell'utente Firebase
+ * @returns {Promise<Object>} Dati utente o errore
+ */
+export const getUserData = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      return { success: true, data: userSnap.data() };
+    } else {
+      return { success: false, error: 'Utente non trovato' };
+    }
+  } catch (error) {
+    console.error('Error getting user data:', error.code, error.message);
+    return { 
+      success: false, 
+      error: 'Errore durante il recupero dei dati utente',
+      errorCode: error.code 
+    };
+  }
+};
+
+/**
+ * Aggiorna i dati utente su Firestore
+ * @param {string} uid - ID univoco dell'utente Firebase
+ * @param {Object} updates - Dati da aggiornare
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const updateUserData = async (uid, updates) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating user data:', error.code, error.message);
+    return { 
+      success: false, 
+      error: 'Errore durante l\'aggiornamento dei dati utente',
+      errorCode: error.code 
+    };
+  }
+};
+
 // Example: Create a new lobby
 export const createLobby = async (lobbyData) => {
   const lobbiesCol = collection(db, "lobbies");

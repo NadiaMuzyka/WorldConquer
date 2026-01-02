@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { login, loginWithGoogle } from '../firebase/auth';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/UI/Button';
 import GoogleLogo from '../components/Constants/GoogleLogo';
@@ -13,9 +12,6 @@ export const LoginPage = ({ error: errorProp = "" }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(errorProp);
-
-    // Puoi leggere lo stato dal tuo nuovo slice
-    const { user } = useSelector((state) => state.auth);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -43,7 +39,6 @@ export const LoginPage = ({ error: errorProp = "" }) => {
             title="WorldConquer Login"
             error={error || errorProp}
             onSubmit={handleLogin}
-            className="w-80"
         >
             <TextInput
                 variant="auth"

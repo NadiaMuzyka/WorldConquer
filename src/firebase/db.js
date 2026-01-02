@@ -4,6 +4,10 @@ import { app } from "./firebaseConfig";
 
 const db = getFirestore(app);
 
+  // ===========================================================================
+  // AUTENTICAZIONE UTENTE
+  // ===========================================================================
+
 /**
  * Salva i dati utente su Firestore
  * @param {string} uid - ID univoco dell'utente Firebase
@@ -77,6 +81,10 @@ export const updateUserData = async (uid, updates) => {
     };
   }
 };
+
+  // ===========================================================================
+  // GESTIONE LOBBY
+  // ===========================================================================
 
 // Example: Create a new lobby
 export const createLobby = async (lobbyData) => {

@@ -22,7 +22,7 @@ const getErrorMessage = (errorCode) => {
     'auth/popup-closed-by-user': 'Login annullato',
     'auth/cancelled-popup-request': 'Popup già aperto'
   };
-  
+
   return errorMessages[errorCode] || 'Si è verificato un errore durante l\'autenticazione';
 };
 
@@ -38,10 +38,10 @@ export const login = async (email, password) => {
     return { success: true, user: userCredential.user };
   } catch (error) {
     console.error('Login error:', error.code, error.message);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: getErrorMessage(error.code),
-      errorCode: error.code 
+      errorCode: error.code
     };
   }
 };
@@ -58,10 +58,10 @@ export const register = async (email, password) => {
     return { success: true, user: userCredential.user };
   } catch (error) {
     console.error('Registration error:', error.code, error.message);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: getErrorMessage(error.code),
-      errorCode: error.code 
+      errorCode: error.code
     };
   }
 };
@@ -77,10 +77,10 @@ export const logout = async () => {
     return { success: true };
   } catch (error) {
     console.error('Logout error:', error.code, error.message);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: 'Errore durante il logout',
-      errorCode: error.code 
+      errorCode: error.code
     };
   }
 };
@@ -103,10 +103,10 @@ export const loginWithGoogle = async () => {
     return { success: true, user: userCredential.user };
   } catch (error) {
     console.error('Google login error:', error.code, error.message);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: getErrorMessage(error.code),
-      errorCode: error.code 
+      errorCode: error.code
     };
   }
 };

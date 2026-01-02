@@ -3,11 +3,10 @@ import { createBrowserRouter, redirect } from "react-router-dom";
 import LobbyPage from "./pages/lobbypage";
 import GamePage from "./pages/gamepage";
 import CreateMatchPage from "./pages/creatematchpage";
-import { LoginPage } from "./components/UI/Login";
+import { LoginPage } from "./pages/loginpage";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
-import {LoggatoPage} from "./components/UI/Loggato";
 import HomePage from "./components/UI/Home";
 
 // Loader for the root route ("/")

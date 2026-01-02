@@ -3,12 +3,9 @@ import { Continent } from './Continent';
 import { MaritimeLines } from './Lines'; 
 import { CONTINENTS_DATA, MARITIME_LINES } from '../Constants/mapData'; 
 
-export function RiskMap({ G, moves }) {
-  
-  const handleCountryClick = (countryId) => {
-    moves.clickCountry(countryId);
-  };
 
+export function RiskMap() {
+  // Se serve moves, puoi prenderlo qui con useRisk, ma non serve passare nulla ai figli
   return (
     <svg
       version="1.1"
@@ -24,8 +21,6 @@ export function RiskMap({ G, moves }) {
           key={contName}
           name={contName}
           countries={countries}
-          G={G}
-          onCountryClick={handleCountryClick}
         />
       ))}
     </svg>

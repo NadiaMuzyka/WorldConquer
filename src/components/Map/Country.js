@@ -1,8 +1,13 @@
 import React from 'react';
 import { Troop } from './Troop';
 import { PLAYER_COLORS, COUNTRY_COLORS } from '../Constants/colors';
+import { useRisk } from '../../context/GameContext';
 
-export function Country({ data, owner, troops, onClick }) {
+export function Country({ data, owner, troops }) {
+
+  // Accediamo a moves tramite l'Hook useRisk (GameContext)
+  const { G, moves} = useRisk();
+  const prova= useRisk();
   const staticMapColor = COUNTRY_COLORS[data.id] || "#cccccc";
 
   // Se non troviamo il colore, usiamo un fucsia acceso (#ff00ff) per evidenziare l'errore, invece del nero.
@@ -10,8 +15,16 @@ export function Country({ data, owner, troops, onClick }) {
     ? PLAYER_COLORS[String(owner)] || '#ff00ff' 
     : null;
 
+  // Gestore del click sul paese
+  const handleClick = () => {
+    /*if (moves && typeof moves.clickCountry === 'function') {
+      moves.clickCountry( G, data.id);
+    }*/
+   console.log(prova);
+  };
+
   return (
-    <g onClick={() => onClick(data.id)} style={{ cursor: 'pointer' }}>
+    <g onClick={handleClick} style={{ cursor: 'pointer' }}>
       <path
         id={data.id}
         d={data.path}

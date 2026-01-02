@@ -2,7 +2,7 @@ import React from 'react';
 import { Country } from './Country';
 import { useRisk } from '../../context/GameContext';
 
-export function Continent({ name, countries, onCountryClick }) {
+export function Continent({ name, countries }) {
   const { G } = useRisk();
   const owners = G && G.owners ? G.owners : {};
   const troops = G && G.troops ? G.troops : {};
@@ -15,7 +15,6 @@ export function Continent({ name, countries, onCountryClick }) {
           data={countryData}
           owner={owners[countryData.id] ?? null}
           troops={troops[countryData.id] ?? 0}
-          onClick={onCountryClick}
         />
       ))}
     </g>

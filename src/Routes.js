@@ -9,6 +9,7 @@ import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
 import HomePage from "./pages/homepage";
 import RegistrationPage from "./pages/registrationpage";
+import CompleteProfilePage from "./pages/completeprofilepage";
 import ErrorPage from "./pages/errorpage";
 
 // Loader for the root route ("/")
@@ -60,6 +61,11 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <RegistrationPage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/complete-profile",
+    element: <CompleteProfilePage />,
     errorElement: <ErrorPage />,
   },
   {

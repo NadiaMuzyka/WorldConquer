@@ -2,6 +2,7 @@ import React from 'react';
 
 /**
  * Componente wrapper per form di autenticazione
+ * Include layout con sfondo e centratura
  * @param {string} title - Titolo del form
  * @param {string} error - Messaggio di errore da visualizzare
  * @param {function} onSubmit - Handler per il submit del form
@@ -16,12 +17,12 @@ export const AuthForm = ({
     className = ""
 }) => {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white py-8">
-            <form onSubmit={onSubmit} className={`p-8 bg-gray-800 rounded shadow-xl w-full max-w-md ${className}`}>
-                <h2 className="text-2xl font-bold mb-6 text-center">{title}</h2>
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+            <form onSubmit={onSubmit} className={`p-8 bg-gray-800 rounded-2xl shadow-xl w-full max-w-md ${className}`}>
+                <h2 className="text-3xl font-bold mb-6 text-center text-white">{title}</h2>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded text-red-400 text-sm">
+                    <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-sm">
                         {error}
                     </div>
                 )}

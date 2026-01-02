@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { login, loginWithGoogle } from '../firebase/auth';
+import { getUserData } from '../firebase/db';
 import { useNavigate } from 'react-router-dom';
+import { Mail, Lock } from 'lucide-react';
 import Button from '../components/UI/Button';
 import GoogleLogo from '../components/Constants/GoogleLogo';
 import TextInput from '../components/UI/TextInput';
@@ -28,8 +30,26 @@ export const LoginPage = ({ error: errorProp = "" }) => {
         const result = await loginWithGoogle();
         if (!result.success) {
             setError(result.error);
+            return;
+        }
+        
+        setError("");
+        
+        // Se è un nuovo utente, controlla se ha già completato il profilo
+        if (result.isNewUser) {
+            // Nuovo utente Google - deve completare il profilo
+            navigate('/complete-profile');
+            return;
+        }
+        
+        // Utente esistente - controlla se ha i dati in Firestore
+        const userData = await getUserData(result.user.uid);
+        
+        if (!userData.success || !userData.data) {
+            // Dati non trovati - deve completare il profilo
+            navigate('/complete-profile');
         } else {
-            setError("");
+            // Dati presenti - vai alla lobby
             navigate('/lobby');
         }
     };
@@ -48,6 +68,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email"
+                icon={Mail}
                 required
             />
 
@@ -59,6 +80,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
+                icon={Lock}
                 required
                 className="mb-4"
             />

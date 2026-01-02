@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, LogOut } from 'lucide-react';
-import DropdownMenuItem from '../UI/DropdownMenuItem';
+import DropdownMenuItem from '../UI/DropdownItem';
 
 /**
  * Menu dropdown del profilo utente

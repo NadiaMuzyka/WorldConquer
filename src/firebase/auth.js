@@ -94,13 +94,21 @@ export const onUserStateChange = (callback) => onAuthStateChanged(auth, callback
 
 /**
  * Effettua il login dell'utente con Google
- * @returns {Promise<Object>} Oggetto con credenziali utente o errore
+ * @returns {Promise<Object>} Oggetto con credenziali utente, isNewUser flag o errore
  */
 export const loginWithGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
-    return { success: true, user: userCredential.user };
+    
+    // Verifica se l'utente è nuovo controllando i metadati
+    const isNewUser = userCredential.user.metadata.creationTime === userCredential.user.metadata.lastSignInTime;
+    
+    return { 
+      success: true, 
+      user: userCredential.user,
+      isNewUser
+    };
   } catch (error) {
     console.error('Google login error:', error.code, error.message);
     return {

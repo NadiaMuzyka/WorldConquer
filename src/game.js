@@ -14,7 +14,7 @@ const RiskGame = {
 
   moves: {
     clickCountry: ({ G, playerID, events }, countryId) => {
-      if (!playerID) return INVALID_MOVE; // deve esistere un giocatore
+      //if (!playerID) return INVALID_MOVE; // deve esistere un giocatore
 
       // Assicura la forma dello stato
       if (!G.troops) G.troops = {};

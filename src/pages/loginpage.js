@@ -6,7 +6,8 @@ import { Mail, Lock } from 'lucide-react';
 import Button from '../components/UI/Button';
 import GoogleLogo from '../components/Constants/GoogleLogo';
 import TextInput from '../components/UI/TextInput';
-import AuthForm from '../components/UI/AuthForm';
+import Form from '../components/UI/Form';
+import PageContainer from '../components/UI/PageContainer';
 
 export const LoginPage = ({ error: errorProp = "" }) => {
 
@@ -55,11 +56,12 @@ export const LoginPage = ({ error: errorProp = "" }) => {
     };
 
     return (
-        <AuthForm 
-            title="WorldConquer Login"
-            error={error || errorProp}
-            onSubmit={handleLogin}
-        >
+        <PageContainer centered={true}>
+            <Form 
+                title="WorldConquer Login"
+                error={error || errorProp}
+                onSubmit={handleLogin}
+            >
             <TextInput
                 variant="auth"
                 label="Email"
@@ -123,6 +125,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                     Registrati qui
                 </button>
             </div>
-        </AuthForm>
+            </Form>
+        </PageContainer>
     );
 };

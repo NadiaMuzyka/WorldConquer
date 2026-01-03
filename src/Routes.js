@@ -11,6 +11,7 @@ import HomePage from "./pages/homepage";
 import RegistrationPage from "./pages/registrationpage";
 import CompleteProfilePage from "./pages/completeprofilepage";
 import ErrorPage from "./pages/errorpage";
+import ProfilePage from "./pages/profilepage";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -41,6 +42,11 @@ const router = createBrowserRouter([
   {
     path: "/lobby",
     element: <LobbyPage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/profile",
+    element: <ProfilePage />,
     errorElement: <ErrorPage />,
   },
   {

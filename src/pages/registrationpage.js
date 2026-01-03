@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Calendar, AtSign } from 'lucide-react';
 import Button from '../components/UI/Button';
 import TextInput from '../components/UI/TextInput';
-import AuthForm from '../components/UI/AuthForm';
+import Form from '../components/UI/Form';
+import PageContainer from '../components/UI/PageContainer';
 import auth from '../firebase/auth';
 
 export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail = null }) => {
@@ -147,11 +148,12 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
     };
 
     return (
-        <AuthForm 
-            title={isCompleteProfile ? "Completa il tuo Profilo" : "Registrazione WorldConquer"}
-            error={error}
-            onSubmit={handleRegister}
-        >
+        <PageContainer centered={true}>
+            <Form 
+                title={isCompleteProfile ? "Completa il tuo Profilo" : "Registrazione WorldConquer"}
+                error={error}
+                onSubmit={handleRegister}
+            >
             {/* Email read-only se complete profile */}
             {isCompleteProfile && currentUserEmail && (
                 <div className="mb-6 p-3 bg-[#38C7D7]/10 border border-[#38C7D7]/30 rounded-lg">
@@ -275,7 +277,8 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                     </button>
                 </div>
             )}
-        </AuthForm>
+        </Form>
+        </PageContainer>
     );
 };
 

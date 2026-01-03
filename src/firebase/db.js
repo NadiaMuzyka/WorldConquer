@@ -1,6 +1,7 @@
 // src/firebase/db.js
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
 import { app } from "./firebaseConfig";
+import auth from "./auth";
 
 const db = getFirestore(app);
 
@@ -78,6 +79,91 @@ export const updateUserData = async (uid, updates) => {
       success: false, 
       error: 'Errore durante l\'aggiornamento dei dati utente',
       errorCode: error.code 
+    };
+  }
+};
+
+/**
+ * Ottiene il profilo completo dell'utente corrente
+ * Include dati da Auth e da Firestore
+ * @returns {Promise<Object>} Profilo utente completo o errore
+ */
+export const getCurrentUserProfile = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: 'Utente non autenticato' };
+    }
+
+    const result = await getUserData(user.uid);
+    if (!result.success) {
+      return result;
+    }
+
+    // Determina se è un utente Google
+    const isGoogleUser = user.providerData.some(provider => provider.providerId === 'google.com');
+
+    return {
+      success: true,
+      data: {
+        uid: user.uid,
+        email: user.email,
+        isGoogleUser,
+        ...result.data
+      }
+    };
+  } catch (error) {
+    console.error('Error getting current user profile:', error);
+    return {
+      success: false,
+      error: 'Errore durante il recupero del profilo',
+      errorCode: error.code
+    };
+  }
+};
+
+/**
+ * Aggiorna il profilo dell'utente corrente
+ * @param {Object} updates - Dati da aggiornare
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const updateCurrentUserProfile = async (updates) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: 'Utente non autenticato' };
+    }
+
+    return await updateUserData(user.uid, updates);
+  } catch (error) {
+    console.error('Error updating current user profile:', error);
+    return {
+      success: false,
+      error: 'Errore durante l\'aggiornamento del profilo',
+      errorCode: error.code
+    };
+  }
+};
+
+/**
+ * Aggiorna l'avatar dell'utente corrente
+ * @param {string} photoURL - URL della nuova foto profilo
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const updateCurrentUserAvatar = async (photoURL) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: 'Utente non autenticato' };
+    }
+
+    return await updateUserData(user.uid, { photoURL });
+  } catch (error) {
+    console.error('Error updating current user avatar:', error);
+    return {
+      success: false,
+      error: 'Errore durante l\'aggiornamento dell\'avatar',
+      errorCode: error.code
     };
   }
 };

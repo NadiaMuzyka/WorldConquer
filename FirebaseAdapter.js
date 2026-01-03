@@ -15,36 +15,41 @@ class FirebaseAdapter {
   async connect() { return true; }
   async ping() { return true; }
 
-async createMatch(matchID, { initialState, metadata }) {
-    // 1. RTDB (Stato Grezzo)
+  // --- CREAZIONE ---
+  async createMatch(matchID, { initialState, metadata }) {
+    // 1. RTDB (Stato iniziale)
     await this.rtdb.ref(`matches/${matchID}`).set({ 
         initialState, 
         state: initialState, 
         metadata 
     });
 
-    // 2. FIRESTORE (Dati Puliti per la Lobby)
+    // 2. FIRESTORE (Lobby)
     const setupData = metadata.setupData || {};
-    
     const firestoreData = {
       matchID: matchID,
       name: setupData.matchName || `Partita ${matchID}`,
       playersMax: setupData.playersMax || 6,
-      status: 'OPEN',
-      // ... altri campi ...
+      mode: setupData.mode || 'classica',
+      status: 'OPEN', // Nasce sempre OPEN
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
       playersCurrent: 1, 
+      isPrivate: setupData.isPrivate || false,
+      password: setupData.password || null,
       players: [{
-          id: "0", // <--- FORZATURA FONDAMENTALE: L'Host è SEMPRE "0"
+          id: setupData.hostId || "host",
           name: setupData.hostName || "Host",
           avatar: setupData.hostAvatar || "",
           isHost: true
       }],
-      // ...
+      gameover: false
     };
 
     try {
         await this.firestore.collection('matches').doc(matchID).set(firestoreData);
+        // Inizializziamo la cache per evitare update inutili immediati
         this.statusCache.set(matchID, 'OPEN'); 
+        console.log(`[ADAPTER] Match ${matchID} creato.`);
     } catch (error) {
         console.error(`[ADAPTER ERROR] Create Firestore: ${error.message}`);
     }

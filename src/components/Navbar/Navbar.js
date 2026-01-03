@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flag, ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import Timer from './Timer';         // Assicurati che il file esista (step precedente)
 import PhaseInfo from './PhaseInfo'; // Assicurati che il file esista (step precedente)
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { logout } from '../../firebase/auth';
 import auth from '../../firebase/auth';
 import { getUserData } from '../../firebase/db';
 import ProfileDropdown from './ProfileDropdown';
+import Logo from '../UI/Logo';
+import Button from '../UI/Button';
 
 export const Navbar = ({
   // Props Partita
@@ -22,22 +24,47 @@ export const Navbar = ({
 }) => {
 
   const navigate = useNavigate();
-  const [avatarUrl, setAvatarUrl] = useState(userAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix");
+  const AVATAR_CACHE_KEY = 'user_avatar_url';
+  
+  // Inizializza con l'avatar dalla cache se disponibile
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    if (userAvatar) return userAvatar;
+    const cached = localStorage.getItem(AVATAR_CACHE_KEY);
+    return cached || null;
+  });
+  const [isLoading, setIsLoading] = useState(!userAvatar && !localStorage.getItem(AVATAR_CACHE_KEY));
 
-  // Carica l'avatar dal database quando il componente monta
+  // Aggiorna l'avatar quando il prop cambia
+  useEffect(() => {
+    if (userAvatar) {
+      setAvatarUrl(userAvatar);
+      localStorage.setItem(AVATAR_CACHE_KEY, userAvatar);
+      setIsLoading(false);
+    }
+  }, [userAvatar]);
+
+  // Carica l'avatar dal database solo se non è stato passato come prop
   useEffect(() => {
     const loadUserAvatar = async () => {
+      if (userAvatar) {
+        return; // Usa il prop, non caricare dal DB
+      }
+      
       const currentUser = auth.currentUser;
-      if (currentUser && !userAvatar) {
+      if (currentUser) {
         const result = await getUserData(currentUser.uid);
         if (result.success && result.data.photoURL) {
           setAvatarUrl(result.data.photoURL);
+          localStorage.setItem(AVATAR_CACHE_KEY, result.data.photoURL);
         }
       }
+      setIsLoading(false);
     };
 
     loadUserAvatar();
   }, [userAvatar]);
+
+  const displayAvatar = avatarUrl;
 
   // --- LOGICA SMART ---
   // Se è presente la prop 'phase', forza la modalità GAME
@@ -57,7 +84,7 @@ export const Navbar = ({
   const heightClass = isGameMode ? "h-[102px]" : "h-[86px]";
 
   // ===========================================================================
-  // MODALITÀ: GAME (Layout Timer | Fase | Esci)
+  // MODALITÀ: GAME (Timer | Fase | Esci)
   // ===========================================================================
   if (isGameMode) {
     return (
@@ -80,15 +107,14 @@ export const Navbar = ({
 
         {/* 3. BOTTONE ABBANDONA (Destra) */}
         <div className="flex items-center justify-end">
-          <button
+          <Button
             onClick={onLeave}
-            className="group w-[160px] h-[34px] bg-[#38C7D7] hover:bg-[#2dbdc0] rounded-[25px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md"
+            variant="cyan"
+            className="w-[160px] h-[34px] gap-2 uppercase group"
           >
-            <span className="font-bold text-[16px] text-[#192832] tracking-[0.2px] uppercase">
-              Abbandona
-            </span>
-            <ArrowRight className="w-[19px] h-[19px] text-[#192832] group-hover:translate-x-1 transition-transform" />
-          </button>
+            <span>Abbandona</span>
+            <ArrowRight className="w-[19px] h-[19px] group-hover:translate-x-1 transition-transform" />
+          </Button>
         </div>
 
       </nav>
@@ -102,19 +128,13 @@ export const Navbar = ({
     <nav className={`${baseClasses} ${heightClass}`}>
 
       {/* SX: Logo e Brand */}
-      <div className="flex items-center gap-5">
-        <div className="relative w-[54px] h-[54px] flex items-center justify-center">
-          <Flag className="w-[40px] h-[40px] text-[#38C7D7] fill-current" />
-        </div>
-        <span className="font-bold text-[32px] text-white tracking-[0.2px] hidden md:block">
-          WorldConquer
-        </span>
-      </div>
+      <Logo onClick={() => navigate('/lobby')} />
 
       {/* DX: Profilo Utente */}
       <div className="flex items-center pr-4">
         <ProfileDropdown
-          avatarUrl={avatarUrl}
+          avatarUrl={displayAvatar}
+          isLoading={isLoading}
           onProfileClick={() => navigate('/profile')}
           onLogoutClick={handleLogout}
         />

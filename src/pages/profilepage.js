@@ -203,10 +203,10 @@ const ProfilePage = () => {
 
     return (
         <>
-            <Navbar mode="lobby" userAvatar={userData.photoURL} />
+            <Navbar mode="lobby" userAvatar={userData.photoURL || undefined} />
             <PageContainer>
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-8 pt-20">
                     <h1 className="text-3xl font-bold text-white mb-2">Il tuo Profilo</h1>
                     <p className="text-gray-400">Gestisci le tue informazioni personali</p>
                 </div>
@@ -226,7 +226,7 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                     {/* Colonna sinistra - Avatar */}
                     <div className="lg:col-span-1">
-                        <Card className="text-center sticky top-8">
+                        <Card className="text-center sticky top-24">
                             <Avatar
                                 src={userData.photoURL}
                                 alt={userData.nickname}

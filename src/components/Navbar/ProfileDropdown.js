@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Loader2 } from 'lucide-react';
 import DropdownMenuItem from '../UI/DropdownItem';
+import Avatar from '../UI/Avatar';
 
 /**
  * Menu dropdown del profilo utente
  * @param {Object} props
  * @param {string} props.avatarUrl - URL dell'avatar dell'utente
+ * @param {boolean} props.isLoading - Se l'avatar sta caricando
  * @param {Function} props.onProfileClick - Callback per il click su "Profilo"
  * @param {Function} props.onLogoutClick - Callback per il click su "Logout"
  */
-const ProfileDropdown = ({ avatarUrl, onProfileClick, onLogoutClick }) => {
+const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onLogoutClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -39,15 +41,20 @@ const ProfileDropdown = ({ avatarUrl, onProfileClick, onLogoutClick }) => {
       {/* Avatar Button */}
       <button
         onClick={toggleDropdown}
-        className="w-[64px] h-[64px] rounded-full border-2 border-[#38C7D7] bg-[#2C333A] overflow-hidden shadow-lg hover:border-[#2eb4c4] transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#38C7D7] focus:ring-offset-2 focus:ring-offset-[#1A1F25]"
+        className="w-[64px] h-[64px] rounded-full border-2 border-[#38C7D7] bg-[#2C333A] overflow-hidden shadow-lg hover:border-[#2eb4c4] transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#38C7D7] focus:ring-offset-2 focus:ring-offset-[#1A1F25] flex items-center justify-center"
         aria-expanded={isOpen}
         aria-haspopup="true"
+        disabled={isLoading}
       >
-        <img
-          src={avatarUrl}
-          alt="User"
-          className="w-full h-full object-cover"
-        />
+        {isLoading ? (
+          <Loader2 className="w-6 h-6 text-[#38C7D7] animate-spin" />
+        ) : avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt="User"
+            className="w-full h-full object-cover"
+          />
+        ) : null}
       </button>
 
       {/* Dropdown Menu */}

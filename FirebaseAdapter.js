@@ -5,9 +5,6 @@ class FirebaseAdapter {
   constructor(rtdb, firestore) {
     this.rtdb = rtdb;
     this.firestore = firestore;
-    
-    // CACHE LOCALE: Mappa matchID -> 'STATUS' (es. 'PLAYING')
-    // Serve per non scrivere su Firestore a ogni singolo click
     this.statusCache = new Map();
   }
 
@@ -17,10 +14,15 @@ class FirebaseAdapter {
 
   // --- CREAZIONE ---
   async createMatch(matchID, { initialState, metadata }) {
+    // FIX 1: Sanifichiamo lo stato iniziale per rimuovere undefined
+    const cleanState = JSON.parse(JSON.stringify(initialState));
+
+    console.log(`[ADAPTER DEBUG] Saving state. Started? ${cleanState.G?.isGameStarted}`);
+
     // 1. RTDB (Stato iniziale)
     await this.rtdb.ref(`matches/${matchID}`).set({ 
-        initialState, 
-        state: initialState, 
+        initialState: cleanState, 
+        state: cleanState, 
         metadata 
     });
 
@@ -57,40 +59,50 @@ class FirebaseAdapter {
 
   // --- AGGIORNAMENTO STATO (Cuore della logica) ---
   async setState(matchID, state, deltalog) {
-    // 1. RTDB: Scriviamo SEMPRE (è la memoria "viva" del gioco)
-    await this.rtdb.ref(`matches/${matchID}/state`).set(state);
+    // 1. SANIFICAZIONE TOTALE (Rimuove undefined che fanno crashare Firebase)
+    const cleanState = JSON.parse(JSON.stringify(state));
+    
+    // Log di debug per vedere se cleanState ha i dati giusti
+    // console.log(`[ADAPTER DEBUG] Saving state. Started? ${cleanState.G?.isGameStarted}`);
 
-    // 2. CALCOLO STATUS ATTUALE
+    // 2. SCRITTURA RTDB (Lo stato del gioco)
+    try {
+        await this.rtdb.ref(`matches/${matchID}/state`).set(cleanState);
+    } catch (e) {
+        console.error(`[ADAPTER FATAL] Errore scrittura RTDB per ${matchID}:`, e);
+        // Se fallisce qui, non possiamo procedere
+        return state; 
+    }
+
+    // 3. AGGIORNAMENTO FIRESTORE (Lo stato della Lobby)
+    // Calcoliamo lo status basandoci su cleanState che è sicuro
     let currentStatus = 'OPEN';
+    
     if (state.ctx.gameover) {
         currentStatus = 'FINISHED';
-    } else if (state.G.isGameStarted) {
+    } else if (cleanState.G && cleanState.G.isGameStarted === true) {
         currentStatus = 'PLAYING';
     }
 
-    // 3. CHECK CACHE: Dobbiamo aggiornare Firestore?
+    // Verifica cache per evitare scritture inutili
     const lastKnownStatus = this.statusCache.get(matchID);
 
-    // Aggiorna SOLO se lo stato è cambiato rispetto all'ultima volta che abbiamo controllato
-    // (O se la cache è vuota causa riavvio server)
     if (currentStatus !== lastKnownStatus) {
-        
-        console.log(`[ADAPTER] Aggiorno Firestore: ${matchID} -> ${currentStatus}`);
+        console.log(`[ADAPTER] Cambio Status rilevato: ${lastKnownStatus} -> ${currentStatus}`);
         
         const updateData = { status: currentStatus };
-        
-        // Se è finita, salviamo anche il vincitore
         if (currentStatus === 'FINISHED') {
-            updateData.gameover = true;
-            updateData.winner = state.ctx.gameover;
+             updateData.gameover = true;
+             updateData.winner = state.ctx.gameover;
         }
 
-        // Scrittura Firestore (Idempotente)
-        await this.firestore.collection('matches').doc(matchID).update(updateData)
-            .catch(e => console.error(`[ADAPTER WARN] Err update ${currentStatus}:`, e.message));
-        
-        // Aggiorniamo la cache
-        this.statusCache.set(matchID, currentStatus);
+        try {
+            await this.firestore.collection('matches').doc(matchID).update(updateData);
+            this.statusCache.set(matchID, currentStatus);
+            console.log(`[ADAPTER] Firestore aggiornato con successo a ${currentStatus}`);
+        } catch (e) {
+            console.error(`[ADAPTER WARN] Impossibile aggiornare Firestore:`, e.message);
+        }
     }
     
     return state;
@@ -121,7 +133,15 @@ class FirebaseAdapter {
   // --- LETTURE ---
   async getState(matchID) {
     const s = await this.rtdb.ref(`matches/${matchID}/state`).once('value');
-    return s.val(); 
+    const val = s.val();
+    
+    // FIX: Assicuriamo che troops e owners esistano anche se vuoti su DB
+    if (val && val.G) {
+        if (!val.G.troops) val.G.troops = {};
+        if (!val.G.owners) val.G.owners = {};
+    }
+    
+    return val; 
   }
 
   async getMetadata(matchID) {

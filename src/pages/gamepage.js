@@ -71,7 +71,8 @@ const GamePage = () => {
          <RiskClient 
             matchID={matchId} 
             playerID={playerID} 
-            credentials={credentials} 
+            credentials={credentials}
+            isLobbyFull={!isWaiting} 
          />
       </div>
 

@@ -9,7 +9,7 @@ const RiskGame = {
   // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: () => ({
     isGameStarted: false,
-    countryColors: { ...COUNTRY_COLORS }, // Colori estetici mappa
+    //countryColors: { ...COUNTRY_COLORS }, // Colori estetici mappa
     troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
     owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
   }),

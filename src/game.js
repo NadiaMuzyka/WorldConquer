@@ -5,14 +5,27 @@ const { COUNTRY_COLORS } = require('./components/Constants/colors');
 // Definiamo il gioco (CommonJS per compatibilità con server.js)
 const RiskGame = {
   name: 'risk',
+  disableUndo: true,  
   // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: () => ({
-    countryColors: { ...COUNTRY_COLORS }, // Colori estetici mappa
+    isGameStarted: false,
+    //countryColors: { ...COUNTRY_COLORS }, // Colori estetici mappa
     troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
     owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
   }),
 
   moves: {
+    // --- FIX: Sintassi estesa per aggiungere ignoreTurnOrder ---
+    startMatch: {
+      move: ({ G, ctx }) => {
+        if (ctx.currentPlayer !== '0') return INVALID_MOVE;
+        if (G.isGameStarted) return; // Evita doppi avvii
+        
+        console.log("⚡ SERVER: Partita avviata!");
+        G.isGameStarted = true;
+      },
+      ignoreTurnOrder: true // <--- QUESTO RISOLVE "PLAYER NOT ACTIVE"
+    },
     clickCountry: ({ G, playerID, events }, countryId) => {
       //if (!playerID) return INVALID_MOVE; // deve esistere un giocatore
 

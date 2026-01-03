@@ -4,7 +4,7 @@ import { MaritimeLines } from './Lines';
 import { CONTINENTS_DATA, MARITIME_LINES } from '../Constants/mapData'; 
 
 
-export function RiskMap() {
+export default function RiskMap() {
   // Se serve moves, puoi prenderlo qui con useRisk, ma non serve passare nulla ai figli
   return (
     <svg

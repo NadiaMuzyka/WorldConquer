@@ -1,118 +1,107 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'; // Aggiunto useState
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot } from 'firebase/firestore'; // <--- USIAMO onSnapshot
-import { db } from '../firebase/firebaseConfig';
-import { getCurrentUser } from '../utils/getUser';
-
-// BOARDGAME.IO
-import RiskClient from '../client/RiskClient';
+import { useDispatch, useSelector } from 'react-redux';
+import { doc, onSnapshot } from 'firebase/firestore'; 
+import { db, auth } from '../firebase/firebaseConfig'; // <--- Importa auth diretto
+import { setMatchData, clearMatchData } from '../store/slices/matchSlice';
+import RiskClient from '../client/RiskClient'; 
+import { Users, Loader2 } from 'lucide-react'; 
 
 const GamePage = () => {
   const { matchId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  // const currentUser = getCurrentUser(); // Se servisse per controlli futuri
+  const dispatch = useDispatch();
 
-  const [matchData, setMatchData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // 1. LEGGI DATI MATCH DA REDUX (Questo ora funziona grazie al fix nello store)
+  const { data: matchData } = useSelector((state) => state.match || { data: null }); 
+  
+  // 2. RECUPERA UTENTE (Senza Redux Auth)
+  const [user, setUser] = useState(auth.currentUser);
 
-  // Recupero dati dalla navigazione (passati da GameCard/CreateMatch)
+  // Ascolta auth change nel caso l'utente logghi al volo (opzionale ma sicuro)
+  useEffect(() => {
+     const unsub = auth.onAuthStateChanged((u) => setUser(u));
+     return () => unsub();
+  }, []);
+
   const playerID = location.state?.playerID; 
   const credentials = location.state?.credentials; 
 
-  // --- ASCOLTO TEMPO REALE (FIX SINCRONIZZAZIONE) ---
+  // --- ASCOLTO FIRESTORE -> REDUX ---
   useEffect(() => {
     if (!matchId) return;
 
-    // Riferimento al documento della partita
-    const docRef = doc(db, "matches", matchId);
-
-    // Attiviamo il listener
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (!docSnap.exists()) {
-        console.warn("Partita cancellata o inesistente");
-        navigate('/'); // Se l'host cancella la partita, torniamo tutti alla lobby
-        return;
+    const unsubscribe = onSnapshot(doc(db, "matches", matchId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        // FIX SERIALIZZAZIONE DATA
+        if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
+            data.createdAt = data.createdAt.toMillis();
+        }
+        
+        dispatch(setMatchData(data));
+      } else {
+        console.warn("Partita non trovata");
+        navigate('/'); 
       }
-
-      const data = docSnap.data();
-      setMatchData(data); // Aggiorna lo stato ogni volta che il DB cambia!
-      setLoading(false);
-      
-      // Opzionale: Se vuoi fare un log per vedere gli aggiornamenti
-      // console.log("Aggiornamento giocatori:", data.players.length);
-    }, (error) => {
-       console.error("Errore ascolto partita:", error);
-       // Gestisci l'errore o naviga via
     });
 
-    // Importante: spegni l'ascolto quando esci dalla pagina
-    return () => unsubscribe();
-  }, [matchId, navigate]);
+    return () => {
+      unsubscribe();
+      dispatch(clearMatchData());
+    };
+  }, [matchId, dispatch, navigate]);
 
+  // Se non c'è playerID, torna indietro
+  if (!playerID) return <div className="text-white bg-[#1B2227] h-screen p-10 flex items-center justify-center">Accesso negato: Nessun PlayerID.</div>;
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center text-white bg-[#1B2227]">Caricamento...</div>;
-  }
-
-  // Calcoli basati sui dati sempre aggiornati
-  const currentPlayers = matchData?.players?.length || 0;
-  const maxPlayers = matchData?.playersMax || 6;
+  // Calcoli Overlay
+  const currentPlayers = matchData?.playersCurrent || 1;
+  const maxPlayers = matchData?.playersMax || 3;
   const isWaiting = currentPlayers < maxPlayers;
+  const isPlaying = matchData?.status === 'PLAYING'; 
 
   return (
     <div className="relative w-full h-screen bg-[#1B2227] overflow-hidden">
       
-      {/* 1. GIOCO (Boardgame.io) */}
-      <div className="w-full h-full">
-        <RiskClient 
+      {/* GIOCO */}
+      <div className="absolute inset-0 z-0">
+         <RiskClient 
             matchID={matchId} 
             playerID={playerID} 
-            credentials={credentials} 
-        />
+            credentials={credentials}
+            isLobbyFull={!isWaiting} 
+         />
       </div>
 
-      {/* 2. OVERLAY ATTESA */}
-      {/* Questo ora sparirà automaticamente appena isWaiting diventa false! */}
-      {isWaiting && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-all duration-500">
-           
-           <div className="bg-[#173C55] p-8 rounded-xl border border-[#38C7D7] text-center shadow-2xl max-w-md w-full mx-4 animate-in fade-in zoom-in duration-300">
-              <h2 className="text-3xl font-bold text-white mb-2 uppercase tracking-wide">In Attesa</h2>
-              <p className="text-[#38C7D7] text-xl font-bold mb-6">
-                 Giocatori {currentPlayers} / {maxPlayers}
-              </p>
-              
-              <div className="flex justify-center gap-4 mb-8 flex-wrap">
-                 {/* Avatar Presenti */}
-                 {matchData.players.map((p, i) => (
-                    <div key={i} className="flex flex-col items-center animate-in slide-in-from-bottom-2 fade-in duration-500">
-                       <img src={p.avatar} alt={p.name} className="w-12 h-12 rounded-full border-2 border-white mb-1 shadow-lg"/>
-                       <span className="text-xs text-white font-bold">{p.name}</span>
-                    </div>
-                 ))}
-                 
-                 {/* Slot Vuoti */}
-                 {[...Array(maxPlayers - currentPlayers)].map((_, i) => (
-                    <div key={`empty-${i}`} className="flex flex-col items-center opacity-50">
-                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-500 bg-gray-800/50 flex items-center justify-center">
-                           <span className="text-gray-500 text-xs">?</span>
-                        </div>
-                        <span className="text-xs text-gray-500 mt-1">...</span>
-                    </div>
-                 ))}
-              </div>
-              
-              <div className="text-gray-400 text-sm animate-pulse mb-6">
-                 La partita inizierà automaticamente...
-              </div>
+      {/* OVERLAY ATTESA */}
+      {isWaiting && !isPlaying && (
+        <div className="absolute inset-0 z-50 bg-[#1B2227]/95 backdrop-blur-md flex flex-col items-center justify-center text-white">
+           <div className="bg-[#173C55] p-10 rounded-2xl border border-[#38C7D7] shadow-2xl text-center max-w-lg w-full">
+              <h1 className="text-3xl font-black uppercase mb-6 tracking-widest text-white">
+                SALA D'ATTESA
+              </h1>
 
-              <button 
-                onClick={() => navigate('/')}
-                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold transition shadow-lg hover:shadow-red-500/20"
-              >
-                Abbandona
-              </button>
+              <div className="flex items-center justify-center gap-3 text-[#38C7D7] mb-8 bg-[#1B2227]/50 py-4 rounded-lg border border-gray-700">
+                <Users size={28} />
+                <span className="text-2xl font-bold">
+                   <span className="text-white text-3xl">{currentPlayers}</span> / {maxPlayers}
+                </span>
+              </div>
+              
+              {user && (
+                 <p className="text-sm text-gray-400 mb-4">
+                    Sei loggato come: <span className="text-[#38C7D7]">{user.displayName || user.email}</span>
+                 </p>
+              )}
+
+              <div className="flex flex-col items-center gap-4">
+                 <Loader2 size={48} className="text-[#38C7D7] animate-spin" />
+                 <p className="text-gray-300 font-medium">In attesa degli altri giocatori...</p>
+                 <p className="text-xs text-gray-500">ID Partita: {matchId}</p>
+              </div>
            </div>
         </div>
       )}

@@ -45,14 +45,14 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
     // Validazione del form
     const validateForm = () => {
         // Validazione campi comuni
-        if (!formData.firstName || !formData.lastName || !formData.nickname || !formData.birthDate) {
+        if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.nickname.trim() || !formData.birthDate) {
             setError('Tutti i campi obbligatori devono essere compilati');
             return false;
         }
 
         // Validazione email e password solo se NON è complete profile
         if (!isCompleteProfile) {
-            if (!formData.email || !formData.password) {
+            if (!formData.email.trim() || !formData.password) {
                 setError('Tutti i campi obbligatori devono essere compilati');
                 return false;
             }

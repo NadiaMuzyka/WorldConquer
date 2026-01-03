@@ -5,19 +5,8 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { setMatchData, clearMatchData } from '../store/slices/matchSlice';
 
-import { Client } from 'boardgame.io/react';
-import { SocketIO } from 'boardgame.io/multiplayer';
-import { RiskGame } from '../game';   
-import { RiskBoard } from '../RiskBoard'; 
-import { Users, Loader2 } from 'lucide-react';
-
-
-const RiskClient = Client({
-  game: RiskGame,
-  board: RiskBoard,
-  multiplayer: SocketIO({ server: 'localhost:8000' }),
-  debug: false,
-});
+// BOARDGAME.IO
+import RiskClient from '../client/RiskClient';
 
 const GamePage = () => {
   const { matchId } = useParams();

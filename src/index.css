@@ -1,3 +1,57 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+
+    /* Fix autofill browser - mantiene colori originali */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Auth input autofill (bg-gray-700) */
+    input.bg-gray-700:-webkit-autofill {
+        -webkit-text-fill-color: white;
+        -webkit-box-shadow: 0 0 0px 1000px #374151 inset;
+    }
+
+    /* Styling per input date - icona calendario */
+    input[type="date"] {
+        color-scheme: dark;
+    }
+
+    /* Chrome, Safari, Edge - Uniforma icona calendario */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(90%);
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Firefox - Uniforma icona calendario */
+    input[type="date"]::-moz-calendar-picker-indicator {
+        filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(90%);
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Animazione fade-in per dropdown */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+}

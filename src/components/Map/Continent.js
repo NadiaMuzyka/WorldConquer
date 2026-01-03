@@ -1,17 +1,20 @@
 import React from 'react';
 import { Country } from './Country';
+import { useRisk } from '../../context/GameContext';
 
-export function Continent({ name, countries, G, onCountryClick }) {
+export function Continent({ name, countries }) {
+  const { G } = useRisk();
+  const owners = G && G.owners ? G.owners : {};
+  const troops = G && G.troops ? G.troops : {};
+
   return (
     <g id={`continent-${name}`}>
       {countries.map((countryData) => (
         <Country
           key={countryData.id}
           data={countryData}
-          // Nota: l'owner può essere "0" (player 0) quindi non usiamo controlli truthy
-          owner={G.owners ? G.owners[countryData.id] : null}
-          troops={G.troops ? (G.troops[countryData.id] || 0) : 0}
-          onClick={onCountryClick}
+          owner={owners[countryData.id] ?? null}
+          troops={troops[countryData.id] ?? 0}
         />
       ))}
     </g>

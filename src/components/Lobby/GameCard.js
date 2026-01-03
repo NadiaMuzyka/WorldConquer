@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
 import { enterMatch } from '../../store/slices/lobbySlice';
 import { getCurrentUser } from '../../utils/getUser';
-import { lobbyClient } from '../../lobbyClient'; // Import fondamentale per le credenziali
+import { lobbyClient } from '../../client/lobbyClient'; // Import fondamentale per le credenziali
+import auth from '../../firebase/auth';
 
 const GameCard = ({ match }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
+  const firebaseUser = auth.currentUser; // Ottieni l'utente Firebase autenticato
 
   // 1. Destrutturazione Dati
   const { id, name, players, playersMax, image, isPrivate, password } = match; 

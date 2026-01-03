@@ -1,9 +1,12 @@
-import React from 'react';
-import { Flag, ArrowRight, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Flag, ArrowRight } from 'lucide-react';
 import Timer from './Timer';         // Assicurati che il file esista (step precedente)
 import PhaseInfo from './PhaseInfo'; // Assicurati che il file esista (step precedente)
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../firebase/auth'; 
+import { logout } from '../../firebase/auth';
+import auth from '../../firebase/auth';
+import { getUserData } from '../../firebase/db';
+import ProfileDropdown from './ProfileDropdown';
 
 export const Navbar = ({
   // Props Partita
@@ -18,8 +21,23 @@ export const Navbar = ({
   userAvatar
 }) => {
 
-
   const navigate = useNavigate();
+  const [avatarUrl, setAvatarUrl] = useState(userAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix");
+
+  // Carica l'avatar dal database quando il componente monta
+  useEffect(() => {
+    const loadUserAvatar = async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser && !userAvatar) {
+        const result = await getUserData(currentUser.uid);
+        if (result.success && result.data.photoURL) {
+          setAvatarUrl(result.data.photoURL);
+        }
+      }
+    };
+
+    loadUserAvatar();
+  }, [userAvatar]);
 
   // --- LOGICA SMART ---
   // Se è presente la prop 'phase', forza la modalità GAME
@@ -94,25 +112,12 @@ export const Navbar = ({
       </div>
 
       {/* DX: Profilo Utente */}
-      <div className="flex items-center gap-4 pr-4">
-        {/* Bottone Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all active:scale-95 shadow-md"
-          title="Logout"
-        >
-          <LogOut className="w-5 h-5 text-white" />
-          <span className="text-white font-medium text-sm">Logout</span>
-        </button>
-
-        {/* Avatar */}
-        <div className="w-[64px] h-[64px] rounded-full border-2 border-[#38C7D7] bg-[#2C333A] overflow-hidden shadow-lg">
-          <img
-            src={userAvatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
-            alt="User"
-            className="w-full h-full object-cover"
-          />
-        </div>
+      <div className="flex items-center pr-4">
+        <ProfileDropdown
+          avatarUrl={avatarUrl}
+          onProfileClick={() => navigate('/profile')}
+          onLogoutClick={handleLogout}
+        />
       </div>
 
     </nav>

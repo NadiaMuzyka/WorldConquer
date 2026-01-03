@@ -3,12 +3,14 @@ import { createBrowserRouter, redirect } from "react-router-dom";
 import LobbyPage from "./pages/lobbypage";
 import GamePage from "./pages/gamepage";
 import CreateMatchPage from "./pages/creatematchpage";
-import { LoginPage } from "./components/UI/Login";
+import { LoginPage } from "./pages/loginpage";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "./firebase/firebaseConfig";
 import Spinner from "./components/UI/Spinner";
-import {LoggatoPage} from "./components/UI/Loggato";
-import HomePage from "./components/UI/Home";
+import HomePage from "./pages/homepage";
+import RegistrationPage from "./pages/registrationpage";
+import CompleteProfilePage from "./pages/completeprofilepage";
+import ErrorPage from "./pages/errorpage";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -33,24 +35,42 @@ const router = createBrowserRouter([
     element: <HomePage />,
     loader: lobbyAuthLoader,
     loadingElement: <Spinner />,
+    errorElement: <ErrorPage />,
   },
 
   {
     path: "/lobby",
     element: <LobbyPage />,
-    
+    errorElement: <ErrorPage />,
   },
   {
     path: "/game/:matchId",
     element: <GamePage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/create",
     element: <CreateMatchPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/login",
     element: <LoginPage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/register",
+    element: <RegistrationPage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/complete-profile",
+    element: <CompleteProfilePage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "*",
+    element: <ErrorPage />,
   }
 ]);
 

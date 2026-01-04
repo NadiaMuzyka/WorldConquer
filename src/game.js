@@ -8,7 +8,6 @@ const RiskGame = {
   disableUndo: true,  
   // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: () => ({
-    isGameStarted: false, // Diventa true quando l'ultimo giocatore entra
     troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
     owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
     setupAssignmentOrder: [], // Array di countryId in ordine di assegnazione
@@ -16,14 +15,6 @@ const RiskGame = {
   }),
 
   moves: {
-    // Move per far partire il gioco quando tutti i giocatori sono connessi
-    startGamePhase: ({ G, events }) => {
-      if (!G.isGameStarted) {
-        G.isGameStarted = true;
-        events.setPhase('SETUP_INITIAL');
-      }
-    },
-    
     // Conferma che il giocatore ha visto il setup
     confirmSetupView: ({ G, playerID }) => {
       if (!G.playersReady) G.playersReady = {};
@@ -66,22 +57,8 @@ const RiskGame = {
   },
 
   phases: {
-    WAITING: {
-      start: true,
-      turn: {
-        activePlayers: ActivePlayers.ALL,
-      },
-      moves: {
-        startGamePhase: ({ G, events }) => {
-          if (!G.isGameStarted) {
-            G.isGameStarted = true;
-            events.setPhase('SETUP_INITIAL');
-          }
-        },
-      },
-    },
-    
     SETUP_INITIAL: {
+      start: true,
       onBegin: (G, ctx) => {
         console.log("🎲 Fase SETUP_INITIAL iniziata");
         

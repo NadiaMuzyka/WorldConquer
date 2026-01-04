@@ -116,7 +116,7 @@ const LobbyPage = () => {
 
           <div className="bg-[#1B2227] rounded-lg shadow-md p-4 flex flex-col h-[500px]">
             <div className="flex items-center gap-2 mb-4 border-b border-gray-600 pb-2">
-              <Users className="w-6 h-6 text-[#38C7D7]" />
+              <Users className="w-6 h-6 text-white" />
               <span className="text-xl font-bold text-white">Amici Online</span>
             </div>
             <div className="flex-1 flex items-center justify-center text-gray-500 text-sm border-2 border-dashed border-gray-600 rounded-lg">

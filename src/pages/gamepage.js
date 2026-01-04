@@ -61,7 +61,15 @@ const GamePage = () => {
   const currentPlayers = matchData?.playersCurrent || 1;
   const maxPlayers = matchData?.playersMax || 3;
   const isWaiting = currentPlayers < maxPlayers;
-  const isPlaying = matchData?.status === 'PLAYING'; 
+  const isPlaying = matchData?.status === 'PLAYING';
+  
+  // Mostra overlay se non è ancora PLAYING E se non tutti i giocatori sono connessi
+  const shouldShowOverlay = !isPlaying && isWaiting;
+  
+  // Testo dinamico dell'overlay
+  const overlayText = currentPlayers === maxPlayers 
+    ? "Tutti connessi, inizializzazione partita..." 
+    : "In attesa degli altri giocatori..."; 
 
   return (
     <div className="relative w-full h-screen bg-[#1B2227] overflow-hidden">
@@ -77,7 +85,7 @@ const GamePage = () => {
       </div>
 
       {/* OVERLAY ATTESA */}
-      {isWaiting && !isPlaying && (
+      {shouldShowOverlay && (
         <div className="absolute inset-0 z-50 bg-[#1B2227]/95 backdrop-blur-md flex flex-col items-center justify-center text-white">
            <div className="bg-[#173C55] p-10 rounded-2xl border border-[#38C7D7] shadow-2xl text-center max-w-lg w-full">
               <h1 className="text-3xl font-black uppercase mb-6 tracking-widest text-white">
@@ -99,7 +107,7 @@ const GamePage = () => {
 
               <div className="flex flex-col items-center gap-4">
                  <Loader2 size={48} className="text-[#38C7D7] animate-spin" />
-                 <p className="text-gray-300 font-medium">In attesa degli altri giocatori...</p>
+                 <p className="text-gray-300 font-medium">{overlayText}</p>
                  <p className="text-xs text-gray-500">ID Partita: {matchId}</p>
               </div>
            </div>

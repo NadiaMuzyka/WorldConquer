@@ -1,8 +1,8 @@
 import React from 'react';
 
-export const Troop = ({ color, count, x, y }) => {
-  // Se non c'è proprietario, non mostrare nulla (o mostra un colore neutro se preferisci)
-  if (!color) return null;
+export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 0 }) => {
+  // Se non deve essere mostrato, non renderizzare nulla
+  if (!shouldShow || !color) return null;
 
   // Calcolo per centrare il carroarmato: 
   // L'SVG è 40x40, quindi sottraiamo 20 alle coordinate X e Y per centrarlo
@@ -15,7 +15,12 @@ export const Troop = ({ color, count, x, y }) => {
   return (
     <g 
       transform={position} 
-      style={{ pointerEvents: 'none' }} // IMPORTANTE: Il click passa sotto (al Paese)
+      style={{ 
+        pointerEvents: 'none',
+        opacity: 0,
+        animation: 'fadeIn 0.5s ease-in forwards',
+        animationDelay: `${animationDelay}ms`
+      }}
     >
       {/* Corpo del Carroarmato */}
       <path 

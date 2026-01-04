@@ -3,7 +3,7 @@
  */
 
 // Stili base condivisi da tutti gli input
-export const INPUT_BASE_STYLES = "w-full h-[45px] rounded text-[14px] font-medium transition-all outline-none border px-3 bg-gray-700 text-white placeholder-gray-400 border-gray-600 focus:border-[#38C7D7]";
+export const INPUT_BASE_STYLES = "w-full h-[45px] rounded-lg text-[14px] font-medium transition-all outline-none border px-3 bg-[#2A3439] text-white placeholder-gray-400 border-gray-600 focus:border-[#38C7D7] [-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#2A3439_inset]";
 
 // Stili per stato di errore
 export const INPUT_ERROR_STYLES = "border-red-500 focus:border-red-500";

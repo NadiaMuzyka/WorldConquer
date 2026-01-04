@@ -96,7 +96,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                     <div className="w-full border-t border-gray-600"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-gray-800 text-gray-400">oppure</span>
+                    <span className="px-2 bg-[#1B2227] text-gray-400">oppure</span>
                 </div>
             </div>
 

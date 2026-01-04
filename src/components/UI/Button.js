@@ -45,7 +45,7 @@ export const Button = ({
 }) => {
   
   // Stili base comuni a tutti (Arrotondato, Flex, Font)
-  const baseStyles = "rounded-full font-bold tracking-wide transition-all duration-200 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "rounded-full font-bold transition-all duration-200 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 
   // Composizione finale delle classi
   const finalClass = `

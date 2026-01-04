@@ -186,4 +186,197 @@ export const getLobbyById = async (id) => {
   return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
 };
 
+  // ===========================================================================
+  // GESTIONE AMICI
+  // ===========================================================================
+
+/**
+ * Aggiunge un amico alla lista dell'utente
+ * @param {string} userId - ID dell'utente che aggiunge l'amico
+ * @param {string} friendId - ID dell'amico da aggiungere
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const addFriend = async (userId, friendId) => {
+  try {
+    if (!userId || !friendId) {
+      return { success: false, error: 'ID utente o amico mancante' };
+    }
+
+    if (userId === friendId) {
+      return { success: false, error: 'Non puoi aggiungere te stesso come amico' };
+    }
+
+    // Crea il documento dell'amicizia
+    const friendshipRef = doc(db, "friendships", `${userId}_${friendId}`);
+    await setDoc(friendshipRef, {
+      userId,
+      friendId,
+      createdAt: new Date().toISOString(),
+      status: 'active'
+    });
+
+    // Crea anche il documento inverso per query bidirezionali
+    const inverseFriendshipRef = doc(db, "friendships", `${friendId}_${userId}`);
+    await setDoc(inverseFriendshipRef, {
+      userId: friendId,
+      friendId: userId,
+      createdAt: new Date().toISOString(),
+      status: 'active'
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding friend:', error);
+    return { 
+      success: false, 
+      error: 'Errore durante l\'aggiunta dell\'amico',
+      errorCode: error.code 
+    };
+  }
+};
+
+/**
+ * Rimuove un amico dalla lista dell'utente
+ * @param {string} userId - ID dell'utente che rimuove l'amico
+ * @param {string} friendId - ID dell'amico da rimuovere
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const removeFriend = async (userId, friendId) => {
+  try {
+    if (!userId || !friendId) {
+      return { success: false, error: 'ID utente o amico mancante' };
+    }
+
+    // Rimuove entrambi i documenti dell'amicizia
+    const friendshipRef = doc(db, "friendships", `${userId}_${friendId}`);
+    await deleteDoc(friendshipRef);
+
+    const inverseFriendshipRef = doc(db, "friendships", `${friendId}_${userId}`);
+    await deleteDoc(inverseFriendshipRef);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing friend:', error);
+    return { 
+      success: false, 
+      error: 'Errore durante la rimozione dell\'amico',
+      errorCode: error.code 
+    };
+  }
+};
+
+/**
+ * Ottiene la lista degli amici di un utente
+ * @param {string} userId - ID dell'utente
+ * @returns {Promise<Object>} Lista degli amici con i loro dati
+ */
+export const getUserFriends = async (userId) => {
+  try {
+    if (!userId) {
+      return { success: false, error: 'ID utente mancante', data: [] };
+    }
+
+    // Query per trovare tutte le amicizie dell'utente
+    const friendshipsRef = collection(db, "friendships");
+    const q = query(friendshipsRef, where("userId", "==", userId), where("status", "==", "active"));
+    const querySnapshot = await getDocs(q);
+
+    // Ottieni i dati completi di ogni amico
+    const friendsPromises = querySnapshot.docs.map(async (friendshipDoc) => {
+      const friendship = friendshipDoc.data();
+      const friendData = await getUserData(friendship.friendId);
+      
+      return {
+        uid: friendship.friendId,
+        friendshipId: friendshipDoc.id,
+        addedAt: friendship.createdAt,
+        ...friendData.data
+      };
+    });
+
+    const friends = await Promise.all(friendsPromises);
+
+    return { success: true, data: friends };
+  } catch (error) {
+    console.error('Error getting user friends:', error);
+    return { 
+      success: false, 
+      error: 'Errore durante il recupero degli amici',
+      errorCode: error.code,
+      data: []
+    };
+  }
+};
+
+/**
+ * Controlla se due utenti sono amici
+ * @param {string} userId - ID del primo utente
+ * @param {string} friendId - ID del secondo utente
+ * @returns {Promise<Object>} Risultato del controllo
+ */
+export const areFriends = async (userId, friendId) => {
+  try {
+    if (!userId || !friendId) {
+      return { success: false, areFriends: false };
+    }
+
+    const friendshipRef = doc(db, "friendships", `${userId}_${friendId}`);
+    const friendshipSnap = await getDoc(friendshipRef);
+
+    return { 
+      success: true, 
+      areFriends: friendshipSnap.exists() && friendshipSnap.data().status === 'active'
+    };
+  } catch (error) {
+    console.error('Error checking friendship:', error);
+    return { 
+      success: false, 
+      areFriends: false,
+      error: 'Errore durante il controllo dell\'amicizia'
+    };
+  }
+};
+
+/**
+ * Cerca utenti per username o email
+ * @param {string} searchTerm - Termine di ricerca
+ * @param {number} limit - Numero massimo di risultati (default: 10)
+ * @returns {Promise<Object>} Lista degli utenti trovati
+ */
+export const searchUsers = async (searchTerm, limit = 10) => {
+  try {
+    if (!searchTerm || searchTerm.length < 2) {
+      return { success: false, error: 'Termine di ricerca troppo corto', data: [] };
+    }
+
+    const usersRef = collection(db, "users");
+    
+    // Cerca per username (case-insensitive usando startAt/endAt)
+    const searchTermLower = searchTerm.toLowerCase();
+    const q = query(
+      usersRef,
+      where("usernameLower", ">=", searchTermLower),
+      where("usernameLower", "<=", searchTermLower + '\uf8ff')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const users = querySnapshot.docs
+      .slice(0, limit)
+      .map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      }));
+
+    return { success: true, data: users };
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return { 
+      success: false, 
+      error: 'Errore durante la ricerca degli utenti',
+      errorCode: error.code,
+      data: []
+    };
+  }
+};
+
 export default db;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { INPUT_BASE_STYLES, INPUT_ERROR_STYLES, INPUT_CONTAINER_STYLES, INPUT_LABEL_STYLES, INPUT_ERROR_MESSAGE_STYLES } from './inputStyles';
 
 /**
  * Componente per input di date con validazione età minima
@@ -88,15 +89,13 @@ const DateInput = ({
     }
   };
 
-  // Stili base
-  const baseStyles = "w-full h-[45px] rounded text-[14px] font-medium transition-all outline-none border px-3 bg-gray-700 text-white placeholder-gray-400 border-gray-600 focus:border-[#38C7D7]";
-  const errorStyles = error ? "border-red-500 focus:border-red-500" : "";
+  const errorStyles = error ? INPUT_ERROR_STYLES : "";
 
   return (
-    <div className="mb-3">
+    <div className={INPUT_CONTAINER_STYLES}>
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium mb-1 text-white pl-2">
+        <label className={INPUT_LABEL_STYLES}>
           {label} {required && '*'}
         </label>
       )}
@@ -110,13 +109,13 @@ const DateInput = ({
           onClick={handleClick}
           required={required}
           disabled={disabled}
-          className={`${baseStyles} ${errorStyles}`}
+          className={`${INPUT_BASE_STYLES} ${errorStyles}`}
         />
       </div>
 
       {/* Messaggio di errore */}
       {error && (
-        <p className="text-red-500 text-xs mt-1 pl-2">{error}</p>
+        <p className={INPUT_ERROR_MESSAGE_STYLES}>{error}</p>
       )}
     </div>
   );

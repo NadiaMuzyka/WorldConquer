@@ -1,4 +1,5 @@
 import React from 'react';
+import { INPUT_BASE_STYLES, INPUT_ERROR_STYLES, INPUT_CONTAINER_STYLES, INPUT_LABEL_STYLES, INPUT_ERROR_MESSAGE_STYLES, INPUT_ICON_RIGHT, INPUT_ICON_COLOR } from './inputStyles';
 
 const TextInput = ({
   label,
@@ -15,15 +16,13 @@ const TextInput = ({
   error
 }) => {
 
-  // Stili base
-  const baseStyles = "w-full h-[45px] rounded text-[14px] font-medium transition-all outline-none border px-3 bg-gray-700 text-white placeholder-gray-400 border-gray-600 focus:border-[#38C7D7]";
-  const errorStyles = error ? "border-red-500 focus:border-red-500" : "";
+  const errorStyles = error ? INPUT_ERROR_STYLES : "";
 
   return (
-    <div className={`mb-3 ${className}`}>
+    <div className={`${INPUT_CONTAINER_STYLES} ${className}`}>
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium mb-1 text-white pl-2">
+        <label className={INPUT_LABEL_STYLES}>
           {label} {required && '*'}
         </label>
       )}
@@ -38,20 +37,20 @@ const TextInput = ({
           placeholder={placeholder}
           required={required}
           disabled={disabled}
-          className={`${baseStyles} ${errorStyles} ${Icon ? 'pr-9' : ''}`}
+          className={`${INPUT_BASE_STYLES} ${errorStyles} ${Icon ? 'pr-9' : ''}`}
         />
 
         {/* Icona posizionata a DESTRA */}
         {Icon && (
-          <div className="absolute right-3 flex items-center justify-center pointer-events-none">
-            <Icon size={16} className="text-gray-400" />
+          <div className={INPUT_ICON_RIGHT}>
+            <Icon size={16} className={INPUT_ICON_COLOR} />
           </div>
         )}
       </div>
 
       {/* Messaggio di errore */}
       {error && (
-        <p className="text-red-500 text-xs mt-1 pl-2">{error}</p>
+        <p className={INPUT_ERROR_MESSAGE_STYLES}>{error}</p>
       )}
     </div>
   );

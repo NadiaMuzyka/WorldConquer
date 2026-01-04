@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+import { INPUT_BASE_STYLES, INPUT_ERROR_STYLES, INPUT_CONTAINER_STYLES, INPUT_LABEL_STYLES, INPUT_ERROR_MESSAGE_STYLES, INPUT_ICON_LEFT, INPUT_ICON_RIGHT_CLICKABLE, INPUT_ICON_COLOR } from './inputStyles';
 
 /**
  * Componente per input di password con toggle visibilità
@@ -69,15 +70,15 @@ const PasswordInput = ({
         onChange(e);
     };
 
-    // Stili base
-    const baseStyles = "w-full h-[45px] rounded text-[14px] font-medium transition-all outline-none border pl-10 pr-10 bg-gray-700 text-white placeholder-gray-400 border-gray-600 focus:border-[#38C7D7]";
-    const errorStyles = error ? "border-red-500 focus:border-red-500" : "";
+    // Stili base con padding per le icone
+    const baseStyles = INPUT_BASE_STYLES.replace('px-3', 'pl-10 pr-10');
+    const errorStyles = error ? INPUT_ERROR_STYLES : "";
 
     return (
-        <div className="mb-3">
+        <div className={INPUT_CONTAINER_STYLES}>
             {/* Label */}
             {label && (
-                <label className="block text-sm font-medium mb-1 text-white pl-2">
+                <label className={INPUT_LABEL_STYLES}>
                     {label} {required && '*'}
                 </label>
             )}
@@ -97,26 +98,26 @@ const PasswordInput = ({
                 />
 
                 {/* Icona Lock a sinistra */}
-                <div className="absolute left-3 flex items-center justify-center pointer-events-none">
-                    <Lock size={16} className="text-gray-400" />
+                <div className={INPUT_ICON_LEFT}>
+                    <Lock size={16} className={INPUT_ICON_COLOR} />
                 </div>
 
                 {/* Icona Eye/EyeOff a destra (cliccabile) */}
                 <div
-                    className="absolute right-3 flex items-center justify-center cursor-pointer"
+                    className={INPUT_ICON_RIGHT_CLICKABLE}
                     onClick={() => !disabled && setShowPassword(!showPassword)}
                 >
                     {showPassword ? (
-                        <EyeOff size={16} className="text-gray-400" />
+                        <EyeOff size={16} className={INPUT_ICON_COLOR} />
                     ) : (
-                        <Eye size={16} className="text-gray-400" />
+                        <Eye size={16} className={INPUT_ICON_COLOR} />
                     )}
                 </div>
             </div>
 
             {/* Messaggio di errore */}
             {error && (
-                <p className="text-red-500 text-xs mt-1 pl-2">{error}</p>
+                <p className={INPUT_ERROR_MESSAGE_STYLES}>{error}</p>
             )}
         </div>
     );

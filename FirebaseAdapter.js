@@ -135,8 +135,14 @@ class FirebaseAdapter {
     const s = await this.rtdb.ref(`matches/${matchID}/state`).once('value');
     const val = s.val();
     
+    // FIX: Return undefined if state doesn't exist
+    if (!val) {
+      console.warn(`[ADAPTER] State not found for match ${matchID}`);
+      return undefined;
+    }
+    
     // FIX: Assicuriamo che troops e owners esistano anche se vuoti su DB
-    if (val && val.G) {
+    if (val.G) {
         if (!val.G.troops) val.G.troops = {};
         if (!val.G.owners) val.G.owners = {};
     }
@@ -146,13 +152,31 @@ class FirebaseAdapter {
 
   async getMetadata(matchID) {
     const s = await this.rtdb.ref(`matches/${matchID}/metadata`).once('value');
-    return s.val();
+    const metadata = s.val();
+    
+    // FIX: Return undefined if metadata doesn't exist (boardgame.io expects undefined, not null)
+    if (!metadata) {
+      console.warn(`[ADAPTER] Metadata not found for match ${matchID}`);
+      return undefined;
+    }
+    
+    return metadata;
   }
 
   async fetch(matchID, { state, metadata }) {
       const result = {};
-      if (state) result.state = await this.getState(matchID);
-      if (metadata) result.metadata = await this.getMetadata(matchID);
+      if (state) {
+        const fetchedState = await this.getState(matchID);
+        if (fetchedState !== undefined) {
+          result.state = fetchedState;
+        }
+      }
+      if (metadata) {
+        const fetchedMetadata = await this.getMetadata(matchID);
+        if (fetchedMetadata !== undefined) {
+          result.metadata = fetchedMetadata;
+        }
+      }
       return result;
   }
 

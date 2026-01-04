@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'; // Aggiunto useState
+import React, { useEffect, useState, useRef } from 'react'; // Aggiunto useRef
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { doc, onSnapshot } from 'firebase/firestore'; 
@@ -18,6 +18,12 @@ const GamePage = () => {
   
   // 2. RECUPERA UTENTE (Senza Redux Auth)
   const [user, setUser] = useState(auth.currentUser);
+  
+  // Ref per tenere traccia se abbiamo già chiamato startGamePhase
+  const hasStartedGame = useRef(false);
+  
+  // Ref per il client BoardGame.io
+  const clientRef = useRef(null);
 
   // Ascolta auth change nel caso l'utente logghi al volo (opzionale ma sicuro)
   useEffect(() => {
@@ -54,14 +60,42 @@ const GamePage = () => {
     };
   }, [matchId, dispatch, navigate]);
 
-  // Se non c'è playerID, torna indietro
-  if (!playerID) return <div className="text-white bg-[#1B2227] h-screen p-10 flex items-center justify-center">Accesso negato: Nessun PlayerID.</div>;
-
   // Calcoli Overlay
   const currentPlayers = matchData?.playersCurrent || 1;
   const maxPlayers = matchData?.playersMax || 3;
   const isWaiting = currentPlayers < maxPlayers;
-  const isPlaying = matchData?.status === 'PLAYING'; 
+  const isPlaying = matchData?.status === 'PLAYING';
+  
+  // Mostra overlay se non è ancora PLAYING E se non tutti i giocatori sono connessi
+  const shouldShowOverlay = !isPlaying && isWaiting;
+  
+  // Testo dinamico dell'overlay
+  const overlayText = currentPlayers === maxPlayers 
+    ? "Tutti connessi, inizializzazione partita..." 
+    : "In attesa degli altri giocatori...";
+  
+  // Quando tutti i giocatori sono connessi, chiama startGamePhase
+  useEffect(() => {
+    if (currentPlayers === maxPlayers && !hasStartedGame.current && clientRef.current) {
+      hasStartedGame.current = true;
+      
+      // Ottieni l'istanza del client e chiama il move
+      const client = clientRef.current;
+      if (client && client.moves && client.moves.startGamePhase) {
+        console.log("🎮 Tutti i giocatori connessi, avvio SETUP_INITIAL");
+        client.moves.startGamePhase();
+      }
+    }
+  }, [currentPlayers, maxPlayers]); 
+
+  // Se non c'è playerID, torna indietro (DOPO tutti gli hooks)
+  if (!playerID) {
+    return (
+      <div className="text-white bg-[#1B2227] h-screen p-10 flex items-center justify-center">
+        Accesso negato: Nessun PlayerID.
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-screen bg-[#1B2227] overflow-hidden">
@@ -69,6 +103,7 @@ const GamePage = () => {
       {/* GIOCO */}
       <div className="absolute inset-0 z-0">
          <RiskClient 
+            ref={clientRef}
             matchID={matchId} 
             playerID={playerID} 
             credentials={credentials}
@@ -77,7 +112,7 @@ const GamePage = () => {
       </div>
 
       {/* OVERLAY ATTESA */}
-      {isWaiting && !isPlaying && (
+      {shouldShowOverlay && (
         <div className="absolute inset-0 z-50 bg-[#1B2227]/95 backdrop-blur-md flex flex-col items-center justify-center text-white">
            <div className="bg-[#173C55] p-10 rounded-2xl border border-[#38C7D7] shadow-2xl text-center max-w-lg w-full">
               <h1 className="text-3xl font-black uppercase mb-6 tracking-widest text-white">
@@ -99,7 +134,7 @@ const GamePage = () => {
 
               <div className="flex flex-col items-center gap-4">
                  <Loader2 size={48} className="text-[#38C7D7] animate-spin" />
-                 <p className="text-gray-300 font-medium">In attesa degli altri giocatori...</p>
+                 <p className="text-gray-300 font-medium">{overlayText}</p>
                  <p className="text-xs text-gray-500">ID Partita: {matchId}</p>
               </div>
            </div>

@@ -1,28 +1,30 @@
-import React, { useEffect } from 'react';
-import { GameProvider } from './context/GameContext'; // <--- Importiamo il Provider
+import React from 'react';
+import { GameProvider, useRisk } from './context/GameContext'; // <--- Importiamo il Provider e hook
 import RiskMap from './components/Map/RiskMap';
 import Navbar from './components/Navbar/Navbar';
-// Assicurati di importare gli altri componenti che usi (es. DiceBox, PhaseInfo, etc.)
+import SetupLog from './components/UI/SetupLog';
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
   
-  // AUTO-START: Se la lobby è piena e sono l'host, avvio la partita
-  useEffect(() => {
-    if (isLobbyFull && !G.isGameStarted && playerID === '0') {
-        console.log("🚀 Lobby piena: Avvio partita...");
-        moves.startMatch();
-    }
-  }, [isLobbyFull, G.isGameStarted, playerID, moves]);
-
   return (
     // 1. AVVOLGIAMO TUTTO NEL PROVIDER
     // Passiamo tutte le props al provider così useRisk() potrà leggerle
     <GameProvider G={G} ctx={ctx} moves={moves} playerID={playerID} events={events}>
-      
+      <RiskBoardContent />
+    </GameProvider>
+  );
+};
+
+// Componente interno che usa il context
+function RiskBoardContent() {
+  const { ctx } = useRisk();
+  const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
+
+  
+  return (
       <div className="relative w-full h-full bg-[#1B2227] overflow-hidden flex flex-col">
         
-        {/* 2. NAVBAR (Ora può usare useRisk se serve) */}
-        {/* Passiamo le props esplicitamente se Navbar non è stata aggiornata per usare il context */}
+        {/* NAVBAR */}
         <Navbar 
             phase={ctx?.phase || "PREPARAZIONE"} 
             gameCode={ctx?.matchID || "DEBUG-123"} 
@@ -30,16 +32,29 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
             onLeave={() => console.log("Abbandona")}
         />
 
-        {/* 3. AREA DI GIOCO */}
-        <div className="flex-1 relative flex justify-center items-center">
-            {/* RiskMap ora funzionerà perché è dentro GameProvider */}
+        {/* AREA DI GIOCO - Layout condizionale */}
+        {isSetupPhase ? (
+          // Layout two-column durante SETUP_INITIAL
+          <div className="flex-1 flex flex-row overflow-hidden">
+            {/* Colonna sinistra: SetupLog */}
+            <div className="w-80 bg-[#1B2227] border-r border-gray-700 overflow-y-auto p-4">
+              <SetupLog />
+            </div>
+            
+            {/* Colonna destra: Mappa */}
+            <div className="flex-1 relative flex justify-center items-center">
+              <RiskMap />
+            </div>
+          </div>
+        ) : (
+          // Layout standard full-width per altre fasi
+          <div className="flex-1 relative flex justify-center items-center">
             <RiskMap />
-        </div>
+          </div>
+        )}
 
       </div>
-
-    </GameProvider>
   );
-};
+}
 
 export default RiskBoard;

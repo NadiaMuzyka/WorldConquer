@@ -47,7 +47,10 @@ const COUNTRY_COLORS = {
 const PLAYER_COLORS = {
   "0": "#d32f2f", // Rosso (Player 1)
   "1": "#1976d2", // Blu (Player 2)
-  "2": "#388e3c"  // Verde (Player 3)
+  "2": "#388e3c",  // Verde (Player 3)
+  "3": "#fbc02d",   // Giallo (Player 4)
+  "4": "#9c27b0", // Viola (Player 5)
+  "5": "#000000", // Nero (Player 6)
 };
 
 module.exports = { COUNTRY_COLORS, PLAYER_COLORS };

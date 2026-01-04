@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Timer from './Timer';         // Assicurati che il file esista (step precedente)
 import PhaseInfo from './PhaseInfo'; // Assicurati che il file esista (step precedente)
 import { useNavigate } from 'react-router-dom';

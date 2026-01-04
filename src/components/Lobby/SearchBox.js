@@ -13,27 +13,27 @@ const SearchBox = () => {
   };
 
   return (
-    // CARD ESTERNA: Più ariosa con py-5 e gap-3
+    // CARD ESTERNA: Più ariosa con py-4 e gap-3
     <div className="
       w-[323px] 
       bg-[#1B2227] 
       rounded-[12px] 
       shadow-[0px_4px_10px_rgba(0,0,0,0.3)] 
       flex flex-col items-center justify-center
-      py-5 
+      py-4 
       gap-3 
       shrink-0
     ">
       
       {/* Header: Icona + Scritta CERCA */}
-      <div className="w-full flex items-center px-4 gap-3">
-        <span className="font-roboto font-bold text-[18px] text-white tracking-widest">
-          CERCA
+      <div className="w-full flex items-center px-5 gap-3">
+        <span className="text-xl font-bold text-white">
+          Cerca
         </span>
       </div>
 
-      {/* Input Field: Spazio laterale (px-3) per non toccare i bordi */}
-      <div className="w-full px-3">
+      {/* Input Field: Spazio laterale (px-5) per non toccare i bordi */}
+      <div className="w-full px-5">
         <TextInput
           variant="light" 
           placeholder="Inserisci nome o codice..."

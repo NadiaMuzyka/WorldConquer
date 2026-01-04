@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux'; 
+import { useDispatch } from 'react-redux';
 import { ArrowLeft, Users, Lock, Globe, Swords, Zap, Shield } from 'lucide-react';
 import bcrypt from 'bcryptjs';
 // import { doc, setDoc } from 'firebase/firestore'; 
@@ -9,6 +9,8 @@ import bcrypt from 'bcryptjs';
 import Navbar from '../components/Navbar/Navbar';
 import Button from '../components/UI/Button';
 import TextInput from '../components/UI/Input/TextInput';
+import PageContainer from '../components/UI/PageContainer';
+import Card from '../components/UI/Card';
 
 // Utils & Config
 import { db } from '../firebase/firebaseConfig';
@@ -37,10 +39,10 @@ const CreateMatchPage = () => {
       e.preventDefault();
       setLoading(true);
 
-    try {
-        // 1. PREPARA I DATI PER IL SERVER
-        // Passiamo tutto ciò che serve a Firestore dentro 'setupData'
-        const matchData = {
+      try {
+         // 1. PREPARA I DATI PER IL SERVER
+         // Passiamo tutto ciò che serve a Firestore dentro 'setupData'
+         const matchData = {
             matchName,
             playersMax,
             mode: gameMode,
@@ -49,43 +51,43 @@ const CreateMatchPage = () => {
             hostId: currentUser.id,
             hostName: currentUser.name,
             hostAvatar: currentUser.avatar
-        };
+         };
 
-        // 2. CHIAMA IL SERVER (Lui creerà RTDB e Firestore)
-        const { matchID } = await lobbyClient.createMatch('risk', {
+         // 2. CHIAMA IL SERVER (Lui creerà RTDB e Firestore)
+         const { matchID } = await lobbyClient.createMatch('risk', {
             numPlayers: playersMax,
-            setupData: matchData 
-        });
+            setupData: matchData
+         });
 
-        console.log(`Partita ${matchID} creata dal server.`);
+         console.log(`Partita ${matchID} creata dal server.`);
 
-        // 3. JOIN AUTOMATICO
-        // Importante: Passiamo 'avatar' dentro 'data' perché boardgame.io salva 'name' e 'data'
-        const { playerCredentials } = await lobbyClient.joinMatch('risk', matchID, {
+         // 3. JOIN AUTOMATICO
+         // Importante: Passiamo 'avatar' dentro 'data' perché boardgame.io salva 'name' e 'data'
+         const { playerCredentials } = await lobbyClient.joinMatch('risk', matchID, {
             playerID: "0",
             playerName: currentUser.name,
-            data: { avatar: currentUser.avatar } 
-        });
+            data: { avatar: currentUser.avatar }
+         });
 
-        // 4. REDUX E NAVIGAZIONE 
-        dispatch(enterMatch(matchID)); 
-        navigate(`/game/${matchID}`, { 
-            state: { 
-                playerID: "0", 
-                credentials: playerCredentials 
-            } 
-        });
+         // 4. REDUX E NAVIGAZIONE 
+         dispatch(enterMatch(matchID));
+         navigate(`/game/${matchID}`, {
+            state: {
+               playerID: "0",
+               credentials: playerCredentials
+            }
+         });
 
-    } catch (error) {
-        console.error("Errore creazione:", error);
-        alert("Impossibile contattare il server (porta 8000).");
-        setLoading(false);
-    }
-};
+      } catch (error) {
+         console.error("Errore creazione:", error);
+         alert("Impossibile contattare il server (porta 8000).");
+         setLoading(false);
+      }
+   };
 
 
    return (
-      <div className="min-h-screen w-full bg-[#173C55] font-roboto text-white overflow-y-auto">
+      <PageContainer className="font-roboto text-white">
 
          {/* NAVBAR */}
          <Navbar mode="lobby" user={currentUser} />
@@ -108,7 +110,7 @@ const CreateMatchPage = () => {
             {/* COLONNA CENTRALE */}
             <main className="flex-1 w-full lg:w-[60%] flex justify-center">
 
-               <div className="w-full max-w-3xl bg-[#1B2227] rounded-xl shadow-[0px_4px_4px_rgba(0,0,0,0.25)] p-8 border border-gray-700/50">
+               <Card padding="lg" className="w-full max-w-3xl shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border border-gray-700/50">
 
                   <h1 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white border-b border-gray-600 pb-4">
                      <Swords className="text-[#38C7D7]" size={28} />
@@ -229,12 +231,12 @@ const CreateMatchPage = () => {
                      </div>
 
                   </form>
-               </div>
+               </Card>
             </main>
 
             <aside className="hidden lg:block w-[20%] shrink-0"></aside>
          </div>
-      </div>
+      </PageContainer>
    );
 };
 

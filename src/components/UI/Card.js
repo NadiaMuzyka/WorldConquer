@@ -20,7 +20,7 @@ export const Card = ({
     };
 
     return (
-        <div className={`bg-gray-800 rounded-xl shadow-xl ${paddingClasses[padding]} ${className}`}>
+        <div className={`bg-[#1B2227] rounded-xl shadow-xl ${paddingClasses[padding]} ${className}`}>
             {children}
         </div>
     );

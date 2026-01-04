@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Calendar, AtSign, Shuffle } from 'lucide-react';
 import { getCurrentUserProfile, updateCurrentUserProfile, updateCurrentUserAvatar } from '../firebase/db';
+import { auth } from '../firebase/firebaseConfig';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import Navbar from '../components/Navbar/Navbar';
 import Button from '../components/UI/Button';
 import TextInput from '../components/UI/Input/TextInput';
 import DateInput from '../components/UI/Input/DateInput';
+import PasswordInput from '../components/UI/Input/PasswordInput';
 import PageContainer from '../components/UI/PageContainer';
 import Card from '../components/UI/Card';
 import Avatar from '../components/UI/Avatar';
@@ -16,6 +19,16 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    
+    // Stato per cambio password
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
     
     // Dati utente originali
     const [userData, setUserData] = useState({
@@ -171,6 +184,66 @@ const ProfilePage = () => {
         }
     };
 
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        setPasswordError('');
+        setPasswordSuccess('');
+
+        // Validazioni
+        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+            setPasswordError('Tutti i campi sono obbligatori');
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('La nuova password deve contenere almeno 6 caratteri');
+            return;
+        }
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError('Le password non coincidono');
+            return;
+        }
+
+        if (passwordData.currentPassword === passwordData.newPassword) {
+            setPasswordError('La nuova password deve essere diversa da quella attuale');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const user = auth.currentUser;
+            
+            // Riautentica l'utente con la password corrente
+            const credential = EmailAuthProvider.credential(user.email, passwordData.currentPassword);
+            await reauthenticateWithCredential(user, credential);
+
+            // Aggiorna la password
+            await updatePassword(user, passwordData.newPassword);
+
+            setPasswordSuccess('Password aggiornata con successo!');
+            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            
+            // Chiudi il form dopo 2 secondi
+            setTimeout(() => {
+                setIsChangingPassword(false);
+                setPasswordSuccess('');
+            }, 2000);
+
+        } catch (err) {
+            if (err.code === 'auth/wrong-password') {
+                setPasswordError('Password attuale errata');
+            } else if (err.code === 'auth/requires-recent-login') {
+                setPasswordError('Per motivi di sicurezza, effettua nuovamente il login');
+            } else {
+                setPasswordError('Errore nell\'aggiornamento della password');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const formatDate = (timestamp) => {
         if (!timestamp) return 'N/A';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -196,28 +269,29 @@ const ProfilePage = () => {
         <>
             <Navbar mode="lobby" userAvatar={userData.photoURL || undefined} />
             <PageContainer>
-                {/* Header */}
-                <div className="mb-8 pt-20">
-                    <h1 className="text-3xl font-bold text-white mb-2">Il tuo Profilo</h1>
-                    <p className="text-gray-400">Gestisci le tue informazioni personali</p>
-                </div>
-
-                {/* Messaggi di successo/errore */}
-                {error && (
-                    <div className="mb-6 p-4 bg-red-600/20 border border-red-600 rounded-lg text-red-400">
-                        {error}
+                <div className="max-w-6xl mx-auto">
+                    {/* Header */}
+                    <div className="mb-8 pt-20">
+                        <h1 className="text-3xl font-bold text-white mb-2">Il tuo Profilo</h1>
+                        <p className="text-gray-400">Gestisci le tue informazioni personali</p>
                     </div>
-                )}
-                {success && (
-                    <div className="mb-6 p-4 bg-green-600/20 border border-green-600 rounded-lg text-green-400">
-                        {success}
-                    </div>
-                )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    {/* Colonna sinistra - Avatar */}
-                    <div className="lg:col-span-1">
-                        <Card className="text-center sticky top-24">
+                    {/* Messaggi di successo/errore */}
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-600/20 border border-red-600 rounded-lg text-red-400">
+                            {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className="mb-6 p-4 bg-green-600/20 border border-green-600 rounded-lg text-green-400">
+                            {success}
+                        </div>
+                    )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        {/* Colonna sinistra - Avatar */}
+                        <div className="lg:col-span-5">
+                            <Card className="text-center sticky top-24">
                             <Avatar
                                 src={userData.photoURL}
                                 alt={userData.nickname}
@@ -242,7 +316,7 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Colonna destra - Informazioni */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-7 space-y-6">
                         {/* Sezione Informazioni Personali */}
                         <Card>
                             <div className="flex justify-between items-center mb-6">
@@ -360,20 +434,99 @@ const ProfilePage = () => {
                         {/* Sezione Sicurezza */}
                         {!userData.isGoogleUser && (
                             <Card>
-                                <h3 className="text-xl font-bold text-white mb-6">Sicurezza</h3>
-                                
-                                <Button
-                                    variant="outline"
-                                    size="md"
-                                    onClick={() => {/* TODO: implementare cambio password */}}
-                                    disabled
-                                >
-                                    Cambia Password
-                                </Button>
-                                <p className="text-gray-500 text-sm mt-2">Funzionalità in arrivo</p>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-bold text-white">Sicurezza</h3>
+                                    {!isChangingPassword && (
+                                        <Button
+                                            variant="cyan"
+                                            size="sm"
+                                            onClick={() => {
+                                                setIsChangingPassword(true);
+                                                setPasswordError('');
+                                                setPasswordSuccess('');
+                                            }}
+                                        >
+                                            Cambia Password
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {passwordError && (
+                                    <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-sm">
+                                        {passwordError}
+                                    </div>
+                                )}
+
+                                {passwordSuccess && (
+                                    <div className="mb-4 p-3 bg-green-600/20 border border-green-600 rounded-lg text-green-400 text-sm">
+                                        {passwordSuccess}
+                                    </div>
+                                )}
+
+                                {isChangingPassword ? (
+                                    <form onSubmit={handlePasswordChange} className="space-y-4">
+                                        <PasswordInput
+                                            label="Password Attuale"
+                                            name="currentPassword"
+                                            value={passwordData.currentPassword}
+                                            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                            placeholder="Inserisci la password attuale"
+                                            required
+                                        />
+
+                                        <PasswordInput
+                                            label="Nuova Password"
+                                            name="newPassword"
+                                            value={passwordData.newPassword}
+                                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                            placeholder="Inserisci la nuova password"
+                                            minLength={6}
+                                            required
+                                        />
+
+                                        <PasswordInput
+                                            label="Conferma Nuova Password"
+                                            name="confirmPassword"
+                                            value={passwordData.confirmPassword}
+                                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                            placeholder="Conferma la nuova password"
+                                            minLength={6}
+                                            required
+                                        />
+
+                                        <div className="flex gap-3 pt-4">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setIsChangingPassword(false);
+                                                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                                                    setPasswordError('');
+                                                    setPasswordSuccess('');
+                                                }}
+                                                className="flex-1"
+                                            >
+                                                Annulla
+                                            </Button>
+                                            <Button
+                                                type="submit"
+                                                variant="cyan"
+                                                disabled={loading}
+                                                className="flex-1"
+                                            >
+                                                {loading ? 'Aggiornamento...' : 'Aggiorna Password'}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <p className="text-gray-400 text-sm">
+                                        Gestisci la sicurezza del tuo account modificando la password.
+                                    </p>
+                                )}
                             </Card>
                         )}
                     </div>
+                </div>
                 </div>
             </PageContainer>
         </>

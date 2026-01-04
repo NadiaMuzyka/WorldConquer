@@ -75,12 +75,13 @@ class FirebaseAdapter {
     }
 
     // 3. AGGIORNAMENTO FIRESTORE (Lo stato della Lobby)
-    // Calcoliamo lo status basandoci su cleanState che è sicuro
+    // Calcoliamo lo status: la partita è PLAYING quando BoardGame.io ha avviato le fasi
     let currentStatus = 'OPEN';
     
     if (state.ctx.gameover) {
         currentStatus = 'FINISHED';
-    } else if (cleanState.G && cleanState.G.isGameStarted === true) {
+    } else if (state.ctx.phase) {
+        // Se esiste una fase, significa che la partita è partita
         currentStatus = 'PLAYING';
     }
 

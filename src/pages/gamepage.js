@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'; // Aggiunto useRef
+import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { doc, onSnapshot } from 'firebase/firestore'; 
@@ -18,12 +18,6 @@ const GamePage = () => {
   
   // 2. RECUPERA UTENTE (Senza Redux Auth)
   const [user, setUser] = useState(auth.currentUser);
-  
-  // Ref per tenere traccia se abbiamo già chiamato startGamePhase
-  const hasStartedGame = useRef(false);
-  
-  // Ref per il client BoardGame.io
-  const clientRef = useRef(null);
 
   // Ascolta auth change nel caso l'utente logghi al volo (opzionale ma sicuro)
   useEffect(() => {
@@ -73,20 +67,6 @@ const GamePage = () => {
   const overlayText = currentPlayers === maxPlayers 
     ? "Tutti connessi, inizializzazione partita..." 
     : "In attesa degli altri giocatori...";
-  
-  // Quando tutti i giocatori sono connessi, chiama startGamePhase
-  useEffect(() => {
-    if (currentPlayers === maxPlayers && !hasStartedGame.current && clientRef.current) {
-      hasStartedGame.current = true;
-      
-      // Ottieni l'istanza del client e chiama il move
-      const client = clientRef.current;
-      if (client && client.moves && client.moves.startGamePhase) {
-        console.log("🎮 Tutti i giocatori connessi, avvio SETUP_INITIAL");
-        client.moves.startGamePhase();
-      }
-    }
-  }, [currentPlayers, maxPlayers]); 
 
   // Se non c'è playerID, torna indietro (DOPO tutti gli hooks)
   if (!playerID) {
@@ -103,7 +83,6 @@ const GamePage = () => {
       {/* GIOCO */}
       <div className="absolute inset-0 z-0">
          <RiskClient 
-            ref={clientRef}
             matchID={matchId} 
             playerID={playerID} 
             credentials={credentials}

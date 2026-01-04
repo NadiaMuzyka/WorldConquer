@@ -21,8 +21,6 @@ const RiskGame = {
       G.playersReady[playerID] = true;
     },
     clickCountry: ({ G, playerID, events }, countryId) => {
-      //if (!playerID) return INVALID_MOVE; // deve esistere un giocatore
-
       // Assicura la forma dello stato
       if (!G.troops) G.troops = {};
       if (!G.owners) G.owners = {};
@@ -59,8 +57,16 @@ const RiskGame = {
   phases: {
     SETUP_INITIAL: {
       start: true,
-      onBegin: (G, ctx) => {
+      // CORREZIONE QUI: Sintassi ({ G, ctx })
+      onBegin: ({ G, ctx }) => {
         console.log("🎲 Fase SETUP_INITIAL iniziata");
+        // console.log("DEBUG ctx:", ctx); // Decommenta se serve debug
+        
+        // Controllo di sicurezza
+        if (!ctx || !ctx.numPlayers) {
+          console.error("⚠️ ctx non disponibile in onBegin, skip distribuzione");
+          return;
+        }
         
         // Ottieni tutti i territori
         const allTerritories = Object.keys(COUNTRY_COLORS);
@@ -80,22 +86,24 @@ const RiskGame = {
           G.owners[countryId] = playerId;
           G.troops[countryId] = 1;
         });
-        
-        // Inizializza stato ready
-        G.playersReady = {};
       },
       turn: {
         activePlayers: ActivePlayers.ALL,
       },
-      endIf: (G, ctx) => {
+      // CORREZIONE ANCHE QUI: ({ G, ctx }) per evitare crash su ctx.numPlayers
+      endIf: ({ G, ctx }) => {
+        // Controllo di sicurezza
+        if (!G.playersReady || typeof G.playersReady !== 'object') {
+          return false;
+        }
         return Object.keys(G.playersReady).length === ctx.numPlayers;
       },
       next: 'RINFORZO_INIZIALE',
     },
     
     RINFORZO_INIZIALE: {
-      // Placeholder per fase futura
-      onBegin: (G, ctx) => {
+      // CORREZIONE ANCHE QUI per coerenza
+      onBegin: ({ G, ctx }) => {
         console.log("🎲 Fase RINFORZO_INIZIALE - Coming soon!");
       },
     },

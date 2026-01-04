@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { register } from '../firebase/auth';
 import { saveUserData } from '../firebase/db';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Calendar, AtSign } from 'lucide-react';
+import { Mail, User, AtSign } from 'lucide-react';
 import Button from '../components/UI/Button';
-import TextInput from '../components/UI/TextInput';
+import TextInput from '../components/UI/Input/TextInput';
+import PasswordInput from '../components/UI/Input/PasswordInput';
+import DateInput from '../components/UI/Input/DateInput';
 import Form from '../components/UI/Form';
 import PageContainer from '../components/UI/PageContainer';
 import auth from '../firebase/auth';
@@ -69,16 +71,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
             }
         }
 
-        // Validazione età minima
-        const birthDate = new Date(formData.birthDate);
-        const today = new Date();
-        const age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (age < 13 || (age === 13 && monthDiff < 0)) {
-            setError('Devi avere almeno 13 anni per registrarti');
-            return false;
-        }
 
         return true;
     };
@@ -167,7 +159,7 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
             {!isCompleteProfile && (
                 <>
                     <TextInput
-                        variant="auth"
+
                         label="Email"
                         name="email"
                         type="email"
@@ -178,25 +170,23 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                         required
                     />
 
-                    <TextInput
-                        variant="auth"
+                    <PasswordInput
                         label="Password"
                         name="password"
-                        type="password"
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Minimo 6 caratteri"
+                        minLength={6}
                         required
                     />
 
-                    <TextInput
-                        variant="auth"
+                    <PasswordInput
                         label="Conferma Password"
                         name="confirmPassword"
-                        type="password"
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="Ripeti la password"
+                        minLength={6}
                         required
                     />
                 </>
@@ -204,7 +194,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
 
             {/* Campi comuni a entrambe le modalità */}
             <TextInput
-                variant="auth"
                 label="Nome"
                 name="firstName"
                 type="text"
@@ -216,7 +205,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
             />
 
             <TextInput
-                variant="auth"
                 label="Cognome"
                 name="lastName"
                 type="text"
@@ -228,7 +216,6 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
             />
 
             <TextInput
-                variant="auth"
                 label="Nickname"
                 name="nickname"
                 type="text"
@@ -239,15 +226,11 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                 required
             />
 
-            <TextInput
-                variant="auth"
-                label="Data di Nascita"
+            <DateInput
                 name="birthDate"
-                type="date"
                 value={formData.birthDate}
                 onChange={handleChange}
                 required
-                className="mb-4"
             />
 
             {/* Bottone Registrazione */}

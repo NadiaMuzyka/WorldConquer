@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { login, loginWithGoogle } from '../firebase/auth';
 import { getUserData } from '../firebase/db';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import Button from '../components/UI/Button';
 import GoogleLogo from '../components/Constants/GoogleLogo';
-import TextInput from '../components/UI/TextInput';
+import TextInput from '../components/UI/Input/TextInput';
+import PasswordInput from '../components/UI/Input/PasswordInput';
 import Form from '../components/UI/Form';
 import PageContainer from '../components/UI/PageContainer';
 
@@ -63,7 +64,6 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 onSubmit={handleLogin}
             >
             <TextInput
-                variant="auth"
                 label="Email"
                 name="email"
                 type="email"
@@ -74,16 +74,12 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 required
             />
 
-            <TextInput
-                variant="auth"
-                label="Password"
+            <PasswordInput
                 name="password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
                 required
-                className="mb-4"
             />
             
             <Button

@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 // Components
 import Navbar from '../components/Navbar/Navbar';
 import Button from '../components/UI/Button';
-import TextInput from '../components/UI/TextInput';
+import TextInput from '../components/UI/Input/TextInput';
 
 // Utils & Config
 import { db } from '../firebase/firebaseConfig';

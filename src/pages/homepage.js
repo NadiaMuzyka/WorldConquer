@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flag } from 'lucide-react';
+import Button from '../components/UI/Button';
+import PageContainer from '../components/UI/PageContainer';
 
 export default function Home() {
     const navigate = useNavigate();
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-[#1c1c1c] to-gray-900 text-white">
+        <PageContainer centered={true}>
             <div className="text-center space-y-8 p-8">
                 {/* Logo e Titolo */}
                 <div className="flex flex-col items-center gap-4">
@@ -22,13 +24,17 @@ export default function Home() {
                 </div>
 
                 {/* Bottone Login */}
-                <button
-                    onClick={() => navigate('/login')}
-                    className="mt-12 px-12 py-4 bg-[#38C7D7] hover:bg-[#2dbdc0] text-[#192832] font-bold text-xl rounded-full transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#38C7D7]/50"
-                >
-                    Fai il Login
-                </button>
+                <div className="flex justify-center mt-12">
+                    <Button
+                        onClick={() => navigate('/login')}
+                        variant="cyan"
+                        size="md"
+                        className="px-12 py-4 text-xl"
+                    >
+                        Fai il Login
+                    </Button>
+                </div>
             </div>
-        </div>
+        </PageContainer>
     );
 };

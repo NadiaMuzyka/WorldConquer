@@ -4,7 +4,8 @@ import { User, Mail, Calendar, AtSign, Shuffle } from 'lucide-react';
 import { getCurrentUserProfile, updateCurrentUserProfile, updateCurrentUserAvatar } from '../firebase/db';
 import Navbar from '../components/Navbar/Navbar';
 import Button from '../components/UI/Button';
-import TextInput from '../components/UI/TextInput';
+import TextInput from '../components/UI/Input/TextInput';
+import DateInput from '../components/UI/Input/DateInput';
 import PageContainer from '../components/UI/PageContainer';
 import Card from '../components/UI/Card';
 import Avatar from '../components/UI/Avatar';
@@ -112,16 +113,6 @@ const ProfilePage = () => {
         // Validazione
         if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.nickname.trim() || !formData.birthDate) {
             setError('Tutti i campi sono obbligatori');
-            return;
-        }
-
-        // Verifica età minima (13 anni)
-        const birthDate = new Date(formData.birthDate);
-        const today = new Date();
-        const age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (age < 13 || (age === 13 && monthDiff < 0)) {
-            setError('Devi avere almeno 13 anni per usare questa piattaforma');
             return;
         }
 
@@ -277,7 +268,6 @@ const ProfilePage = () => {
                                         onChange={handleInputChange}
                                         disabled={!isEditing}
                                         icon={User}
-                                        variant="auth"
                                         required
                                     />
                                     <TextInput
@@ -288,7 +278,6 @@ const ProfilePage = () => {
                                         onChange={handleInputChange}
                                         disabled={!isEditing}
                                         icon={User}
-                                        variant="auth"
                                         required
                                     />
                                 </div>
@@ -301,19 +290,14 @@ const ProfilePage = () => {
                                     onChange={handleInputChange}
                                     disabled={!isEditing}
                                     icon={AtSign}
-                                    variant="auth"
                                     required
                                 />
 
-                                <TextInput
-                                    label="Data di Nascita"
+                                <DateInput
                                     name="birthDate"
-                                    type="date"
                                     value={isEditing ? formData.birthDate : userData.birthDate}
                                     onChange={handleInputChange}
                                     disabled={!isEditing}
-                                    icon={Calendar}
-                                    variant="auth"
                                     required
                                 />
 

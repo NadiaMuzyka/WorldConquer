@@ -2,7 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Search } from 'lucide-react';
 import { setFilter, selectFilters } from '../../store/slices/lobbySlice';
-import TextInput from '../UI/TextInput'; 
+import TextInput from '../UI/Input/TextInput'; 
 
 const SearchBox = () => {
   const dispatch = useDispatch();

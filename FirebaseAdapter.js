@@ -197,6 +197,8 @@ class FirebaseAdapter {
                         this.statusCache.set(matchID, 'PLAYING');
                         console.log(`[ADAPTER] Match ${matchID} passa a PLAYING (fallback)`);
                     }
+                } else {
+                    console.warn(`[ADAPTER] Match ${matchID} non esiste, evito ricreazione in fallback`);
                 }
             } catch (fallbackError) {
                 console.error(`[ADAPTER ERROR] Fallback fallito:`, fallbackError);
@@ -256,9 +258,20 @@ class FirebaseAdapter {
   }
 
   async wipe(matchID) {
+    // Elimina da Realtime Database
     await this.rtdb.ref(`matches/${matchID}`).remove();
-    this.statusCache.delete(matchID); // Pulizia memoria
-    console.log(`[ADAPTER] Match ${matchID} rimosso.`);
+    
+    // Elimina da Firestore (FONDAMENTALE per evitare documenti zombie)
+    try {
+      await this.firestore.collection('matches').doc(matchID).delete();
+      console.log(`[ADAPTER] Match ${matchID} rimosso da Firestore.`);
+    } catch (error) {
+      console.error(`[ADAPTER ERROR] Impossibile eliminare ${matchID} da Firestore:`, error.message);
+    }
+    
+    // Pulizia memoria cache
+    this.statusCache.delete(matchID);
+    console.log(`[ADAPTER] Match ${matchID} rimosso completamente.`);
   }
 }
 

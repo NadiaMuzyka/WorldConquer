@@ -16,6 +16,7 @@ import { INPUT_BASE_STYLES, INPUT_ERROR_STYLES, INPUT_CONTAINER_STYLES, INPUT_LA
  * @param {boolean} props.required - Se il campo è obbligatorio
  * @param {Function} props.onBlur - Callback per blur event
  * @param {boolean} props.disabled - Se il campo è disabilitato
+ * @param {boolean} props.defaultVisible - Se la password deve essere visibile di default (default: false)
  */
 const PasswordInput = ({
     value,
@@ -26,9 +27,10 @@ const PasswordInput = ({
     minLength = 6,
     required = true,
     onBlur,
-    disabled = false
+    disabled = false,
+    defaultVisible = false
 }) => {
-    const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState(defaultVisible);
     const [error, setError] = useState('');
 
     /**

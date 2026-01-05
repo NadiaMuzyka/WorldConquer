@@ -55,7 +55,6 @@ const LobbyPage = () => {
           players: data.players || [],
           playersCurrent: (data.players || []).length,
           playersMax: data.playersMax || 6, // Default a 6 se manca
-          gameover: data.gameover,
           status: data.status,
           isPrivate: data.isPrivate || false,
           password: data.password || null, // Serve alla GameCard per il controllo
@@ -83,15 +82,15 @@ const LobbyPage = () => {
       // 1. Filtro Range Giocatori
       const isRangeOk = tableSize >= min && tableSize <= max;
 
-      // 2. Filtro Stato (Nascondi partite finite)
-      const isOngoing = !match.gameover;
+      // 2. Filtro Stato (Mostra solo partite disponibili)
+      const isAvailable = match.status === 'OPEN';
 
       // 3. Filtro Ricerca (Nome o ID)
       const search = (filters.search || '').toLowerCase();
       const matchName = (match.name || '').toLowerCase();
       const isSearchOk = matchName.includes(search) || match.matchID.toLowerCase().includes(search);
 
-      return isRangeOk && isOngoing && isSearchOk;
+      return isRangeOk && isAvailable && isSearchOk;
     });
   }, [games, filters]);
 

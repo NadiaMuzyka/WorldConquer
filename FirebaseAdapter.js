@@ -55,8 +55,7 @@ class FirebaseAdapter {
                     name: setupData.hostName || "Host",
                     avatar: setupData.hostAvatar || "",
                     isHost: true
-                }],
-                gameover: false
+                }]
             };
             
             transaction.set(docRef, firestoreData);
@@ -107,7 +106,6 @@ class FirebaseAdapter {
         
         const updateData = { status: currentStatus };
         if (currentStatus === 'FINISHED') {
-             updateData.gameover = true;
              updateData.winner = state.ctx.gameover;
         }
 
@@ -158,21 +156,51 @@ class FirebaseAdapter {
                     throw new Error(`Troppi giocatori: ${playersArray.length}/${currentPlayersMax}`);
                 }
 
+                // Determina il nuovo status
+                let newStatus = currentData.status || 'OPEN';
+                
+                // Se tutti i giocatori si sono uniti, la partita passa a PLAYING
+                if (playersArray.length === currentPlayersMax && currentData.status === 'OPEN') {
+                    newStatus = 'PLAYING';
+                    this.statusCache.set(matchID, 'PLAYING');
+                    console.log(`[ADAPTER] Match ${matchID} passa a PLAYING (tutti i giocatori uniti)`);
+                }
+
                 // Aggiorna atomicamente
                 transaction.update(docRef, {
                     playersCurrent: playersArray.length,
-                    players: playersArray
+                    players: playersArray,
+                    status: newStatus
                 });
             });
             
             console.log(`[ADAPTER] Metadata aggiornato con transazione: ${playersArray.length} giocatori`);
         } catch (error) {
             console.error(`[ADAPTER ERROR] Transazione fallita per ${matchID}:`, error.message);
+            
             // Fallback senza transazione (meno sicuro ma evita crash)
-            await docRef.set({
-                playersCurrent: playersArray.length,
-                players: playersArray
-            }, { merge: true }).catch(err => console.error(err));
+            // Rileggi i dati per calcolare lo status
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    const currentData = doc.data();
+                    const currentPlayersMax = currentData.playersMax || 6;
+                    const newStatus = playersArray.length === currentPlayersMax ? 'PLAYING' : (currentData.status || 'OPEN');
+                    
+                    await docRef.set({
+                        playersCurrent: playersArray.length,
+                        players: playersArray,
+                        status: newStatus
+                    }, { merge: true });
+                    
+                    if (newStatus === 'PLAYING') {
+                        this.statusCache.set(matchID, 'PLAYING');
+                        console.log(`[ADAPTER] Match ${matchID} passa a PLAYING (fallback)`);
+                    }
+                }
+            } catch (fallbackError) {
+                console.error(`[ADAPTER ERROR] Fallback fallito:`, fallbackError);
+            }
         }
     }
   }

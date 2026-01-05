@@ -73,11 +73,7 @@ export const SetupLog = () => {
         {myTerritories.slice(0, visibleCount).map((countryId, index) => (
           <div
             key={countryId}
-            className="py-2 px-3 bg-[#2a3f4f] rounded transition-opacity duration-300"
-            style={{
-              opacity: 1,
-              animation: 'fadeInTerritory 0.3s ease-in'
-            }}
+            className="py-2 px-3 bg-[#2a3f4f] rounded animate-fadeInTerritory"
           >
             <span 
               className="font-semibold"
@@ -112,19 +108,6 @@ export const SetupLog = () => {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes fadeInTerritory {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 };

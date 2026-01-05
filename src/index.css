@@ -55,3 +55,19 @@
 .animate-fadeIn {
     animation: fadeIn 0.2s ease-out;
 }
+
+/* Animazione fade-in per territori nel setup */
+@keyframes fadeInTerritory {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeInTerritory {
+    animation: fadeInTerritory 0.3s ease-in;
+}

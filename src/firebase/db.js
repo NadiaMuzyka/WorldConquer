@@ -1,7 +1,7 @@
 // src/firebase/db.js
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
-import { app } from "./firebaseConfig";
-import auth from "./auth";
+import { app, auth } from "./firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
 
 const db = getFirestore(app);
 
@@ -90,7 +90,15 @@ export const updateUserData = async (uid, updates) => {
  */
 export const getCurrentUserProfile = async () => {
   try {
-    const user = auth.currentUser;
+    //const user = auth.currentUser;
+
+    const user = await new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        unsubscribe();
+        resolve(user);
+      });
+    });
+
     if (!user) {
       return { success: false, error: 'Utente non autenticato' };
     }

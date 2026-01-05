@@ -9,8 +9,12 @@ import bcrypt from 'bcryptjs';
 import Navbar from '../components/Navbar/Navbar';
 import Button from '../components/UI/Button';
 import TextInput from '../components/UI/Input/TextInput';
+import PasswordInput from '../components/UI/Input/PasswordInput';
+import RangeInput from '../components/UI/Input/RangeInput';
+import SelectableCard from '../components/UI/Input/SelectableCard';
+import { INPUT_LABEL_STYLES } from '../components/UI/Input/inputStyles';
 import PageContainer from '../components/UI/PageContainer';
-import Card from '../components/UI/Card';
+import Form from '../components/UI/Form';
 
 // Utils & Config
 import { db } from '../firebase/firebaseConfig';
@@ -47,7 +51,7 @@ const CreateMatchPage = () => {
             playersMax,
             mode: gameMode,
             isPrivate,
-            password: isPrivate ? password : null, // (Idealmente hashala qui o lato server)
+            password: isPrivate ? password : null,
             hostId: currentUser.id,
             hostName: currentUser.name,
             hostAvatar: currentUser.avatar
@@ -70,7 +74,8 @@ const CreateMatchPage = () => {
          });
 
          // 4. REDUX E NAVIGAZIONE 
-         dispatch(enterMatch(matchID));
+         dispatch(enterMatch(matchID)); // salvo nello stato id della partita in cui mi trovo
+         //navigo alla partita con playerID 0
          navigate(`/game/${matchID}`, {
             state: {
                playerID: "0",
@@ -96,91 +101,74 @@ const CreateMatchPage = () => {
          <div className="flex w-full max-w-[1920px] mx-auto pt-[120px] px-6 xl:px-12 pb-10 gap-8 items-start min-h-[calc(100vh-120px)]">
 
             {/* COLONNA SX */}
-            <aside className="hidden lg:flex flex-col w-[20%] shrink-0">
+            <aside className="hidden lg:flex flex-col w-[20%] shrink-0 items-end">
                <Button
                   variant="secondary"
                   onClick={() => navigate('/')}
-                  className="flex items-center gap-2 self-start px-4 py-2 bg-[#1B2227] hover:bg-[#2A3439] border border-gray-600 text-black text-sm font-bold shadow-md"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1B2227] hover:bg-[#2A3439] border border-gray-600 text-[#173C55] text-sm font-bold shadow-md"
                >
                   <ArrowLeft size={18} />
-                  TORNA ALLA LOBBY
+                  Lobby
                </Button>
             </aside>
 
             {/* COLONNA CENTRALE */}
             <main className="flex-1 w-full lg:w-[60%] flex justify-center">
 
-               <Card padding="lg" className="w-full max-w-3xl shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border border-gray-700/50">
+               <Form 
+                  onSubmit={handleSubmit}
+                  title="Crea Nuova Partita"
+                  maxWidth="md"
+                  className="w-full max-w-3xl"
+               >
 
-                  <h1 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white border-b border-gray-600 pb-4">
-                     <Swords className="text-[#38C7D7]" size={28} />
-                     CREA NUOVA PARTITA
-                  </h1>
-
-                  <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="space-y-6">
 
                      {/* INPUT VARI (Nome, Slider, Mode, Password...) - invariati */}
-                     <div className="space-y-2">
-                        <label className="text-gray-400 font-bold text-xs uppercase tracking-wider">Nome Tavolo</label>
-                        <TextInput
-                           variant="light"
-                           value={matchName}
-                           onChange={(e) => setMatchName(e.target.value)}
-                           placeholder="Es. La Resa dei Conti"
-                           required
-                        />
-                     </div>
+                     <TextInput
+                        label="Nome Tavolo"
+                        variant="light"
+                        value={matchName}
+                        onChange={(e) => setMatchName(e.target.value)}
+                        placeholder="Es. La Resa dei Conti"
+                        required
+                     />
 
-                     <div className="space-y-3">
-                        <div className="flex justify-between items-end">
-                           <label className="text-gray-400 font-bold text-xs uppercase tracking-wider">Giocatori Max</label>
-                           <span className="text-xl font-bold text-[#38C7D7]">{playersMax}</span>
-                        </div>
-                        <div className="flex items-center gap-4 bg-[#2A3439] p-3 rounded-lg border border-transparent hover:border-gray-600 transition-colors">
-                           <Users size={20} className="text-gray-400" />
-                           <input
-                              type="range"
-                              min="3"
-                              max="6"
-                              step="1"
-                              value={playersMax}
-                              onChange={(e) => setPlayersMax(Number(e.target.value))}
-                              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#38C7D7]"
+                     <RangeInput
+                        label="Giocatori Max"
+                        value={playersMax}
+                        onChange={(e) => setPlayersMax(parseInt(e.target.value))}
+                        min={3}
+                        max={6}
+                        icon={Users}
+                        displayValue={playersMax}
+                     />
+
+                     <div>
+                        <label className={INPUT_LABEL_STYLES}>Modalità</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <SelectableCard
+                              label="Classica"
+                              description="Obiettivi segreti"
+                              icon={Shield}
+                              selected={gameMode === 'classica'}
+                              onClick={() => setGameMode('classica')}
+                              activeColor="#38C7D7"
+                           />
+
+                           <SelectableCard
+                              label="Veloce"
+                              description="Conquista rapida"
+                              icon={Zap}
+                              selected={gameMode === 'veloce'}
+                              onClick={() => setGameMode('veloce')}
+                              activeColor="#EAB308"
                            />
                         </div>
                      </div>
 
-                     <div className="space-y-2">
-                        <label className="text-gray-400 font-bold text-xs uppercase tracking-wider">Modalità</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           <div
-                              onClick={() => setGameMode('classica')}
-                              className={`cursor-pointer p-3 rounded-lg border-2 flex items-center gap-3 transition-all
-                        ${gameMode === 'classica' ? 'border-[#38C7D7] bg-[#38C7D7]/10' : 'border-gray-600 bg-[#2A3439] hover:border-gray-500'}`}
-                           >
-                              <Shield className={gameMode === 'classica' ? "text-[#38C7D7]" : "text-gray-500"} size={24} />
-                              <div>
-                                 <div className="font-bold text-sm text-white">CLASSICA</div>
-                                 <div className="text-[11px] text-gray-400">Obiettivi segreti</div>
-                              </div>
-                           </div>
-
-                           <div
-                              onClick={() => setGameMode('veloce')}
-                              className={`cursor-pointer p-3 rounded-lg border-2 flex items-center gap-3 transition-all
-                        ${gameMode === 'veloce' ? 'border-[#EAB308] bg-[#EAB308]/10' : 'border-gray-600 bg-[#2A3439] hover:border-gray-500'}`}
-                           >
-                              <Zap className={gameMode === 'veloce' ? "text-[#EAB308]" : "text-gray-500"} size={24} />
-                              <div>
-                                 <div className="font-bold text-sm text-white">VELOCE</div>
-                                 <div className="text-[11px] text-gray-400">Conquista rapida</div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-
-                     <div className="space-y-2">
-                        <label className="text-gray-400 font-bold text-xs uppercase tracking-wider">Accesso</label>
+                     <div>
+                        <label className={INPUT_LABEL_STYLES}>Accesso</label>
                         <div className="flex bg-[#2A3439] p-1 rounded-lg border border-gray-600 h-[40px]">
                            <button
                               type="button"
@@ -188,7 +176,7 @@ const CreateMatchPage = () => {
                               className={`flex-1 rounded font-bold text-xs flex items-center justify-center gap-2 transition-all 
                         ${!isPrivate ? 'bg-[#38C7D7] text-[#173C55] shadow-sm' : 'text-gray-400 hover:text-white'}`}
                            >
-                              <Globe size={14} /> PUBBLICA
+                              <Globe size={14} /> Pubblica
                            </button>
                            <button
                               type="button"
@@ -196,42 +184,38 @@ const CreateMatchPage = () => {
                               className={`flex-1 rounded font-bold text-xs flex items-center justify-center gap-2 transition-all 
                         ${isPrivate ? 'bg-[#EAB308] text-[#173C55] shadow-sm' : 'text-gray-400 hover:text-white'}`}
                            >
-                              <Lock size={14} /> PRIVATA
+                              <Lock size={14} /> Privata
                            </button>
                         </div>
                      </div>
 
                      {isPrivate && (
-                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                           <label className="text-[#EAB308] font-bold text-xs uppercase flex items-center gap-2">
-                              Password Richiesta
-                           </label>
-                           <TextInput
-                              variant="light"
-                              type="text"
-                              icon={Lock}
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                           <PasswordInput
+                              label="Password Richiesta"
                               placeholder="Inserisci la password..."
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              className="border-2 border-transparent focus-within:border-[#EAB308]/50 rounded-[15px]"
+                              defaultVisible={true}
                            />
                         </div>
                      )}
 
-                     <div className="pt-6 border-t border-gray-600">
+                     <div className="pt-4">
                         <Button
                            type="submit"
                            variant="yellow"
                            size="lg"
-                           className="w-full py-4 text-lg shadow-lg uppercase tracking-widest font-black hover:scale-[1.01] transition-transform"
+                           className="w-full py-4 text-lg shadow-lg font-bold hover:scale-[1.01] transition-transform"
                            disabled={loading}
                         >
-                           {loading ? "CREAZIONE IN CORSO..." : "CREA PARTITA"}
+                           {loading ? "Creazione in corso..." : "Crea Partita"}
                         </Button>
                      </div>
 
-                  </form>
-               </Card>
+                  </div>
+
+               </Form>
             </main>
 
             <aside className="hidden lg:block w-[20%] shrink-0"></aside>

@@ -86,7 +86,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 type="submit"
                 variant="cyan"
                 size="lg"
-                className="w-full"
+                className="w-full mt-5"
             >
                 Accedi
             </Button>

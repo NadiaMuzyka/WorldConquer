@@ -5,7 +5,8 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase/firebaseConfig'; // <--- Importa auth diretto
 import { setMatchData, clearMatchData } from '../store/slices/matchSlice';
 import RiskClient from '../client/RiskClient'; 
-import { Users, Loader2 } from 'lucide-react'; 
+import { Users, Loader2 } from 'lucide-react';
+import { getGameUser } from '../utils/getUser'; 
 
 const GamePage = () => {
   const { matchId } = useParams();
@@ -108,8 +109,8 @@ const GamePage = () => {
               {user && (
                  <p className="text-sm text-gray-400 mb-4">
                     Sei loggato come: <span className="text-[#38C7D7]">{user.displayName || user.email}</span>
-                 </p>
-              )}
+                    </p>
+                  )}
 
               <div className="flex flex-col items-center gap-4">
                  <Loader2 size={48} className="text-[#38C7D7] animate-spin" />

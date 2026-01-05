@@ -3,15 +3,13 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
 import { enterMatch } from '../../store/slices/lobbySlice';
-import { getCurrentUser } from '../../utils/getUser';
 import { lobbyClient } from '../../client/lobbyClient';
 import Button from '../UI/Button';
 import { FULL_MATCH_ICON, ARROW_RIGHT_ICON } from '../Constants/icons';
 
-const GameCard = ({ match }) => {
+const GameCard = ({ match, currentUser }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
 
   // 1. Destrutturazione
   const { id, name, players, playersMax, image, isPrivate, password } = match;
@@ -23,6 +21,12 @@ const GameCard = ({ match }) => {
 
   // --- LOGICA DI JOIN ---
   const handleJoin = async () => {
+
+    // Controllo che l'utente sia caricato
+    if (!currentUser) {
+      alert("Errore: Dati utente non ancora caricati. Riprova.");
+      return;
+    }
 
     // A. Rientro veloce (Sei già in partita?)
     const existingPlayer = (players || []).find(p => p.name === currentUser.name);

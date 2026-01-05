@@ -1,23 +1,31 @@
 // src/utils/getUser.js
+import { getCurrentUserProfile } from '../firebase/db';
 
-export const getCurrentUser = () => {
-  // 1. Controlla se abbiamo già un utente salvato nel browser
-  const storedUser = localStorage.getItem('risk_user_guest');
+/**
+ * Recupera i dati del giocatore autenticato per l'uso nel gioco
+ * @returns {Promise<Object>} Oggetto con id, name (nickname), avatar (photoURL)
+ * @throws Reindirizza a /login se l'utente non è autenticato
+ */
+export const getGameUser = async () => {
+  try {
+    const result = await getCurrentUserProfile();
+    
+    if (!result.success) {
+      console.error('Utente non autenticato:', result.error);
+      window.location.href = '/login';
+      throw new Error('Utente non autenticato');
+    }
 
-  if (storedUser) {
-    return JSON.parse(storedUser);
+    const userData = result.data;
+    
+    return {
+      id: userData.uid,
+      name: userData.nickname || userData.email.split('@')[0], // Fallback al nome email se manca nickname
+      avatar: userData.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.uid}`
+    };
+  } catch (error) {
+    console.error('Errore recupero dati utente:', error);
+    window.location.href = '/login';
+    throw error;
   }
-
-  // 2. Se non esiste, creiamo un nuovo profilo "Ospite"
-  const randomId = Math.floor(Math.random() * 10000);
-  const newUser = {
-    id: `guest_${Date.now()}_${randomId}`, // ID univoco basato sul tempo
-    name: `Generale ${Math.floor(Math.random() * 1000)}`, // Es: Generale 458
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomId}` // Avatar coerente
-  };
-
-  // 3. Salviamo nel LocalStorage per le prossime volte
-  localStorage.setItem('risk_user_guest', JSON.stringify(newUser));
-
-  return newUser;
 };

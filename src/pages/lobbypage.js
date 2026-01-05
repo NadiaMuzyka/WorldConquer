@@ -16,13 +16,26 @@ import { db } from '../firebase/firebaseConfig';
 import { syncMatches } from '../store/slices/lobbySlice';
 
 // Utils
-import { getCurrentUser } from '../utils/getUser';
+import { getGameUser } from '../utils/getUser';
 
 const LobbyPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const currentUser = useMemo(() => getCurrentUser(), []);
+  const [currentUser, setCurrentUser] = React.useState(null);
+
+  // Carica i dati utente all'avvio
+  React.useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getGameUser();
+        setCurrentUser(user);
+      } catch (error) {
+        // getGameUser già gestisce il redirect al login
+      }
+    };
+    loadUser();
+  }, []);
 
   // --- 1. ASCOLTA FIREBASE (Lettura Dati) ---
   useEffect(() => {
@@ -106,6 +119,7 @@ const LobbyPage = () => {
         <main className="flex-1 min-w-0">
           <GameContainer
             matches={filteredGames}
+            currentUser={currentUser}
           />
         </main>
 

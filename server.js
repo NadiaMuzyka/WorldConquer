@@ -15,11 +15,11 @@ admin.initializeApp({
 const rtdb = admin.database();
 const firestore = admin.firestore();
 
-// 3. Middleware per validare il join prima di eseguirlo
-const validateJoinMiddleware = async (req, res, next) => {
+// 3. Middleware Koa per validare il join prima di eseguirlo
+const validateJoinMiddleware = async (ctx, next) => {
   // Intercetta solo le richieste POST a /games/{gameName}/{matchID}/join
-  if (req.method === 'POST' && req.path.includes('/join')) {
-    const pathParts = req.path.split('/');
+  if (ctx.method === 'POST' && ctx.path.includes('/join')) {
+    const pathParts = ctx.path.split('/');
     const matchID = pathParts[pathParts.length - 2];
     
     try {
@@ -34,10 +34,12 @@ const validateJoinMiddleware = async (req, res, next) => {
         // Verifica che ci sia ancora spazio
         if (currentPlayers >= maxPlayers) {
           console.log(`[SERVER] Join bloccato per ${matchID}: partita piena (${currentPlayers}/${maxPlayers})`);
-          return res.status(409).json({ 
+          ctx.status = 409;
+          ctx.body = { 
             error: 'Match is full',
             message: 'La partita è già piena. Non è possibile unirsi.'
-          });
+          };
+          return; // Non chiamare next() per bloccare la richiesta
         }
         
         console.log(`[SERVER] Join validato per ${matchID}: ${currentPlayers + 1}/${maxPlayers}`);
@@ -48,7 +50,7 @@ const validateJoinMiddleware = async (req, res, next) => {
     }
   }
   
-  next();
+  await next();
 };
 
 // 4. Avvio Server con middleware

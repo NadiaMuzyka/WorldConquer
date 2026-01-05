@@ -117,14 +117,14 @@ const CreateMatchPage = () => {
          <Navbar mode="lobby" user={currentUser} />
 
          {/* LAYOUT */}
-         <div className="flex w-full max-w-[1920px] mx-auto pt-[120px] px-6 xl:px-12 pb-10 gap-8 items-start min-h-[calc(100vh-120px)]">
+         <div className="flex w-full max-w-[1920px] mx-auto pt-[90px] px-6 xl:px-12 pb-10 gap-8 items-start min-h-[calc(100vh-90px)]">
 
             {/* COLONNA SX */}
             <aside className="hidden lg:flex flex-col w-[20%] shrink-0 items-end">
                <Button
                   variant="secondary"
                   onClick={() => navigate('/')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1B2227] hover:bg-[#2A3439] border border-gray-600 text-[#173C55] text-sm font-bold shadow-md"
+                  className="flex items-center gap-2 px-4 bg-[#1B2227] hover:bg-[#2A3439] border border-gray-600 text-[#173C55] text-sm font-bold shadow-md"
                >
                   <ArrowLeft size={18} />
                   Lobby

@@ -26,34 +26,48 @@ class FirebaseAdapter {
         metadata 
     });
 
-    // 2. FIRESTORE (Lobby)
+    // 2. FIRESTORE (Lobby) - Usa transazione per creazione atomica
     const setupData = metadata.setupData || {};
-    const firestoreData = {
-      matchID: matchID,
-      name: setupData.matchName || `Partita ${matchID}`,
-      playersMax: setupData.playersMax || 6,
-      mode: setupData.mode || 'classica',
-      status: 'OPEN', // Nasce sempre OPEN
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      playersCurrent: 1, 
-      isPrivate: setupData.isPrivate || false,
-      password: setupData.password || null,
-      players: [{
-          id: setupData.hostId || "host",
-          name: setupData.hostName || "Host",
-          avatar: setupData.hostAvatar || "",
-          isHost: true
-      }],
-      gameover: false
-    };
-
+    const docRef = this.firestore.collection('matches').doc(matchID);
+    
     try {
-        await this.firestore.collection('matches').doc(matchID).set(firestoreData);
+        await this.firestore.runTransaction(async (transaction) => {
+            const doc = await transaction.get(docRef);
+            
+            // Verifica che la partita non esista già
+            if (doc.exists) {
+                console.warn(`[ADAPTER] Match ${matchID} già esistente, skip creazione`);
+                return;
+            }
+            
+            const firestoreData = {
+                matchID: matchID,
+                name: setupData.matchName || `Partita ${matchID}`,
+                playersMax: setupData.playersMax || 6,
+                mode: setupData.mode || 'classica',
+                status: 'OPEN', // Nasce sempre OPEN
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                playersCurrent: 1, 
+                isPrivate: setupData.isPrivate || false,
+                password: setupData.password || null,
+                players: [{
+                    id: setupData.hostId || "host",
+                    name: setupData.hostName || "Host",
+                    avatar: setupData.hostAvatar || "",
+                    isHost: true
+                }],
+                gameover: false
+            };
+            
+            transaction.set(docRef, firestoreData);
+        });
+        
         // Inizializziamo la cache per evitare update inutili immediati
         this.statusCache.set(matchID, 'OPEN'); 
-        console.log(`[ADAPTER] Match ${matchID} creato.`);
+        console.log(`[ADAPTER] Match ${matchID} creato con transazione.`);
     } catch (error) {
         console.error(`[ADAPTER ERROR] Create Firestore: ${error.message}`);
+        throw error; // Propaga l'errore per far fallire la creazione
     }
   }
 
@@ -109,7 +123,7 @@ class FirebaseAdapter {
     return state;
   }
 
-  // --- METADATI (Con fix anti-fantasmi) ---
+  // --- METADATI (Con transazioni per evitare race conditions) ---
   async setMetadata(matchID, metadata) {
     await this.rtdb.ref(`matches/${matchID}/metadata`).set(metadata);
 
@@ -124,10 +138,42 @@ class FirebaseAdapter {
         }));
 
     if (playersArray.length > 0) {
-        await this.firestore.collection('matches').doc(matchID).set({
-            playersCurrent: playersArray.length,
-            players: playersArray
-        }, { merge: true }).catch(err => console.error(err));
+        const docRef = this.firestore.collection('matches').doc(matchID);
+        
+        try {
+            // Usa una transazione per aggiornare atomicamente i giocatori
+            await this.firestore.runTransaction(async (transaction) => {
+                const doc = await transaction.get(docRef);
+                
+                if (!doc.exists) {
+                    console.warn(`[ADAPTER] Match ${matchID} non esiste in Firestore durante setMetadata`);
+                    return;
+                }
+
+                const currentData = doc.data();
+                const currentPlayersMax = currentData.playersMax || 6;
+                
+                // Verifica che non si superi il numero massimo di giocatori
+                if (playersArray.length > currentPlayersMax) {
+                    throw new Error(`Troppi giocatori: ${playersArray.length}/${currentPlayersMax}`);
+                }
+
+                // Aggiorna atomicamente
+                transaction.update(docRef, {
+                    playersCurrent: playersArray.length,
+                    players: playersArray
+                });
+            });
+            
+            console.log(`[ADAPTER] Metadata aggiornato con transazione: ${playersArray.length} giocatori`);
+        } catch (error) {
+            console.error(`[ADAPTER ERROR] Transazione fallita per ${matchID}:`, error.message);
+            // Fallback senza transazione (meno sicuro ma evita crash)
+            await docRef.set({
+                playersCurrent: playersArray.length,
+                players: playersArray
+            }, { merge: true }).catch(err => console.error(err));
+        }
     }
   }
 

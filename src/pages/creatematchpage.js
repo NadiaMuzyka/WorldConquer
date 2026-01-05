@@ -19,7 +19,7 @@ import Form from '../components/UI/Form';
 // Utils & Config
 import { db } from '../firebase/firebaseConfig';
 import { lobbyClient } from '../client/lobbyClient';
-import { getCurrentUser } from '../utils/getUser';
+import { getGameUser } from '../utils/getUser';
 import { auth } from '../firebase/firebaseConfig';
 import { enterMatch } from '../store/slices/lobbySlice'; // <--- 2. IMPORT AZIONE
 
@@ -34,13 +34,32 @@ const CreateMatchPage = () => {
    const [isPrivate, setIsPrivate] = useState(false);
    const [password, setPassword] = useState('');
    const [loading, setLoading] = useState(false);
+   const [currentUser, setCurrentUser] = useState(null);
 
-   const currentUser = getCurrentUser();
    const firebaseUser = auth.currentUser;
+
+   // Carica i dati utente all'avvio
+   React.useEffect(() => {
+      const loadUser = async () => {
+         try {
+            const user = await getGameUser();
+            setCurrentUser(user);
+         } catch (error) {
+            // getGameUser già gestisce il redirect al login
+         }
+      };
+      loadUser();
+   }, []);
 
    // --- LOGICA DI CREAZIONE ---
    const handleSubmit = async (e) => {
       e.preventDefault();
+      
+      if (!currentUser) {
+         alert('Errore: Utente non caricato');
+         return;
+      }
+
       setLoading(true);
 
       try {

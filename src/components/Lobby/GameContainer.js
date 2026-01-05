@@ -5,7 +5,7 @@ import GameCard from './GameCard';
 import Button from '../UI/Button';
 
 //Parte centrale della lobby, che mostra le partite disponibili
-const GameContainer = ({ matches }) => {
+const GameContainer = ({ matches, currentUser }) => {
   const navigate = useNavigate();
 
   return (
@@ -42,6 +42,7 @@ const GameContainer = ({ matches }) => {
               <GameCard
                 key={match.id}
                 match={match}
+                currentUser={currentUser}
               />
             ))
           )}

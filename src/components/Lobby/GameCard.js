@@ -3,15 +3,13 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
 import { enterMatch } from '../../store/slices/lobbySlice';
-import { getCurrentUser } from '../../utils/getUser';
 import { lobbyClient } from '../../client/lobbyClient';
 import Button from '../UI/Button';
 import { FULL_MATCH_ICON, ARROW_RIGHT_ICON } from '../Constants/icons';
 
-const GameCard = ({ match }) => {
+const GameCard = ({ match, currentUser }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
 
   // 1. Destrutturazione
   const { id, name, players, playersMax, image, isPrivate, password } = match;
@@ -23,6 +21,12 @@ const GameCard = ({ match }) => {
 
   // --- LOGICA DI JOIN ---
   const handleJoin = async () => {
+
+    // Controllo che l'utente sia caricato
+    if (!currentUser) {
+      alert("Errore: Dati utente non ancora caricati. Riprova.");
+      return;
+    }
 
     // A. Rientro veloce (Sei già in partita?)
     const existingPlayer = (players || []).find(p => p.name === currentUser.name);
@@ -82,14 +86,41 @@ const GameCard = ({ match }) => {
     console.log("Tentativo Join sul posto:", mySeatID);
 
     try {
-      // D. Chiamata al Server
-      const { playerCredentials } = await lobbyClient.joinMatch('risk', id, {
-        playerID: mySeatID,
-        playerName: currentUser.name,
-        data: {
-          avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + currentUser.name
+      // D. Chiamata al Server con retry in caso di conflitto
+      let retryCount = 0;
+      const maxRetries = 3;
+      let joinSuccess = false;
+      let playerCredentials = null;
+
+      while (!joinSuccess && retryCount < maxRetries) {
+        try {
+          const result = await lobbyClient.joinMatch('risk', id, {
+            playerID: mySeatID,
+            playerName: currentUser.name,
+            data: {
+              avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + currentUser.name
+            }
+          });
+          
+          playerCredentials = result.playerCredentials;
+          joinSuccess = true;
+          
+        } catch (joinError) {
+          // Se è un errore 409 (conflitto), aspetta un po' e riprova
+          if (joinError.message && joinError.message.includes("409") && retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log(`[JOIN] Conflitto rilevato, tentativo ${retryCount}/${maxRetries}...`);
+            // Aspetta un tempo randomico tra 100-500ms per evitare collisioni multiple
+            await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 400));
+          } else {
+            throw joinError;
+          }
         }
-      });
+      }
+
+      if (!joinSuccess) {
+        throw new Error("Impossibile unirsi dopo multipli tentativi");
+      }
 
       // E. Successo
       dispatch(enterMatch(id));

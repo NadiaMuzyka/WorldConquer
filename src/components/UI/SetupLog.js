@@ -14,7 +14,7 @@ const getTerritoryName = (countryId) => {
 };
 
 export const SetupLog = () => {
-  const { G, playerID, moves } = useRisk();
+  const { G, playerID, moves, events } = useRisk();
   const [visibleCount, setVisibleCount] = useState(0);
   const [isReady, setIsReady] = useState(false);
 

@@ -15,11 +15,6 @@ const RiskGame = {
   }),
 
   moves: {
-    // Conferma che il giocatore ha visto il setup
-    confirmSetupView: ({ G, playerID }) => {
-      if (!G.playersReady) G.playersReady = {};
-      G.playersReady[playerID] = true;
-    },
     clickCountry: ({ G, playerID, events }, countryId) => {
       // Assicura la forma dello stato
       if (!G.troops) G.troops = {};
@@ -57,7 +52,7 @@ const RiskGame = {
   phases: {
     SETUP_INITIAL: {
       start: true,
-      // CORREZIONE QUI: Sintassi ({ G, ctx })
+      // Distribuzione automatica dei territori all'inizio della fase di setup
       onBegin: ({ G, ctx }) => {
         console.log("🎲 Fase SETUP_INITIAL iniziata");
         // console.log("DEBUG ctx:", ctx); // Decommenta se serve debug
@@ -88,14 +83,29 @@ const RiskGame = {
         });
       },
       turn: {
-        activePlayers: ActivePlayers.ALL,
+        activePlayers: { all: 'viewing' },
+        stages: {
+          viewing: {
+            moves: {
+              confirmSetupView: ({ G, playerID, events }) => {
+                if (!G.playersReady) G.playersReady = {};
+                G.playersReady[playerID] = true;
+                events.endStage(); // Conclude lo stage del giocatore
+              }
+            }
+          }
+        }
       },
-      // CORREZIONE ANCHE QUI: ({ G, ctx }) per evitare crash su ctx.numPlayers
       endIf: ({ G, ctx }) => {
-        // Controllo di sicurezza
+        // Non terminare finché i territori non sono stati distribuiti
+        if (!G || !G.setupAssignmentOrder || G.setupAssignmentOrder.length === 0) {
+          return false;
+        }
+        // Non terminare finché non tutti hanno confermato
         if (!G.playersReady || typeof G.playersReady !== 'object') {
           return false;
         }
+        // Termina solo quando tutti hanno confermato
         return Object.keys(G.playersReady).length === ctx.numPlayers;
       },
       next: 'RINFORZO_INIZIALE',

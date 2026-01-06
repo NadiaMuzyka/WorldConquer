@@ -59,8 +59,8 @@ export function Country({ data, owner, troops }) {
           <Troop 
             color={tankColor} 
             count={troops} 
-            x={data.cx || 0} 
-            y={data.cy || 0}
+            x={data.cx} 
+            y={data.cy}
             shouldShow={shouldShowTroop}
             animationDelay={animationDelay}
           />

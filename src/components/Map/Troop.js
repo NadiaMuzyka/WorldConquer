@@ -16,10 +16,7 @@ export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 
     <g 
       transform={position} 
       style={{ 
-        pointerEvents: 'none',
-        opacity: 0,
-        animation: 'fadeIn 0.5s ease-in forwards',
-        animationDelay: `${animationDelay}ms`
+        pointerEvents: 'none'
       }}
     >
       {/* Corpo del Carroarmato */}

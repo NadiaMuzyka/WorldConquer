@@ -58,18 +58,18 @@ export const SetupLog = () => {
   };
 
   return (
-    <div className="text-white space-y-4">
-      {/* Header con colore giocatore */}
-      <div className="flex items-center gap-3 mb-6">
-        <span className="text-lg font-bold">Sei il giocatore</span>
+    <div className="h-full grid grid-rows-[auto_1fr_auto]">
+      {/* Header con colore giocatore - FISSO in alto */}
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-700">
+        <span className="text-base font-semibold text-white">Sei il giocatore</span>
         <div 
-          className="w-8 h-8 rounded-full border-2 border-white"
+          className="w-6 h-6 rounded-full border-2 border-white"
           style={{ backgroundColor: myColor }}
         />
       </div>
 
-      {/* Lista territori con animazione fade-in */}
-      <div className="space-y-2">
+      {/* Area messaggi SCROLLABILE - prende tutto lo spazio rimanente */}
+      <div className="overflow-y-auto px-4 py-2 space-y-2 custom-scrollbar">
         {myTerritories.slice(0, visibleCount).map((countryId, index) => (
           <div
             key={countryId}
@@ -86,8 +86,8 @@ export const SetupLog = () => {
         ))}
       </div>
 
-      {/* Bottone dinamico o messaggio di attesa */}
-      <div className="mt-6">
+      {/* Container bottone FISSO in basso */}
+      <div className="p-4 border-t border-gray-700">
         {!isReady ? (
           <Button 
             variant="cyan" 

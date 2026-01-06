@@ -2,6 +2,7 @@ import React from "react";
 import { createBrowserRouter, redirect } from "react-router-dom";
 import LobbyPage from "./pages/lobbypage";
 import GamePage from "./pages/gamepage";
+import WaitingPage from "./pages/waitingpage";
 import CreateMatchPage from "./pages/creatematchpage";
 import { LoginPage } from "./pages/loginpage";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -52,6 +53,11 @@ const router = createBrowserRouter([
   {
     path: "/game/:matchId",
     element: <GamePage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/waiting/:matchId",
+    element: <WaitingPage />,
     errorElement: <ErrorPage />,
   },
   {

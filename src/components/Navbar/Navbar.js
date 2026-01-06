@@ -78,7 +78,7 @@ export const Navbar = ({
   };
 
   // --- STILI BASE (CSS Figma) ---
-  const baseClasses = "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1c1c1c]/80 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300";
+  const baseClasses = "relative z-50 flex items-center justify-between px-6 bg-[#1c1c1c]/80 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300";
 
   // Altezza: 102px per Game, 86px per Lobby
   const heightClass = isGameMode ? "h-[102px]" : "h-[86px]";

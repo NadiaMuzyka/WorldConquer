@@ -71,3 +71,28 @@
 .animate-fadeInTerritory {
     animation: fadeInTerritory 0.3s ease-in;
 }
+
+/* Scrollbar custom per SetupLog */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #0891b2 #1f2937; /* thumb: cyan-600, track: gray-800 */
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #1f2937; /* gray-800 */
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #0891b2; /* cyan-600 */
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #06b6d4; /* cyan-500 */
+}

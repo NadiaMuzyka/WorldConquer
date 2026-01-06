@@ -25,23 +25,25 @@ function RiskBoardContent() {
       <div className="relative w-full h-full bg-[#1B2227] overflow-hidden flex flex-col">
         
         {/* NAVBAR */}
-        <Navbar 
-            phase={ctx?.phase || "PREPARAZIONE"} 
-            gameCode={ctx?.matchID || "DEBUG-123"} 
-            playerTurn={ctx?.currentPlayer}
-            onLeave={() => console.log("Abbandona")}
-        />
+        <div className="flex-shrink-0">
+          <Navbar 
+              phase={ctx?.phase || "PREPARAZIONE"} 
+              gameCode={ctx?.matchID || "DEBUG-123"} 
+              playerTurn={ctx?.currentPlayer}
+              onLeave={() => console.log("Abbandona")}
+          />
+        </div>
 
         {/* AREA DI GIOCO - Layout condizionale */}
         {isSetupPhase ? (
           // Layout two-column durante SETUP_INITIAL
           <div className="flex-1 flex flex-row overflow-hidden">
-            {/* Colonna sinistra: SetupLog */}
-            <div className="w-80 bg-[#1B2227] border-r border-gray-700 overflow-y-auto p-4">
+            {/* Colonna sinistra: SetupLog - PIÙ STRETTA per dare respiro alla mappa */}
+            <div className="w-72 h-full bg-[#1B2227] border-r border-gray-700">
               <SetupLog />
             </div>
             
-            {/* Colonna destra: Mappa */}
+            {/* Colonna destra: Mappa - PIÙ SPAZIO */}
             <div className="flex-1 relative flex justify-center items-center">
               <RiskMap />
             </div>

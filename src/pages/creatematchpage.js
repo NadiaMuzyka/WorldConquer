@@ -84,21 +84,13 @@ const CreateMatchPage = () => {
 
          console.log(`Partita ${matchID} creata dal server.`);
 
-         // 3. JOIN AUTOMATICO
-         // Importante: Passiamo 'avatar' dentro 'data' perché boardgame.io salva 'name' e 'data'
-         const { playerCredentials } = await lobbyClient.joinMatch('risk', matchID, {
-            playerID: "0",
-            playerName: currentUser.name,
-            data: { avatar: currentUser.avatar }
-         });
-
-         // 4. REDUX E NAVIGAZIONE 
-         dispatch(enterMatch(matchID)); // salvo nello stato id della partita in cui mi trovo
-         //navigo alla partita con playerID 0
-         navigate(`/game/${matchID}`, {
+         // 3. NAVIGAZIONE ALLA WAITING PAGE
+         // L'host entra nella waiting page come player 0
+         // Il join verrà fatto automaticamente dalla waiting page
+         navigate(`/waiting/${matchID}`, {
             state: {
                playerID: "0",
-               credentials: playerCredentials
+               currentUser: currentUser
             }
          });
 

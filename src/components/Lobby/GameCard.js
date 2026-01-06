@@ -85,61 +85,15 @@ const GameCard = ({ match, currentUser }) => {
 
     console.log("Tentativo Join sul posto:", mySeatID);
 
-    try {
-      // D. Chiamata al Server con retry in caso di conflitto
-      let retryCount = 0;
-      const maxRetries = 3;
-      let joinSuccess = false;
-      let playerCredentials = null;
-
-      while (!joinSuccess && retryCount < maxRetries) {
-        try {
-          const result = await lobbyClient.joinMatch('risk', id, {
-            playerID: mySeatID,
-            playerName: currentUser.name,
-            data: {
-              avatar: currentUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + currentUser.name
-            }
-          });
-          
-          playerCredentials = result.playerCredentials;
-          joinSuccess = true;
-          
-        } catch (joinError) {
-          // Se è un errore 409 (conflitto), aspetta un po' e riprova
-          if (joinError.message && joinError.message.includes("409") && retryCount < maxRetries - 1) {
-            retryCount++;
-            console.log(`[JOIN] Conflitto rilevato, tentativo ${retryCount}/${maxRetries}...`);
-            // Aspetta un tempo randomico tra 100-500ms per evitare collisioni multiple
-            await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 400));
-          } else {
-            throw joinError;
-          }
-        }
+    // Naviga direttamente alla waiting page
+    // Il join verrà effettuato automaticamente dalla waiting page
+    dispatch(enterMatch(id));
+    navigate(`/waiting/${id}`, {
+      state: {
+        playerID: mySeatID,
+        currentUser: currentUser
       }
-
-      if (!joinSuccess) {
-        throw new Error("Impossibile unirsi dopo multipli tentativi");
-      }
-
-      // E. Successo
-      dispatch(enterMatch(id));
-      navigate(`/game/${id}`, {
-        state: {
-          playerID: mySeatID,
-          credentials: playerCredentials
-        }
-      });
-
-    } catch (error) {
-      console.error("Errore Join:", error);
-      // Messaggio più chiaro per l'utente
-      if (error.message.includes("409")) {
-        alert("Errore di sincronizzazione: Il posto sembrava libero ma non lo è. Riprova tra un istante.");
-      } else {
-        alert("Impossibile entrare: " + error.message);
-      }
-    }
+    });
   };
 
   // --- RENDER (Uguale a prima) ---

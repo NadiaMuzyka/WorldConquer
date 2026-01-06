@@ -9,8 +9,8 @@ const COUNTRY_COLORS = {
   'AF_MER': '#ff5599',
   'ARG': '#00aad4',
   'EU_SET': '#d42aff',
-  'AU_OCC': '#0044aa',
-  'AU_OR': '#0055d4',
+  'AU_OCC': '#A0522D',
+  'AU_OR': '#CD853F',
   'CNG': '#ff0066',
   'AF_OR': '#ff2a7f',
   'EGY': '#d40055',
@@ -32,7 +32,7 @@ const COUNTRY_COLORS = {
   'AFG': '#25ff00',
   'SIAM': '#47d000',   
   'MGR': '#ff80b2',
-  'NGU': '#80b3ff',
+  'NGU': '#b98056ff',
   'US_OCC': '#aa8800',
   'US_OR': '#d4aa00',
   'ALK': '#fff955ff',
@@ -41,7 +41,7 @@ const COUNTRY_COLORS = {
   'KMK': '#226b00',
   'JCZ': '#338000',
   'SBR': '#55d400',
-  'IDN': '#2a7fff',
+  'IDN': '#fc700cff',
 };
 
 const PLAYER_COLORS = {

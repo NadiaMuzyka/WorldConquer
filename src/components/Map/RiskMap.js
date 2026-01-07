@@ -12,7 +12,7 @@ export default function RiskMap() {
         viewBox="-50 40 1150 650"
         preserveAspectRatio="xMidYMid meet"
         className="block"
-        style={{ width: '90%', height: '90%', maxWidth: '100%', maxHeight: '100%' }}
+        style={{ width: '95%', height: '95%', maxWidth: '100%', maxHeight: '100%' }}
       >
         {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}
         <MaritimeLines lines={MARITIME_LINES} />

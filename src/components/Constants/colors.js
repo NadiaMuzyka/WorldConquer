@@ -31,7 +31,7 @@ const COUNTRY_COLORS = {
   'JPN': '#4d9900',
   'AFG': '#25ff00',
   'SIAM': '#47d000',   
-  'MGR': '#ff80b2',
+  'MGR': '#86254cff',
   'NGU': '#b98056ff',
   'US_OCC': '#aa8800',
   'US_OR': '#d4aa00',

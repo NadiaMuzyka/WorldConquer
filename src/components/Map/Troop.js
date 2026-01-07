@@ -1,9 +1,18 @@
 import React from 'react';
+import { useRisk } from '../../context/GameContext';
 
-export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 0 }) => {
+export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 0, countryId }) => {
+  const { G, ctx, playerID, moves } = useRisk();
+  
   // Se non deve essere mostrato, non renderizzare nulla
   if (!shouldShow || !color) return null;
 
+  // Controlla se questa truppa è stata piazzata nel turno corrente
+  const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
+  const isPlacedThisTurn = isReinforcementPhase && 
+                          G?.turnPlacements && 
+                          G.turnPlacements.includes(countryId);
+  
   // Calcolo per centrare il carroarmato: 
   // L'SVG è 40x40, quindi sottraiamo 20 alle coordinate X e Y per centrarlo
   const position = `translate(${x - 20}, ${y - 20})`;
@@ -11,14 +20,38 @@ export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 
   // Colore di default se manca
   const tankColor = color || "#999"; 
   const strokeColor = "#333";
+  
+  // Handler per il bottone minus
+  const handleRemove = (e) => {
+    e.stopPropagation(); // Previeni la propagazione al Country
+    if (moves && typeof moves.removeReinforcement === 'function') {
+      moves.removeReinforcement(countryId);
+    }
+  };
 
   return (
     <g 
       transform={position} 
       style={{ 
-        pointerEvents: 'none'
+        pointerEvents: isPlacedThisTurn ? 'auto' : 'none'
       }}
     >
+      {/* Glow effect se piazzato in questo turno */}
+      {isPlacedThisTurn && (
+        <circle 
+          cx="20" 
+          cy="20" 
+          r="22" 
+          fill="none" 
+          stroke="#FFD700"
+          strokeWidth="2"
+          opacity="0.7"
+          style={{
+            filter: 'drop-shadow(0 0 4px #FFD700)'
+          }}
+        />
+      )}
+      
       {/* Corpo del Carroarmato */}
       <path 
         fillRule="evenodd" 
@@ -49,6 +82,35 @@ export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 
       >
         {count}
       </text>
+      
+      {/* Bottone Minus - visibile solo se piazzato in questo turno */}
+      {isPlacedThisTurn && (
+        <g 
+          onClick={handleRemove}
+          style={{ cursor: 'pointer' }}
+          transform="translate(28, 28)"
+        >
+          {/* Cerchio di sfondo */}
+          <circle 
+            cx="0" 
+            cy="0" 
+            r="8" 
+            fill="#ff4444"
+            stroke="white"
+            strokeWidth="1.5"
+          />
+          {/* Icona minus */}
+          <line 
+            x1="-4" 
+            y1="0" 
+            x2="4" 
+            y2="0" 
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </g>
+      )}
     </g>
   );
 };

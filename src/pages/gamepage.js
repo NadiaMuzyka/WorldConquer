@@ -60,7 +60,7 @@ const GamePage = () => {
   console.log(`[GAMEPAGE] Montaggio RiskClient - Player ${playerID}, Match ${matchId}`);
 
   return (
-    <div className="relative w-full h-screen bg-[#1B2227] overflow-hidden">
+    <div className="relative w-full h-screen bg-[#1B2227] overflow-y-auto">
       <RiskClient 
         matchID={matchId} 
         playerID={playerID} 

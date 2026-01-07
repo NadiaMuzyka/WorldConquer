@@ -17,6 +17,7 @@ export function Country({ data, owner, troops }) {
 
   // Determina se siamo in fase di setup
   const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
+  const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
   
   // Durante il setup, mostra le truppe solo se appartengono al giocatore corrente
   const shouldShowTroop = !isSetupPhase || owner === playerID;
@@ -39,6 +40,16 @@ export function Country({ data, owner, troops }) {
     // Durante il setup non permettere click
     if (isSetupPhase) return;
     
+    // Durante INITIAL_REINFORCEMENT usa placeReinforcement
+    if (isReinforcementPhase) {
+      // Solo se il territorio appartiene al giocatore corrente
+      if (owner === playerID && moves && typeof moves.placeReinforcement === 'function') {
+        moves.placeReinforcement(data.id);
+      }
+      return;
+    }
+    
+    // Altre fasi: usa clickCountry
     if (moves && typeof moves.clickCountry === 'function') {
       moves.clickCountry(data.id);
     }
@@ -63,6 +74,7 @@ export function Country({ data, owner, troops }) {
             y={data.cy}
             shouldShow={shouldShowTroop}
             animationDelay={animationDelay}
+            countryId={data.id}
           />
       )}
     </g>

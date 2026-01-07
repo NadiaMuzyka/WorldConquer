@@ -3,6 +3,7 @@ import { GameProvider, useRisk } from './context/GameContext'; // <--- Importiam
 import RiskMap from './components/Map/RiskMap';
 import Navbar from './components/Navbar/Navbar';
 import SetupLog from './components/UI/SetupLog';
+import ReinforcementPanel from './components/UI/ReinforcementPanel';
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
   
@@ -19,6 +20,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 function RiskBoardContent() {
   const { ctx } = useRisk();
   const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
+  const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
 
   
   return (
@@ -51,8 +53,17 @@ function RiskBoardContent() {
           </div>
         ) : (
           // Layout standard full-width per altre fasi
-          <div className="flex-1 relative flex justify-center items-center pt-4">
-            <RiskMap />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 relative flex justify-center items-center pt-4">
+              <RiskMap />
+            </div>
+            
+            {/* Panel per rinforzi - visibile solo in INITIAL_REINFORCEMENT */}
+            {isReinforcementPhase && (
+              <div className="flex-shrink-0">
+                <ReinforcementPanel />
+              </div>
+            )}
           </div>
         )}
 

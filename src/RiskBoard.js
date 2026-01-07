@@ -51,7 +51,7 @@ function RiskBoardContent() {
           </div>
         ) : (
           // Layout standard full-width per altre fasi
-          <div className="flex-1 relative flex justify-center items-center pt-6">
+          <div className="flex-1 relative flex justify-center items-center pt-4">
             <RiskMap />
           </div>
         )}

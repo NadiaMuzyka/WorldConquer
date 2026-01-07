@@ -9,10 +9,10 @@ export default function RiskMap() {
     <div className="w-full h-full flex items-center justify-center bg-[#173c55] p-4">
       <svg
         version="1.1"
-        viewBox="-50 40 1150 650"
+        viewBox="-50 50 1150 650"
         preserveAspectRatio="xMidYMid meet"
         className="block"
-        style={{ width: '95%', height: '95%', maxWidth: '100%', maxHeight: '100%' }}
+        style={{ width: '80%', height: '80%', maxWidth: '100%', maxHeight: '100%' }}
       >
         {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}
         <MaritimeLines lines={MARITIME_LINES} />

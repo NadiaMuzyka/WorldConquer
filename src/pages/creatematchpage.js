@@ -130,7 +130,7 @@ const CreateMatchPage = () => {
                   onSubmit={handleSubmit}
                   title="Crea Nuova Partita"
                   maxWidth="md"
-                  className="w-full max-w-3xl"
+                  className="w-full max-w-2xl"
                >
 
                   <div className="space-y-6">

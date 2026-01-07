@@ -23,7 +23,7 @@ export const PageContainer = ({
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#38C7D7] opacity-10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
             
             {/* Contenuto */}
-            <div className="relative z-10 w-full max-w-7xl mx-auto">
+            <div className="relative z-10 w-full">
                 {children}
             </div>
         </div>

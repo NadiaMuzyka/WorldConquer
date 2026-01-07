@@ -108,15 +108,15 @@ const LobbyPage = () => {
 
       <PageContainer>
         {/* LAYOUT PRINCIPALE */}
-        <div className="flex justify-between items-start pt-[120px] pb-10 px-6 xl:px-12 gap-8 w-full max-w-[2000px] mx-auto">
+        <div className="flex justify-between items-start pt-[90px] pb-10 px-6 xl:px-12 gap-8 w-full max-w-[2000px] mx-auto">
 
         {/* COLONNA SX: FILTRI */}
-        <aside className="hidden xl:block w-[323px] shrink-0 sticky top-[120px]">
+        <aside className="hidden xl:block w-[323px] shrink-0 sticky top-[90px]">
           <FilterContainer />
         </aside>
 
         {/* COLONNA CENTRALE: LISTA PARTITE */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 max-w-[1400px]">
           <GameContainer
             matches={filteredGames}
             currentUser={currentUser}
@@ -124,7 +124,7 @@ const LobbyPage = () => {
         </main>
 
         {/* COLONNA DX: SIDEBAR & CREATE */}
-        <aside className="hidden xl:flex flex-col w-[323px] shrink-0 gap-5 sticky top-[120px]">
+        <aside className="hidden xl:flex flex-col w-[323px] shrink-0 gap-5 sticky top-[90px]">
 
           <SearchBox />
 

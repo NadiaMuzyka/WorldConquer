@@ -1,7 +1,7 @@
 // src/firebase/db.js
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
 import { app, auth } from "./firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, deleteUser } from "firebase/auth";
 
 const db = getFirestore(app);
 
@@ -383,6 +383,52 @@ export const searchUsers = async (searchTerm, limit = 10) => {
       error: 'Errore durante la ricerca degli utenti',
       errorCode: error.code,
       data: []
+    };
+  }
+};
+
+/**
+ * Elimina l'account utente (Firebase Auth + Firestore)
+ * @returns {Promise<Object>} Risultato dell'operazione
+ */
+export const deleteUserAccount = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      return { success: false, error: 'Utente non autenticato' };
+    }
+
+    const uid = currentUser.uid;
+
+    // 1. Elimina i dati Firestore
+    try {
+      const userRef = doc(db, "users", uid);
+      await deleteDoc(userRef);
+    } catch (firestoreError) {
+      console.error('Error deleting Firestore data:', firestoreError);
+      // Continua comunque con l'eliminazione dell'account Firebase
+    }
+
+    // 2. Elimina l'account Firebase Auth
+    await deleteUser(currentUser);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    
+    // Se l'errore è auth/requires-recent-login, l'utente deve riautenticarsi
+    if (error.code === 'auth/requires-recent-login') {
+      return { 
+        success: false, 
+        error: 'Per eliminare l\'account, devi prima effettuare nuovamente il login per motivi di sicurezza.'
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: 'Errore durante l\'eliminazione dell\'account',
+      errorCode: error.code 
     };
   }
 };

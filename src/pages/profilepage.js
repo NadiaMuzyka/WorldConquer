@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar, AtSign, Shuffle } from 'lucide-react';
-import { getCurrentUserProfile, updateCurrentUserProfile, updateCurrentUserAvatar } from '../firebase/db';
+import { User, Mail, Calendar, AtSign, Shuffle, Trash2 } from 'lucide-react';
+import { getCurrentUserProfile, updateCurrentUserProfile, updateCurrentUserAvatar, deleteUserAccount } from '../firebase/db';
 import { auth } from '../firebase/firebaseConfig';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { logout } from '../firebase/auth';
 import Navbar from '../components/Navbar/Navbar';
 import Button from '../components/UI/Button';
 import TextInput from '../components/UI/Input/TextInput';
@@ -253,7 +254,58 @@ const ProfilePage = () => {
             year: 'numeric' 
         });
     };
+    const handleDeleteAccount = async () => {
+        //TODO: Togliere l'allert, quando faremo i popup
+        const confirmed = window.confirm(
+            '⚠️ ATTENZIONE: Questa azione è irreversibile!\n\nSei sicuro di voler eliminare definitivamente il tuo account?\n\nTutti i tuoi dati saranno cancellati permanentemente.'
+        );
+        
+        if (!confirmed) return;
 
+        const doubleConfirm = window.confirm(
+            'Conferma ancora una volta: vuoi davvero eliminare il tuo account?'
+        );
+
+        if (!doubleConfirm) return;
+
+        // Chiedi la password per riautenticare
+        const password = window.prompt('Per confermare, inserisci la tua password:');
+        
+        if (!password) {
+            alert('Password richiesta per eliminare l\'account.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            
+            // Riautentica l'utente prima di eliminare
+            const user = auth.currentUser;
+            const credential = EmailAuthProvider.credential(user.email, password);
+            await reauthenticateWithCredential(user, credential);
+            
+            // Procedi con l'eliminazione
+            const result = await deleteUserAccount();
+            
+            if (result.success) {
+                alert('Account eliminato con successo.');
+                navigate('/');
+            } else {
+                setError(result.error || 'Errore durante l\'eliminazione dell\'account');
+            }
+        } catch (error) {
+            console.error('Errore eliminazione account:', error);
+            if (error.code === 'auth/wrong-password') {
+                setError('Password errata. Impossibile eliminare l\'account.');
+            } else if (error.code === 'auth/invalid-credential') {
+                setError('Credenziali non valide. Impossibile eliminare l\'account.');
+            } else {
+                setError('Errore durante l\'eliminazione dell\'account');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
     if (loading && !userData.email) {
         return (
             <>
@@ -525,7 +577,22 @@ const ProfilePage = () => {
                                 )}
                             </Card>
                         )}
-                    </div>
+                        {/* Sezione Eliminazione Account */}
+                        <Card className="border-2 border-red-600/30">
+                            <h3 className="text-xl font-bold text-red-400 mb-4">Elimina Account</h3>
+                            <p className="text-gray-400 text-sm mb-4">
+                                L'eliminazione dell'account è permanente e irreversibile. Tutti i tuoi dati saranno cancellati definitivamente.
+                            </p>
+                            <Button
+                                variant="outline"
+                                onClick={handleDeleteAccount}
+                                disabled={loading}
+                                className="border-red-600 text-red-400 hover:bg-red-600/10 hover:border-red-500"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Elimina Account
+                            </Button>
+                        </Card>                    </div>
                 </div>
                 </div>
             </PageContainer>

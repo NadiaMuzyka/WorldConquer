@@ -5,24 +5,27 @@ import { CONTINENTS_DATA, MARITIME_LINES } from '../Constants/mapData';
 
 
 export default function RiskMap() {
-  // Se serve moves, puoi prenderlo qui con useRisk, ma non serve passare nulla ai figli
   return (
-    <svg
-      version="1.1"
-      viewBox="-50 40 1150 650"
-      className="w-full h-full block bg-[#173c55]"
-    >
-      {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}
-      <MaritimeLines lines={MARITIME_LINES} />
+    <div className="w-full h-full flex items-center justify-center bg-[#173c55] p-4">
+      <svg
+        version="1.1"
+        viewBox="-50 40 1150 650"
+        preserveAspectRatio="xMidYMid meet"
+        className="block"
+        style={{ width: '90%', height: '90%', maxWidth: '100%', maxHeight: '100%' }}
+      >
+        {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}
+        <MaritimeLines lines={MARITIME_LINES} />
 
-      {/* 2. LAYER CONTINENTI E PAESI (Sopra le linee) */}
-      {Object.entries(CONTINENTS_DATA).map(([contName, countries]) => (
-        <Continent
-          key={contName}
-          name={contName}
-          countries={countries}
-        />
-      ))}
-    </svg>
+        {/* 2. LAYER CONTINENTI E PAESI (Sopra le linee) */}
+        {Object.entries(CONTINENTS_DATA).map(([contName, countries]) => (
+          <Continent
+            key={contName}
+            name={contName}
+            countries={countries}
+          />
+        ))}
+      </svg>
+    </div>
   );
 }

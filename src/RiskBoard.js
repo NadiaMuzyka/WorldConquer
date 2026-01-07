@@ -27,6 +27,7 @@ function RiskBoardContent() {
         {/* NAVBAR */}
         <div className="flex-shrink-0">
           <Navbar 
+              mode="game"
               phase={ctx?.phase || "PREPARAZIONE"} 
               gameCode={ctx?.matchID || "DEBUG-123"} 
               playerTurn={ctx?.currentPlayer}
@@ -37,7 +38,7 @@ function RiskBoardContent() {
         {/* AREA DI GIOCO - Layout condizionale */}
         {isSetupPhase ? (
           // Layout two-column durante SETUP_INITIAL
-          <div className="flex-1 flex flex-row overflow-hidden">
+          <div className="flex-1 flex flex-row overflow-hidden pt-2">
             {/* Colonna sinistra: SetupLog - PIÙ STRETTA per dare respiro alla mappa */}
             <div className="w-72 h-full bg-[#1B2227] border-r border-gray-700">
               <SetupLog />
@@ -50,7 +51,7 @@ function RiskBoardContent() {
           </div>
         ) : (
           // Layout standard full-width per altre fasi
-          <div className="flex-1 relative flex justify-center items-center">
+          <div className="flex-1 relative flex justify-center items-center pt-6">
             <RiskMap />
           </div>
         )}

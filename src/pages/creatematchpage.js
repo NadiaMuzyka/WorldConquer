@@ -103,13 +103,13 @@ const CreateMatchPage = () => {
 
 
    return (
-      <PageContainer className="font-roboto text-white">
-
+      <>
          {/* NAVBAR */}
          <Navbar mode="lobby" user={currentUser} />
 
-         {/* LAYOUT */}
-         <div className="flex w-full max-w-[1920px] mx-auto pt-[90px] px-6 xl:px-12 pb-10 gap-8 items-start min-h-[calc(100vh-90px)]">
+         <PageContainer className="font-roboto text-white">
+            {/* LAYOUT */}
+            <div className="flex w-full max-w-[1920px] mx-auto pt-[90px] px-6 xl:px-12 pb-10 gap-8 items-start min-h-[calc(100vh-90px)]">
 
             {/* COLONNA SX */}
             <aside className="hidden lg:flex flex-col w-[20%] shrink-0 items-end">
@@ -231,7 +231,8 @@ const CreateMatchPage = () => {
 
             <aside className="hidden lg:block w-[20%] shrink-0"></aside>
          </div>
-      </PageContainer>
+         </PageContainer>
+      </>
    );
 };
 

@@ -7,6 +7,7 @@ import { Users, Plus } from 'lucide-react';
 import FilterContainer from '../components/Lobby/FilterContainer';
 import Button from '../components/UI/Button';
 import Navbar from '../components/Navbar/Navbar';
+import PageContainer from '../components/UI/PageContainer';
 import GameContainer from '../components/Lobby/GameContainer'; // Assicurati che il percorso sia giusto
 import SearchBox from '../components/Lobby/SearchBox';
 
@@ -101,13 +102,13 @@ const LobbyPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#173C55] overflow-y-auto font-roboto text-white">
-
+    <>
       {/* NAVBAR */}
       <Navbar mode="lobby" user={currentUser} />
 
-      {/* LAYOUT PRINCIPALE */}
-      <div className="flex justify-between items-start pt-[120px] pb-10 px-6 xl:px-12 gap-8 w-full max-w-[2000px] mx-auto">
+      <PageContainer>
+        {/* LAYOUT PRINCIPALE */}
+        <div className="flex justify-between items-start pt-[120px] pb-10 px-6 xl:px-12 gap-8 w-full max-w-[2000px] mx-auto">
 
         {/* COLONNA SX: FILTRI */}
         <aside className="hidden xl:block w-[323px] shrink-0 sticky top-[120px]">
@@ -140,7 +141,8 @@ const LobbyPage = () => {
         </aside>
 
       </div>
-    </div>
+      </PageContainer>
+    </>
   );
 };
 

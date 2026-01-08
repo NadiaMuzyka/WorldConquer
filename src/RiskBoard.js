@@ -3,6 +3,7 @@ import { GameProvider, useRisk } from './context/GameContext';
 import RiskMap from './components/Map/RiskMap';
 import Navbar from './components/Navbar/Navbar';
 import SetupLog from './components/UI/SetupLog';
+import ReinforcementPanel from './components/UI/ReinforcementPanel';
 import SetupBar from './components/UI/SetupBar';
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
@@ -11,6 +12,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
   function RiskBoardContent() {
     const { ctx } = useRisk();
     const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
+  const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
 
     
     return (

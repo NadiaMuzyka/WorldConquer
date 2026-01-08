@@ -6,14 +6,17 @@ import { CONTINENTS_DATA, MARITIME_LINES } from '../Constants/mapData';
 
 export default function RiskMap() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#173c55] p-4">
-      <svg
-        version="1.1"
-        viewBox="-50 50 1150 650"
-        preserveAspectRatio="xMidYMid meet"
-        className="block"
-        style={{ width: '80%', height: '80%', maxWidth: '100%', maxHeight: '100%' }}
-      >
+    <svg
+      version="1.1"
+      viewBox="-50 50 1150 650"
+      preserveAspectRatio="xMidYMid meet"
+      className="drop-shadow-2xl"
+      style={{ 
+        width: '100%',
+        height: '100%',
+        display: 'block'
+      }}
+    >
         {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}
         <MaritimeLines lines={MARITIME_LINES} />
 
@@ -26,6 +29,5 @@ export default function RiskMap() {
           />
         ))}
       </svg>
-    </div>
   );
 }

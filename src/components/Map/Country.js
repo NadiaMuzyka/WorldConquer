@@ -2,6 +2,7 @@ import React from 'react';
 import { Troop } from './Troop';
 import { PLAYER_COLORS, COUNTRY_COLORS } from '../Constants/colors';
 import { useRisk } from '../../context/GameContext';
+import { useSetupVisibleCountries } from './useSetupVisibleCountries';
 
 export function Country({ data, owner, troops }) {
 
@@ -20,7 +21,8 @@ export function Country({ data, owner, troops }) {
   const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
   
   // Durante il setup, mostra le truppe solo se appartengono al giocatore corrente
-  const shouldShowTroop = !isSetupPhase || owner === playerID;
+  const visibleCountries = useSetupVisibleCountries();
+  const shouldShowTroop = !isSetupPhase || (owner === playerID && visibleCountries && visibleCountries.has(data.id));
   
   // Calcola il delay per l'animazione durante il setup
   let animationDelay = 0;

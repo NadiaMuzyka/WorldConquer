@@ -39,6 +39,9 @@ export default function SetupBar() {
         }
     };
 
+    // Abilita il bottone solo quando l'animazione è finita
+    const setupFinished = useSelector(state => state.setupAnimation.finished);
+
     return (
         <Card
             className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 w-auto h-20] shadow-lg"
@@ -71,8 +74,8 @@ export default function SetupBar() {
             {!isReady ? (
                 <Button
                     onClick={handleStartGame}
-                    disabled={!isButtonEnabled}
-                    variant={isButtonEnabled ? "cyan" : "gray"}
+                    disabled={!setupFinished}
+                    variant={setupFinished ? "cyan" : "gray"}
                     size={null}
                     className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6"
                 >

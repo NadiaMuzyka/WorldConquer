@@ -5,6 +5,7 @@ import Navbar from './components/Navbar/Navbar';
 import SetupLog from './components/UI/SetupLog';
 import ReinforcementPanel from './components/UI/ReinforcementPanel';
 import SetupBar from './components/UI/SetupBar';
+import SetupLogAnimated from './components/UI/SetupLogAnimated';
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
   
@@ -56,6 +57,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
               
               {/* Barra Setup con giocatori e bottone start */}
               {isSetupPhase && <SetupBar />}
+              {isSetupPhase && <SetupLogAnimated />}
             </div>
           {/* )}*/}
 

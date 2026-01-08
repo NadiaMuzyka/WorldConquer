@@ -30,8 +30,41 @@ export const Avatar = ({
     borderWidth = 4,
     showIndicator = false,
     opacity = 1,
-    className = ""
+    className = "",
+    type,
+    id,
+    playerID,
+    ready
 }) => {
+    // SetupBar avatar defaults
+    let avatarProps = {
+        size,
+        showName,
+        showNickname,
+        borderColor,
+        borderWidth,
+        showIndicator,
+        opacity,
+        className
+    };
+    if (type === "setupbar") {
+        // Import PLAYER_COLORS only if needed
+        let playerColor = '#38C7D7';
+        try {
+            // Dynamic import for PLAYER_COLORS
+            playerColor = require('../Constants/colors').PLAYER_COLORS?.[id] || '#38C7D7';
+        } catch {}
+        avatarProps = {
+            size: 'xs',
+            showName: false,
+            showNickname: false,
+            borderColor: playerColor,
+            borderWidth: 3,
+            showIndicator: id === playerID,
+            opacity: ready ? 1 : 0.5,
+            className
+        };
+    }
     const sizeClasses = {
         xs: "w-[50px] h-[50px]",
         sm: "w-16 h-16",
@@ -54,27 +87,27 @@ export const Avatar = ({
     };
 
     return (
-        <div className={`flex flex-col items-center ${className}`} style={{ opacity }}>
+        <div className={`flex flex-col items-center ${avatarProps.className}`} style={{ opacity: avatarProps.opacity }}>
             <div className="relative">
                 <img 
                     src={src} 
                     alt={alt}
-                    className={`${sizeClasses[size]} rounded-full ${marginBottom[size]} object-cover`}
+                    className={`${sizeClasses[avatarProps.size]} rounded-full ${marginBottom[avatarProps.size]} object-cover`}
                     style={{
-                        border: `${borderWidth}px solid ${borderColor}`
+                        border: `${avatarProps.borderWidth}px solid ${avatarProps.borderColor}`
                     }}
                 />
-                {showIndicator && (
+                {avatarProps.showIndicator && (
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#38C7D7] rounded-full border-2 border-[#1B2227]" />
                 )}
             </div>
-            {showName && firstName && (
-                <h2 className={`${textSizes[size].name} font-bold text-white mb-1`}>
+            {avatarProps.showName && firstName && (
+                <h2 className={`${textSizes[avatarProps.size].name} font-bold text-white mb-1`}>
                     {firstName} {lastName}
                 </h2>
             )}
-            {showNickname && nickname && (
-                <p className={`${textSizes[size].nickname} text-gray-400`}>
+            {avatarProps.showNickname && nickname && (
+                <p className={`${textSizes[avatarProps.size].nickname} text-gray-400`}>
                     @{nickname}
                 </p>
             )}

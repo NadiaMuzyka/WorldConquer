@@ -49,7 +49,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
             </div>
           ) : (*/}
             {/*Layout standard full-width per altre fasi*/}
-            <div className="w-full flex justify-center items-center z-15" style={{ height: 'calc(100vh - 98px)', marginTop: '98px' }}>
+            <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-98px)] mt-10">
               <div className="w-full h-full flex items-center justify-center p-6">
                 <RiskMap />
               </div>

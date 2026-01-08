@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useRisk } from '../../context/GameContext';
 import { PLAYER_COLORS } from '../Constants/colors';
 import Button from './Button';
@@ -7,6 +8,7 @@ import Avatar from './Avatar';
 
 export default function SetupBar() {
     const { G, ctx, moves, playerID } = useRisk();
+    const matchData = useSelector((state) => state.match?.data);
     const [countdown, setCountdown] = useState(10);
     const [isButtonEnabled, setIsButtonEnabled] = useState(false);
 
@@ -39,14 +41,14 @@ export default function SetupBar() {
 
     return (
         <Card
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 w-[700px] h-[100px] shadow-lg"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 w-auto h-20] shadow-lg"
             padding="none"
         >
-            <div className="flex items-center justify-between h-full px-10 py-5">
+            <div className="flex items-center gap-20 h-full px-10 py-3">
                 {/* Avatars dei giocatori */}
-                <div className="flex items-center gap-4">{players.map((id) => {
-                    const playerData = ctx.playersData?.[id];
-                    const avatarUrl = playerData?.photoURL || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
+                <div className="flex items-center gap-4">{players.map((id, index) => {
+                    const player = matchData?.players?.[index];
+                    const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
 
                     return (
                         <Avatar
@@ -71,7 +73,8 @@ export default function SetupBar() {
                     onClick={handleStartGame}
                     disabled={!isButtonEnabled}
                     variant={isButtonEnabled ? "cyan" : "gray"}
-                    className="h-12 w-[180px] rounded-[25px] font-bold text-xl tracking-wide"
+                    size={null}
+                    className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6"
                 >
                     AVANTI
                 </Button>

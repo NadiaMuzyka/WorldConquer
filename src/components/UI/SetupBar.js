@@ -9,33 +9,17 @@ import Avatar from './Avatar';
 export default function SetupBar() {
     const { G, ctx, moves, playerID } = useRisk();
     const matchData = useSelector((state) => state.match?.data);
-    const [countdown, setCountdown] = useState(10);
-    const [isButtonEnabled, setIsButtonEnabled] = useState(false);
+
 
     const players = Array.from({ length: ctx.numPlayers }, (_, i) => String(i));
     const isReady = G.playersReady?.[playerID];
     const allReady = players.every(id => G.playersReady?.[id]);
 
-    // Timer di 10 secondi
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    setIsButtonEnabled(true);
-                    clearInterval(timer);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, []);
-
     // Handler per il bottone
     const handleStartGame = () => {
         if (moves && moves.confirmSetupView) {
             moves.confirmSetupView();
+            
         }
     };
 
@@ -44,7 +28,7 @@ export default function SetupBar() {
 
     return (
         <Card
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 w-auto h-20] shadow-lg"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 w-auto h-20 shadow-lg"
             padding="none"
         >
             <div className="flex items-center gap-20 h-full px-10 py-3">
@@ -52,19 +36,15 @@ export default function SetupBar() {
                 <div className="flex items-center gap-4">{players.map((id, index) => {
                     const player = matchData?.players?.[index];
                     const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
-
                     return (
                         <Avatar
-                            key={id}
+                            key={index}
                             src={avatarUrl}
                             alt={`Player ${parseInt(id) + 1}`}
-                            size="xs"
-                            showName={false}
-                            showNickname={false}
-                            borderColor={PLAYER_COLORS[id]}
-                            borderWidth={3}
-                            showIndicator={id === playerID}
-                            opacity={G.playersReady?.[id] ? 1 : 0.5}
+                            type="setupbar"
+                            id={id} // id serve solo per Avatar, key può essere index
+                            playerID={playerID}
+                            ready={G.playersReady?.[id]}
                         />
                     );
                 })}

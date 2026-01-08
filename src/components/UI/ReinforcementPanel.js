@@ -48,7 +48,7 @@ export function ReinforcementPanel() {
   };
   
   return (
-    <div className="w-full bg-gradient-to-r from-[#1e3a4f] to-[#2a4a5f] border-t-2 border-cyan-500/50 py-4 px-6 shadow-lg">
+    <div className="fixed bottom-0 left-0 w-full z-20 bg-gradient-to-r from-[#1e3a4f] to-[#2a4a5f] border-t-2 border-cyan-500/50 py-4 px-6 shadow-lg">
       <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4">
         
         {/* SX: LE MIE INFORMAZIONI (Sempre visibili) */}

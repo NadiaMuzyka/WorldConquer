@@ -28,51 +28,54 @@ export default function SetupBar() {
 
     return (
         <Card
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 w-auto h-20 shadow-lg"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 w-auto h-auto shadow-lg"
             padding="none"
         >
             <div className="flex items-center gap-20 h-full px-10 py-3">
                 {/* Avatars dei giocatori */}
-                <div className="flex items-center gap-4">{players.map((id, index) => {
-                    const player = matchData?.players?.[index];
-                    const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
-                    return (
-                        <Avatar
-                            key={index}
-                            src={avatarUrl}
-                            alt={`Player ${parseInt(id) + 1}`}
-                            type="setupbar"
-                            id={id} // id serve solo per Avatar, key può essere index
-                            playerID={playerID}
-                            ready={G.playersReady?.[id]}
-                        />
-                    );
-                })}
-            </div>
-
-            {/* Bottone Start */}
-            {!isReady ? (
-                <Button
-                    onClick={handleStartGame}
-                    disabled={!setupFinished}
-                    variant={setupFinished ? "cyan" : "gray"}
-                    size={null}
-                    className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6"
-                >
-                    AVANTI
-                </Button>
-            ) : (
-                <div className="text-center w-[180px]">
-                    <div className="text-cyan-400 font-semibold mb-2">
-                        {allReady ? 'PARTENZA...' : 'Attesa...'}
-                    </div>
-                    {!allReady && (
-                        <div className="flex justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
-                        </div>
-                    )}
+                <div className="flex items-center gap-4">
+                    {players.map((id, index) => {
+                        const player = matchData?.players?.[index];
+                        const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
+                        const nickname = player?.name || `Player${parseInt(id) + 1}`;
+                        return (
+                            <Avatar
+                                key={index}
+                                src={avatarUrl}
+                                alt={`Player ${parseInt(id) + 1}`}
+                                type="setupbar"
+                                id={id}
+                                playerID={playerID}
+                                ready={G.playersReady?.[id]}
+                                nickname={nickname}
+                            />
+                        );
+                    })}
                 </div>
-            )}
+
+                {/* Bottone Start */}
+                {!isReady ? (
+                    <Button
+                        onClick={handleStartGame}
+                        disabled={!setupFinished}
+                        variant={setupFinished ? "cyan" : "gray"}
+                        size={null}
+                        className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6"
+                    >
+                        AVANTI
+                    </Button>
+                ) : (
+                    <div className="text-center w-[180px]">
+                        <div className="text-cyan-400 font-semibold mb-2">
+                            {allReady ? 'PARTENZA...' : 'Attesa...'}
+                        </div>
+                        {!allReady && (
+                            <div className="flex justify-center">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </Card>
     );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check, Hourglass } from 'lucide-react';
 
 /**
  * Component Avatar riutilizzabile e flessibile
@@ -48,10 +49,8 @@ export const Avatar = ({
         className
     };
     if (type === "setupbar") {
-        // Import PLAYER_COLORS only if needed
         let playerColor = '#38C7D7';
         try {
-            // Dynamic import for PLAYER_COLORS
             playerColor = require('../Constants/colors').PLAYER_COLORS?.[id] || '#38C7D7';
         } catch {}
         avatarProps = {
@@ -61,7 +60,7 @@ export const Avatar = ({
             borderColor: playerColor,
             borderWidth: 3,
             showIndicator: id === playerID,
-            opacity: ready ? 1 : 0.5,
+            opacity: 1, // sempre visibile
             className
         };
     }
@@ -71,21 +70,24 @@ export const Avatar = ({
         md: "w-24 h-24",
         lg: "w-48 h-48"
     };
-
     const textSizes = {
         xs: { name: "text-xs", nickname: "text-xs" },
         sm: { name: "text-sm", nickname: "text-xs" },
         md: { name: "text-lg", nickname: "text-sm" },
         lg: { name: "text-2xl", nickname: "text-base" }
     };
-
     const marginBottom = {
         xs: "",
         sm: "mb-2",
         md: "mb-3",
         lg: "mb-4"
     };
-
+    // Icone stato
+    const statusIcon = ready
+        ? <Check className="w-4 h-4 text-white stroke-[3]" title="Pronto" />
+        : <Hourglass className="w-3 h-3 text-white stroke-[3]" title="In attesa" />;
+    // Label "Tu" se è il giocatore locale
+    const isMe = id === playerID;
     return (
         <div className={`flex flex-col items-center ${avatarProps.className}`} style={{ opacity: avatarProps.opacity }}>
             <div className="relative">
@@ -97,19 +99,14 @@ export const Avatar = ({
                         border: `${avatarProps.borderWidth}px solid ${avatarProps.borderColor}`
                     }}
                 />
-                {avatarProps.showIndicator && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#38C7D7] rounded-full border-2 border-[#1B2227]" />
-                )}
+                {/* Icona stato in basso a destra, sovrapposta, con sfondo a pallino */}
+                <span className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full bg-[#2e415a] flex items-center justify-center  shadow-md">
+                    {statusIcon}
+                </span>
             </div>
-            {avatarProps.showName && firstName && (
-                <h2 className={`${textSizes[avatarProps.size].name} font-bold text-white mb-1`}>
-                    {firstName} {lastName}
-                </h2>
-            )}
-            {avatarProps.showNickname && nickname && (
-                <p className={`${textSizes[avatarProps.size].nickname} text-gray-400`}>
-                    @{nickname}
-                </p>
+            {/* Nickname sotto l'avatar */}
+            {nickname && (
+                <span className="text-xs text-white font-normal mt-2">{isMe ? 'Tu' : nickname}</span>
             )}
         </div>
     );

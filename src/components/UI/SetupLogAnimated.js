@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRisk } from '../../context/GameContext';
-import { incrementVisible, setFinished, resetVisible } from '../../store/slices/setupAnimationSlice';
+import { incrementVisible, setFinished, resetVisible, skipAnimation } from '../../store/slices/setupAnimationSlice';
 import { CONTINENTS_DATA } from '../Constants/mapData';
 import { PLAYER_COLORS } from '../Constants/colors';
+
 
 // Helper per nome territorio
 const getTerritoryName = (countryId) => {
@@ -25,7 +26,7 @@ export default function SetupLogAnimated() {
         countryId => G.owners[countryId] === playerID
     ) || [];
 
-    // Animazione: incrementa visibleCount ogni 500ms
+    // Animazione: incrementa visibleCount ogni 2s
     useEffect(() => {
         if (finished) return;
         if (visibleCount >= myTerritories.length) {
@@ -44,6 +45,7 @@ export default function SetupLogAnimated() {
             dispatch(resetVisible());
         }
     }, [G?.setupAssignmentOrder, playerID, dispatch, G?.ctx?.phase]);
+
 
     // Mostra solo l'ultimo territorio animato
     const lastCountryId = myTerritories[visibleCount - 1];

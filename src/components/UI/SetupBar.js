@@ -1,30 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useRisk } from '../../context/GameContext';
 import { PLAYER_COLORS } from '../Constants/colors';
 import Button from './Button';
+import { skipAnimation } from '../../store/slices/setupAnimationSlice';
 import Card from './Card';
 import Avatar from './Avatar';
+import { ArrowRight } from 'lucide-react';
 
 export default function SetupBar() {
     const { G, ctx, moves, playerID } = useRisk();
+    const dispatch = useDispatch();
     const matchData = useSelector((state) => state.match?.data);
-
 
     const players = Array.from({ length: ctx.numPlayers }, (_, i) => String(i));
     const isReady = G.playersReady?.[playerID];
     const allReady = players.every(id => G.playersReady?.[id]);
 
-    // Handler per il bottone
+    // Bottone "Avanti" abilitato solo quando animazione finita
+    const setupFinished = useSelector(state => state.setupAnimation.finished);
+    const visibleCount = useSelector(state => state.setupAnimation.visibleCount);
+
+    // Territori assegnati a me (per skipAnimation)
+    const myTerritories = G.setupAssignmentOrder?.filter(
+        countryId => G.owners[countryId] === playerID
+    ) || [];
+
+    // Handler per "Avanti"
     const handleStartGame = () => {
         if (moves && moves.confirmSetupView) {
             moves.confirmSetupView();
-            
         }
     };
 
-    // Abilita il bottone solo quando l'animazione è finita
-    const setupFinished = useSelector(state => state.setupAnimation.finished);
+    // Handler per "Salta animazione"
+    const handleSkipAnimation = () => {
+        dispatch(skipAnimation(myTerritories.length));
+    };
+
+    const isAnimating = !setupFinished;
 
     return (
         <Card
@@ -53,17 +67,28 @@ export default function SetupBar() {
                     })}
                 </div>
 
-                {/* Bottone Start */}
+                {/* Bottone "Salta animazione" o "Avanti" */}
                 {!isReady ? (
-                    <Button
-                        onClick={handleStartGame}
-                        disabled={!setupFinished}
-                        variant={setupFinished ? "cyan" : "gray"}
-                        size={null}
-                        className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6"
-                    >
-                        AVANTI
-                    </Button>
+                    isAnimating ? (
+                        <Button
+                            onClick={handleSkipAnimation}
+                            variant="cyan"
+                            size={null}
+                            className="!h-[44px] w-[220px] rounded-[25px] font-bold text-base tracking-wide px-6"
+                        >
+                            SALTA ANIMAZIONE
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleStartGame}
+                            variant="cyan"
+                            size={null}
+                            className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6 flex items-center justify-center gap-2"
+                        >
+                            AVANTI
+                            <ArrowRight/>
+                        </Button>
+                    )
                 ) : (
                     <div className="text-center w-[180px]">
                         <div className="text-cyan-400 font-semibold mb-2">

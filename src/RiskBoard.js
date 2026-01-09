@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameProvider, useRisk } from './context/GameContext';
 import RiskMap from './components/Map/RiskMap';
+import ZoomableMapContainer from './components/Map/ZoomableMapContainer';
 import Navbar from './components/Navbar/Navbar';
 import ReinforcementPanel from './components/UI/ReinforcementPanel';
 import SetupBar from './components/UI/SetupBar';
@@ -37,7 +38,9 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
         {/*Layout standard full-width per altre fasi*/}
         <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-98px)] mt-10">
           <div className="w-full h-full flex items-center justify-center p-6">
-            <RiskMap />
+            <ZoomableMapContainer>
+              <RiskMap />
+            </ZoomableMapContainer>
           </div>
 
           {/* Barra Setup con giocatori e bottone start */}

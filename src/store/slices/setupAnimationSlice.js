@@ -5,6 +5,7 @@ const initialState = {
   finished: false,
 };
 
+
 const setupAnimationSlice = createSlice({
   name: 'setupAnimation',
   initialState,
@@ -18,9 +19,14 @@ const setupAnimationSlice = createSlice({
     },
     setFinished(state, action) {
       state.finished = action.payload;
+    },
+    // Salta animazione: imposta visibleCount al massimo e finished a true
+    skipAnimation(state, action) {
+      state.visibleCount = action.payload; // deve essere myTerritories.length
+      state.finished = true;
     }
   }
 });
 
-export const { incrementVisible, resetVisible, setFinished } = setupAnimationSlice.actions;
+export const { incrementVisible, resetVisible, setFinished, skipAnimation } = setupAnimationSlice.actions;
 export default setupAnimationSlice.reducer;

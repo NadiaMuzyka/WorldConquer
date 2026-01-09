@@ -84,7 +84,7 @@ export const Avatar = ({
     };
     // Icone stato
     const statusIcon = ready
-        ? <Check className="w-4 h-4 text-white stroke-[3]" title="Pronto" />
+        ? <Check className="w-4 h-4 text-[#1B2227]" title="Pronto" />
         : <Hourglass className="w-3 h-3 text-white stroke-[3]" title="In attesa" />;
     // Label "Tu" se è il giocatore locale
     const isMe = id === playerID;
@@ -100,7 +100,7 @@ export const Avatar = ({
                     }}
                 />
                 {/* Icona stato in basso a destra, sovrapposta, con sfondo a pallino */}
-                <span className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full bg-[#2e415a] flex items-center justify-center  shadow-md">
+                <span className={`absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full flex items-center justify-center shadow-md ${ready ? 'bg-[#FEC417]' : 'bg-[#2e415a]'}`}>
                     {statusIcon}
                 </span>
             </div>

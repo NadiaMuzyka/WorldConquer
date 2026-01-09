@@ -49,10 +49,19 @@ export default function SetupLogAnimated() {
     const lastCountryId = myTerritories[visibleCount - 1];
     const myColor = PLAYER_COLORS[playerID];
 
+    // Mostra messaggio finale se animazione finita
+    if (finished && myTerritories.length > 0) {
+        return (
+            <div className="fixed left-8 bottom-12 z-30 bg-[#1B2227]/90 px-6 py-3 rounded-xl shadow-xl border-l-4 border-cyan-400">
+                <span className="text-lg font-bold text-cyan-400">Ti sono stati assegnati tutti i territori!</span>
+            </div>
+        );
+    }
+
     if (!lastCountryId) return null;
 
     return (
-        <div className="fixed left-8 bottom-32 z-30 bg-[#1B2227]/90 px-6 py-3 rounded-xl shadow-xl border-l-4" style={{ borderColor: myColor }}>
+        <div className="fixed left-8 bottom-12 z-30 bg-[#1B2227]/90 px-6 py-3 rounded-xl shadow-xl border-l-4" style={{ borderColor: myColor }}>
             <span className="text-lg font-bold" style={{ color: myColor }}>+ {getTerritoryName(lastCountryId)}</span>
             <span className="text-gray-300 ml-2">ti è stato assegnato</span>
         </div>

@@ -1,5 +1,5 @@
 // src/game.js
-const { INVALID_MOVE } = require('boardgame.io/core');
+const { TurnOrder } = require('boardgame.io/core');
 const { COUNTRY_COLORS } = require('./components/Constants/colors');
 
 const RiskGame = {
@@ -10,10 +10,6 @@ const RiskGame = {
   setup: () => ({
     troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
     owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
-    setupAssignmentOrder: [], // Array di countryId in ordine di assegnazione
-    playersReady: {}, // Mappa PLAYER_ID -> boolean
-    reinforcementsRemaining: {}, // Mappa PLAYER_ID -> numero di truppe da posizionare
-    turnPlacements: [], // Array di countryId dove sono state piazzate truppe nel turno corrente
   }),
 
   phases: {
@@ -23,6 +19,9 @@ const RiskGame = {
 
       onBegin: ({ G, ctx }) => {
         console.log("🎲 [PHASE START] SETUP_INITIAL iniziata");
+
+        G.playersReady = {}; 
+        G.setupAssignmentOrder = [];
         
         if (!ctx || !ctx.numPlayers) {
           console.error("⚠️ ctx non disponibile in onBegin, skip distribuzione");
@@ -89,13 +88,13 @@ const RiskGame = {
         delete G.setupAssignmentOrder;
         delete G.playersReady;
         console.log("🎲 [PHASE START] Fase INITIAL_REINFORCEMENT");
+
+        G.reinforcementsRemaining = {};
+        G.turnPlacements = [];
         
         // Calcola le truppe iniziali in base al numero di giocatori
         const totalTroops = {
-          3: 35,
-          4: 30,
-          5: 25,
-          6: 20,
+          3: 35, 4: 30, 5: 25, 6: 20,
         };
         
         const troopsPerPlayer = totalTroops[ctx.numPlayers] || 20;
@@ -138,6 +137,8 @@ const RiskGame = {
       },
       
       turn: {
+        order: TurnOrder.RESET, // Resetta l'ordine dei turni all'inizio della fase
+        
         onBegin: ({ G, ctx, events }) => {
           // Reset dei piazzamenti del turno
           G.turnPlacements = [];

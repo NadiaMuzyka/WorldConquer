@@ -157,24 +157,38 @@ export const Navbar = ({
         </div>
       </nav>
       {showLogoutModal && (
-        <Modal
-          onClose={closeLogoutModal}
-          actionBar={
-            <div className="flex flex-row gap-2 justify-center w-full mt-6">
-              <Button onClick={confirmLogout} disabled={isLoggingOut}>
-                I Accept
-              </Button>
-              <Button onClick={closeLogoutModal} variant="outline">
-                Cancel
-              </Button>
-            </div>
-          }
-        >
-          <div className="text-lg font-semibold mb-4 text-center">Sure to logout?</div>
-        </Modal>
-      )}
-    </>
-  );
-};
+              <Modal
+                // Props per il controllo
+                onClose={closeLogoutModal}
+                
+                // Titolo formale
+                title="Conferma Logout"
+                
+                // Dimensione piccola (perfetta per le conferme)
+                size="sm"
+                
+                // Contenuto testuale (Children)
+                children={
+                  <div className="text-gray-300 text-center">
+                    Sei sicuro di voler uscire dal gioco?
+                  </div>
+                }
+                
+                // Bottoni (ActionBar)
+                actionBar={
+                  <>
+                    <Button onClick={closeLogoutModal} variant="outline" className="mr-2">
+                      Annulla
+                    </Button>
+                    <Button onClick={confirmLogout} disabled={isLoggingOut} variant="primary">
+                      Esci
+                    </Button>
+                  </>
+                }
+              />
+            )}
+          </>
+        );
+      };
 
 export default Navbar;

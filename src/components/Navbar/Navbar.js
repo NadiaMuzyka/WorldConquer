@@ -9,6 +9,7 @@ import { getUserData } from '../../firebase/db';
 import ProfileDropdown from './ProfileDropdown';
 import Logo from '../UI/Logo';
 import Button from '../UI/Button';
+import Modal from '../UI/Modal';
 
 export const Navbar = ({
   // Props Partita
@@ -70,11 +71,30 @@ export const Navbar = ({
   // Se è presente la prop 'phase', forza la modalità GAME
   const isGameMode = mode === "game" || !!phase;
 
-  const handleLogout = async () => {
+
+  // Stato per mostrare il modal di conferma logout
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Trigger apertura modal
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  // Conferma logout
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
     const result = await logout();
+    setIsLoggingOut(false);
+    setShowLogoutModal(false);
     if (result.success) {
       navigate('/');
     }
+  };
+
+  // Chiudi modal
+  const closeLogoutModal = () => {
+    setShowLogoutModal(false);
   };
 
   // --- STILI BASE (CSS Figma) ---
@@ -122,22 +142,38 @@ export const Navbar = ({
   // MODALITÀ: LOBBY (Default)
   // ===========================================================================
   return (
-    <nav className={baseClasses}>
-
-      {/* SX: Logo e Brand */}
-      <Logo onClick={() => navigate('/lobby')} />
-
-      {/* DX: Profilo Utente */}
-      <div className="flex items-center pr-4">
-        <ProfileDropdown
-          avatarUrl={displayAvatar}
-          isLoading={isLoading}
-          onProfileClick={() => navigate('/profile')}
-          onLogoutClick={handleLogout}
-        />
-      </div>
-
-    </nav>
+    <>
+      <nav className={baseClasses}>
+        {/* SX: Logo e Brand */}
+        <Logo onClick={() => navigate('/lobby')} />
+        {/* DX: Profilo Utente */}
+        <div className="flex items-center pr-4">
+          <ProfileDropdown
+            avatarUrl={displayAvatar}
+            isLoading={isLoading}
+            onProfileClick={() => navigate('/profile')}
+            onLogoutClick={handleLogout}
+          />
+        </div>
+      </nav>
+      {showLogoutModal && (
+        <Modal
+          onClose={closeLogoutModal}
+          actionBar={
+            <div className="flex flex-row gap-2 justify-center w-full mt-6">
+              <Button onClick={confirmLogout} disabled={isLoggingOut}>
+                I Accept
+              </Button>
+              <Button onClick={closeLogoutModal} variant="outline">
+                Cancel
+              </Button>
+            </div>
+          }
+        >
+          <div className="text-lg font-semibold mb-4 text-center">Sure to logout?</div>
+        </Modal>
+      )}
+    </>
   );
 };
 

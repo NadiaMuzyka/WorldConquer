@@ -13,7 +13,10 @@ const VARIANTS = {
   outline: "bg-transparent border border-gray-500 text-white hover:border-white hover:bg-white/10",
   
   // 4. Stile "Ghost/Icona" (Per la freccia nella search bar o usi secondari)
-  ghost: "bg-transparent text-gray-400 hover:text-white"
+  ghost: "bg-transparent text-gray-400 hover:text-white",
+
+  // 5. Stile disabilitato (Grigio)
+  gray: "bg-gray-600 text-gray-400 border border-transparent cursor-not-allowed"
 };
 
 // DEFINIZIONE DELLE DIMENSIONI

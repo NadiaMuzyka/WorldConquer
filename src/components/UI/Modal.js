@@ -1,68 +1,88 @@
-
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 
-function Modal({ onClose, children, actionBar }) {
-    const modalRef = useRef(null);
+function Modal({ 
+    onClose, 
+    children, 
+    actionBar,    
+    title, 
+    size = 'sm', 
+    preventClose = false, // La feature per bloccare i dadi
+    className = ''
+}) {
+    // Stato per l'animazione
+    const [animate, setAnimate] = useState(false);
 
-    // ESC per chiudere
+    useEffect(() => {
+        requestAnimationFrame(() => setAnimate(true));
+    }, []);
+
+    // Gestione ESC (Disabilitata se preventClose è true)
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && !preventClose) onClose();
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    }, [onClose, preventClose]);
 
-    // Click fuori dal modal
+    // Gestione dimensioni
+    const sizeClasses = {
+        sm: 'max-w-sm',
+        md: 'max-w-md',
+        lg: 'max-w-2xl',
+        xl: 'max-w-4xl',
+        full: 'max-w-[95%]'
+    };
+
     const handleOverlayClick = (e) => {
-        if (modalRef.current && !modalRef.current.contains(e.target)) {
-            onClose();
-        }
+        if (!preventClose && e.target === e.currentTarget) onClose();
     };
 
     return ReactDOM.createPortal(
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center"
-            style={{ backdropFilter: 'blur(2px)' }}
+            className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300
+                ${animate ? 'backdrop-blur-[2px] bg-black/60' : 'backdrop-blur-none bg-transparent'}`}
             onMouseDown={handleOverlayClick}
         >
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-60" />
-            {/* Modal */}
             <div
-                ref={modalRef}
-                className="relative z-10 max-w-sm w-full rounded-2xl shadow-2xl bg-[#232A31] text-white p-7"
-                style={{ minHeight: '120px' }}
+                className={`
+                    relative w-full flex flex-col
+                    bg-[#232A31] text-white rounded-2xl shadow-2xl border border-gray-700
+                    transform transition-all duration-300
+                    ${sizeClasses[size]}
+                    ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
+                    ${className}
+                `}
                 onMouseDown={e => e.stopPropagation()}
             >
-                <div className="flex flex-col items-center justify-between">
+                {/* 1. Header (Titolo + X chiusura) */}
+                {(title || !preventClose) && (
+                    <div className="flex items-center justify-between px-7 py-4 border-b border-gray-700">
+                        {title && <h3 className="text-lg font-bold">{title}</h3>}
+                        {!preventClose && (
+                            <button onClick={onClose} className="text-gray-400 hover:text-white">
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* 2. Children (Contenuto scrollabile) */}
+                <div className="p-7 overflow-y-auto max-h-[70vh]">
                     {children}
-                    <div className="flex flex-row justify-end w-full gap-2 mt-6">{actionBar}</div>
                 </div>
+
+                {/* 3. ActionBar (Bottoni in basso) */}
+                {actionBar && (
+                    <div className="px-7 py-4 border-t border-gray-700 bg-black/20 rounded-b-2xl flex justify-center gap-2">
+                        {actionBar}
+                    </div>
+                )}
             </div>
         </div>,
-        document.querySelector('.modal-container')
+        document.querySelector('.modal-container') || document.body
     );
 }
 
 export default Modal;
-
-// L'actionbar va fatta in base a come la vuoi tu ogni volta che usi il modal
-/*
-    const actionBar = (
-        <div>
-            <Button onClick={onSubmit}>
-                Submit
-            </Button>
-        </div>
-    );
-
-
-
-    Il contenuto del modal va messo come figli del componente Modal
-    <Modal onClose={closeModal} actionBar={actionBar}>
-        <div>Modal Content</div>
-    </Modal>
-*/ 

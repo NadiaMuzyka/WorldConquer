@@ -295,7 +295,7 @@ export const MARITIME_LINES = [
   { id: "ALK-LEFT", d: "M 40,200 L -50,200" },
 
   // Kamchatka 
-  { id: "KMK-RIGHT", d: "M 1000,220 L 1150,220" },
+  { id: "KMK-RIGHT", d: "M 1000,220 L 1040,220" },
   
   // Siam -> Indonesia
   { id: "SIAM-IDN", d: "M 780,420 L 830,500" }, 

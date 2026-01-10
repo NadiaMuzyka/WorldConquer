@@ -37,7 +37,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
         {/*Layout standard full-width per altre fasi*/}
         <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-98px)] mt-10">
-          <div className="w-full h-full flex items-center justify-center p-6">
+          <div className="w-full lg:w-[65%] h-full flex items-center justify-center p-6">
             <ZoomableMapContainer>
               <RiskMap />
             </ZoomableMapContainer>

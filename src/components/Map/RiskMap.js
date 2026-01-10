@@ -9,10 +9,10 @@ export default function RiskMap(props) {
   return (
     <svg
       version="1.1"
-      viewBox="-50 50 1150 650"
+      viewBox="60 50 900 650"
       preserveAspectRatio="xMidYMid meet"
       className="drop-shadow-2xl"
-      style={{ width: '100%', height: '100%', display: 'block', ...props.style }}
+      style={{ width: '95%', height: '95%', display: 'block', ...props.style }}
       {...props}
     >
       {/* 1. LAYER LINEE MARITTIME (Sotto i paesi) */}

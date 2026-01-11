@@ -1,4 +1,4 @@
-import React , { createContext, useContext } from 'react';
+import React , { createContext, useContext, useMemo } from 'react';
 
 const RiskContext = createContext();
 
@@ -20,15 +20,27 @@ export const GameProvider = ({G, ctx, moves, playerID, events, children })=> {
     // In Boardgame.io, questi parametri sono comunemente usati per gestire lo stato e le interazioni del gioco ma venivano passate come props
     // causando prop drilling. Ora con il contesto, i componenti possono accedere direttamente a questi dati senza doverli passare attraverso ogni
     // livello della gerarchia dei componenti.
-    const value = { 
-        G, 
-        ctx, 
-        moves, 
-        playerID, 
-        events,
-        currentPlayer: ctx.currentPlayer,
-        isMyTurn: ctx.currentPlayer === playerID,
-    };
+    
+    // Usa useMemo per garantire che il value si aggiorni quando cambiano le dipendenze
+    const value = useMemo(() => {
+        console.log('[GAMEPROVIDER] Context aggiornato:', {
+            playerID,
+            currentPlayer: ctx?.currentPlayer,
+            attackState: G?.attackState,
+            phase: ctx?.phase,
+            activeStage: ctx?.activePlayers?.[playerID]
+        });
+        
+        return { 
+            G, 
+            ctx, 
+            moves, 
+            playerID, 
+            events,
+            currentPlayer: ctx?.currentPlayer,
+            isMyTurn: ctx?.currentPlayer === playerID,
+        };
+    }, [G, ctx, moves, playerID, events]);
 
     return (
         <RiskContext.Provider value={value}>

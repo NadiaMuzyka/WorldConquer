@@ -6,15 +6,34 @@ import Navbar from './components/Navbar/Navbar';
 import ReinforcementPanel from './components/UI/ReinforcementPanel';
 import SetupBar from './components/UI/SetupBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
+import GameBar from './components/UI/GameBar';
+import AttackDiceSelectionModal from './components/UI/AttackDiceSelectionModal';
+import BattleResultModal from './components/UI/BattleResultModal';
+import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
   // Componente interno che usa il context
   function RiskBoardContent() {
-    const { ctx } = useRisk();
+    const { ctx, G, moves, playerID } = useRisk();
     const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
     const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
+    const isGamePhase = ctx?.phase === 'GAME';
+    
+    // Verifica se è il turno del giocatore corrente
+    const isMyTurn = ctx?.currentPlayer === playerID;
+
+    // Mostra modali basati sullo stato G - SOLO se è il mio turno
+    const showAttackDiceModal = isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
+    const showBattleResultModal = isMyTurn && G?.battleResult !== null && G?.battleResult !== undefined;
+    const showFortifyModal = isMyTurn && G?.fortifyState?.from && G?.fortifyState?.to;
+
+    // Debug log
+    console.log('[RISKBOARD] G.attackState:', G?.attackState);
+    console.log('[RISKBOARD] showAttackDiceModal:', showAttackDiceModal);
+    console.log('[RISKBOARD] showBattleResultModal:', showBattleResultModal);
+    console.log('[RISKBOARD] Stage corrente:', ctx?.activePlayers?.[playerID]);
 
 
     return (
@@ -32,6 +51,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
             gameCode={ctx?.matchID || "DEBUG-123"}
             playerTurn={ctx?.currentPlayer}
             onLeave={() => console.log("Abbandona")}
+            ctx={ctx}
           />
         </div>
 
@@ -51,7 +71,22 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
               <ReinforcementPanel />
             </div>
           )}
+          {isGamePhase && <GameBar />}
         </div>
+
+        {/* MODALI */}
+        {showAttackDiceModal && (
+          <AttackDiceSelectionModal onClose={() => moves?.resetAttackSelection?.()} />
+        )}
+        {showBattleResultModal && (
+          <BattleResultModal onClose={() => {
+            // Il battleResult viene resettato automaticamente quando si chiude il modal
+            // Non serve fare nulla qui, il modal si chiuderà da solo dopo il timeout
+          }} />
+        )}
+        {showFortifyModal && (
+          <FortifyTroopsModal onClose={() => moves?.resetFortifySelection?.()} />
+        )}
 
 
       </div>

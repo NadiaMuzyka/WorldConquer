@@ -324,3 +324,13 @@ export const MARITIME_LINES = [
   // Giappone -> Mongolia (Verso ovest)
   { id: "JPN-MON", d: "M 890,370 L 840,340" }
 ];
+
+// Bonus truppe per possesso continenti completi
+export const CONTINENT_BONUSES = {
+  'NORD_AMERICA': 5,
+  'SUD_AMERICA': 2,
+  'EUROPA': 5,
+  'AFRICA': 3,
+  'ASIA': 7,
+  'OCEANIA': 2
+};

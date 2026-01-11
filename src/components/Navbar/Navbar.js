@@ -18,6 +18,7 @@ export const Navbar = ({
   playerTurn,
   onLeave,
   timer = "00:00", // Default se non passato
+  ctx, // Contesto per stage
 
   // Props Lobby/Generiche
   mode = "lobby",
@@ -104,6 +105,9 @@ export const Navbar = ({
   // MODALITÀ: GAME (Timer | Fase | Esci)
   // ===========================================================================
   if (isGameMode) {
+    // Determina lo stage corrente
+    const currentStage = ctx?.activePlayers?.[ctx?.currentPlayer];
+
     return (
       <nav className={baseClasses}>
 
@@ -117,9 +121,9 @@ export const Navbar = ({
           </div>
         </div>
 
-        {/* 2. FASE (Centro Assoluto) */}
+        {/* 2. FASE + STAGE (Centro Assoluto) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <PhaseInfo phase={phase} />
+          <PhaseInfo phase={phase} stage={currentStage} />
         </div>
 
         {/* 3. BOTTONE ABBANDONA (Destra) */}

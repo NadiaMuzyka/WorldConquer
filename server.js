@@ -4,6 +4,7 @@ const { RiskGame } = require('./src/game');
 const admin = require('firebase-admin');
 const serviceAccount = require('./serviceAccountKey.json');
 const FirebaseAdapter = require('./FirebaseAdapter'); // <--- Importiamo la classe
+const cors = require('@koa/cors');
 
 // 1. Configurazione Admin
 admin.initializeApp({
@@ -64,8 +65,52 @@ const server = Server({
   db: new FirebaseAdapter(rtdb, firestore),
 });
 
+// CORS middleware - DEVE essere il primo
+server.app.use(cors());
+
 // Aggiungi il middleware PRIMA di avviare il server
 server.app.use(validateJoinMiddleware);
+
+// Endpoint custom per gestire il leave con aggiornamento Firestore
+server.app.use(async (ctx, next) => {
+  if (ctx.method === 'POST' && ctx.path.includes('/leave')) {
+    // Leggi il body manualmente senza consumare lo stream
+    let body;
+    try {
+      const rawBody = await new Promise((resolve, reject) => {
+        let data = '';
+        ctx.req.on('data', chunk => data += chunk);
+        ctx.req.on('end', () => resolve(data));
+        ctx.req.on('error', reject);
+      });
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      ctx.status = 400;
+      ctx.body = { error: 'Invalid JSON' };
+      return;
+    }
+    
+    const pathParts = ctx.path.split('/');
+    const matchID = pathParts[pathParts.length - 2];
+    const playerID = body.playerID;
+    
+    try {
+      // Chiama il metodo leave dell'adapter
+      await server.db.leaveMatch(matchID, playerID);
+      
+      ctx.status = 200;
+      ctx.body = { success: true };
+      return;
+    } catch (error) {
+      console.error(`[SERVER] Errore leave:`, error);
+      ctx.status = 500;
+      ctx.body = { error: error.message };
+      return;
+    }
+  }
+  
+  await next();
+});
 
 server.run(8000, () => {
   console.log("🚀 SERVER RISIKO ATTIVO (Modular Adapter + Join Validation)");

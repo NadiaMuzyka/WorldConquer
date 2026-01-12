@@ -1,6 +1,8 @@
 // src/game.js
 const { TurnOrder, PlayerView } = require('boardgame.io/core');
 const { COUNTRY_COLORS, PLAYER_COLORS } = require('./components/Constants/colors');
+const { CONTINENTS_DATA } = require('./components/Constants/mapData');
+const { RISK_ADJACENCY } = require('./components/Constants/adjacency');
 
 // Funzione per assegnare obiettivi segreti ai giocatori
 const assignSecretObjectives = (G, ctx) => {
@@ -364,7 +366,6 @@ const RiskGame = {
           let reinforcements = Math.max(3, Math.floor(territoriesOwned / 3));
           
           // Aggiungi bonus continenti
-          const { CONTINENTS_DATA } = require('./components/Constants/mapData');
           const CONTINENT_BONUSES = {
             'NORD_AMERICA': 5,
             'SUD_AMERICA': 2,
@@ -447,7 +448,7 @@ const RiskGame = {
                 }
                 
                 console.log(`✅ [STAGE END] Player ${currentPlayer} passa allo stage ATTACK`);
-
+                
                 events.setActivePlayers({ currentPlayer: 'attack' })
               },
             },
@@ -476,7 +477,6 @@ const RiskGame = {
               
               selectDefenderTerritory: ({ G, playerID }, territoryId) => {
                 const currentPlayer = String(playerID);
-                const { RISK_ADJACENCY } = require('./components/Constants/adjacency');
                 
                 if (!G.attackState || !G.attackState.from) {
                   console.warn(`❌ [INVALID] Nessun territorio attaccante selezionato`);
@@ -626,7 +626,6 @@ const RiskGame = {
               
               selectFortifyTo: ({ G, playerID }, territoryId) => {
                 const currentPlayer = String(playerID);
-                const { RISK_ADJACENCY } = require('./components/Constants/adjacency');
                 
                 if (!G.fortifyState || !G.fortifyState.from) {
                   console.warn(`❌ [INVALID] Nessun territorio origine selezionato`);
@@ -696,7 +695,6 @@ const RiskGame = {
         // Controlla se qualche giocatore ha raggiunto il suo obiettivo
         if (!G.players) return false;
         
-        const { CONTINENTS_DATA } = require('./components/Constants/mapData');
         
         for (const [playerID, playerData] of Object.entries(G.players)) {
           if (!playerData.secretObjective) continue;

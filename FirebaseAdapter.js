@@ -273,6 +273,56 @@ class FirebaseAdapter {
     this.statusCache.delete(matchID);
     console.log(`[ADAPTER] Match ${matchID} rimosso completamente.`);
   }
+
+  // --- LEAVE MATCH (Sincronizza Firestore quando un player esce) ---
+  async leaveMatch(matchID, playerID) {
+    try {
+      console.log(`[ADAPTER] Player ${playerID} sta lasciando match ${matchID}`);
+      
+      // Aggiorna Firestore con transazione
+      const docRef = this.firestore.collection('matches').doc(matchID);
+      
+      await this.firestore.runTransaction(async (transaction) => {
+        const doc = await transaction.get(docRef);
+        
+        if (!doc.exists) {
+          console.warn(`[ADAPTER] Match ${matchID} non trovato in Firestore`);
+          return;
+        }
+        
+        const matchData = doc.data();
+        const players = matchData.players || [];
+        
+        // Rimuovi il giocatore dall'array - converti tutto a stringa per il confronto
+        const updatedPlayers = players.filter(p => String(p.id) !== String(playerID));
+        const playersCurrent = updatedPlayers.length;
+        
+        // Se non ci sono più giocatori, elimina il match
+        if (playersCurrent === 0) {
+          console.log(`[ADAPTER] Nessun giocatore rimasto, eliminazione match ${matchID}`);
+          transaction.delete(docRef);
+          
+          // Elimina anche da RTDB
+          await this.rtdb.ref(`matches/${matchID}`).remove();
+        } else {
+          // Aggiorna il contatore e l'array giocatori
+          transaction.update(docRef, {
+            players: updatedPlayers,
+            playersCurrent: playersCurrent
+          });
+          
+          console.log(`[ADAPTER] Match ${matchID} aggiornato: ${playersCurrent} giocatori rimanenti`);
+        }
+      });
+      
+      // Pulisci anche il player da RTDB (metadata)
+      await this.rtdb.ref(`matches/${matchID}/players/${playerID}`).remove();
+      console.log(`[ADAPTER] Player ${playerID} rimosso da RTDB`);
+      
+    } catch (error) {
+      console.error(`[ADAPTER ERROR] Leave match: ${error.message}`);
+    }
+  }
 }
 
 module.exports = FirebaseAdapter;

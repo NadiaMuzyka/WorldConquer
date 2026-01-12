@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@koa/cors": "^5.0.0",
     "@mui/material": "^7.3.6",
     "@reduxjs/toolkit": "^1.9.7",
     "@testing-library/dom": "^10.4.1",
@@ -17,6 +18,7 @@
     "boardgame.io": "^0.50.2",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
+    "koa-bodyparser": "^4.4.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.562.0",
     "react": "^18.2.0",
@@ -27,6 +29,7 @@
     "redux": "^4.2.1",
     "web-vitals": "^2.1.4"
   },
+  "proxy": "http://localhost:8000",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

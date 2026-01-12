@@ -6,7 +6,7 @@ import { RiskBoard } from '../RiskBoard';
 const RiskClient = Client({
   game: RiskGame,
   board: RiskBoard,
-  multiplayer: SocketIO({ server: 'http://localhost:8000' }),
+  multiplayer: SocketIO({ server: '' }),
   debug: true,
 });
 

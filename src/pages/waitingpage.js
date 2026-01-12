@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
-import { joinGameWithRetry } from '../client/lobbyClient';
+import { joinGameWithRetry, leaveMatch } from '../client/lobbyClient';
 import { enterMatch } from '../store/slices/lobbySlice';
 import { subscribeToMatch, clearMatchData } from '../store/slices/matchSlice';
 import { Users, Loader2, Check, Crown, Play } from 'lucide-react';
@@ -93,7 +93,39 @@ const WaitingPage = () => {
     performJoin();
   }, [playerID, matchId, location.state, navigate, dispatch]);
 
-  // 3. NAVIGAZIONE AUTOMATICA (Scatta SOLO quando lo stato diventa PLAYING)
+  // 3. CLEANUP quando il giocatore esce o chiude la tab
+  useEffect(() => {
+    const handleBeforeUnload = async (e) => {
+      // Solo se siamo ancora in attesa (non durante la partita)
+      if (matchData?.status === 'OPEN' && credentials && playerID) {
+        try {
+          // Usa navigator.sendBeacon per garantire che la richiesta venga inviata
+          const leaveUrl = `/games/risk/${matchId}/leave`;
+          const payload = JSON.stringify({
+            playerID: String(playerID),
+            credentials: credentials
+          });
+          
+          navigator.sendBeacon(leaveUrl, new Blob([payload], { type: 'application/json' }));
+          
+          // Pulisci session storage
+          sessionStorage.removeItem(`joined_${matchId}_${playerID}`);
+        } catch (error) {
+          console.error('[WAITING] Errore during leave:', error);
+        }
+      }
+    };
+    
+    // Ascolta beforeunload
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [matchData, credentials, playerID, matchId]);
+
+  // 4. NAVIGAZIONE AUTOMATICA (Scatta SOLO quando lo stato diventa PLAYING)
   useEffect(() => {
     // Naviga solo se lo stato è PLAYING e abbiamo le credenziali pronte
     if (matchData?.status === 'PLAYING' && credentials) {
@@ -127,6 +159,27 @@ const WaitingPage = () => {
     } catch (error) {
         console.error("Errore avvio partita:", error);
         setIsStarting(false);
+    }
+  };
+
+  // 5. FUNZIONE ABBANDONO PARTITA (Bottone "Abbandona")
+  const handleLeaveMatch = async () => {
+    if (!matchId || !playerID || !credentials) return;
+    
+    try {
+      console.log('🚪 Player leaving match:', matchId);
+      await leaveMatch(matchId, playerID, credentials);
+      console.log('✅ Left match successfully');
+      
+      // Pulisci sessionStorage
+      sessionStorage.removeItem(`joined_${matchId}_${playerID}`);
+      
+      // Naviga alla lobby
+      navigate('/lobby');
+    } catch (error) {
+      console.error('❌ Error leaving match:', error);
+      // Naviga comunque alla lobby
+      navigate('/lobby');
     }
   };
 
@@ -238,6 +291,18 @@ const WaitingPage = () => {
                     )}
                 </>
             )}
+          </div>
+
+          {/* BOTTONE ABBANDONA - Sempre visibile */}
+          <div className="mt-4">
+            <Button 
+              variant="secondary" 
+              size="md" 
+              className="w-full" 
+              onClick={handleLeaveMatch}
+            >
+              Abbandona Partita
+            </Button>
           </div>
           
         </Card>

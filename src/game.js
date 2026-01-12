@@ -554,6 +554,8 @@ const RiskGame = {
                   G.troops[to] -= defenderLosses;
                   
                   let conquered = false;
+                  // Salva il colore originale del difensore PRIMA della conquista
+                  const originalDefenderOwner = G.owners[to];
                   
                   // Conquista territorio se difensore a 0 truppe
                   if (G.troops[to] === 0) {
@@ -565,7 +567,7 @@ const RiskGame = {
                     console.log(`🏴 [CONQUERED] Player ${ctx.currentPlayer} conquista ${to}!`);
                   }
                   
-                  // Salva risultato
+                  // Salva risultato con il colore ORIGINALE del difensore
                   G.battleResult = {
                     attackerDice: attackerRolls,
                     defenderDice: defenderRolls,
@@ -573,7 +575,8 @@ const RiskGame = {
                     defenderLosses,
                     conquered,
                     fromTerritory: from,
-                    toTerritory: to
+                    toTerritory: to,
+                    originalDefenderOwner: originalDefenderOwner // Colore originale del difensore
                   };
                   
                   // Reset solo il target, mantieni from per attacchi consecutivi

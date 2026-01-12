@@ -8,6 +8,7 @@ import SetupBar from './components/UI/SetupBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import GameBar from './components/UI/GameBar';
 import AttackDiceSelectionModal from './components/UI/AttackDiceSelectionModal';
+import BattleAnimationModal from './components/UI/BattleAnimationModal';
 import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 
@@ -17,6 +18,9 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
   // Componente interno che usa il context
   function RiskBoardContent() {
     const { ctx, G, moves, playerID } = useRisk();
+    const [showAnimationModal, setShowAnimationModal] = React.useState(false);
+    const [showResultModal, setShowResultModal] = React.useState(false);
+    
     const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
     const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
     const isGamePhase = ctx?.phase === 'GAME';
@@ -26,15 +30,38 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
     // Mostra modali basati sullo stato G - SOLO se è il mio turno
     const showAttackDiceModal = isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
-    const showBattleResultModal = isMyTurn && G?.battleResult !== null && G?.battleResult !== undefined;
     const showFortifyModal = isMyTurn && G?.fortifyState?.from && G?.fortifyState?.to;
+    
+    // Gestione dei modal di battaglia
+    React.useEffect(() => {
+      const hasBattleResult = G?.battleResult !== null && G?.battleResult !== undefined;
+      
+      if (isMyTurn && hasBattleResult) {
+        // Se c'è un battleResult, mostra prima l'animazione
+        setShowAnimationModal(true);
+        setShowResultModal(false);
+      } else if (!hasBattleResult) {
+        // Se non c'è battleResult, nascondi entrambi i modal
+        setShowAnimationModal(false);
+        setShowResultModal(false);
+      }
+    }, [isMyTurn, G?.battleResult]);
 
-    // Debug log
-    console.log('[RISKBOARD] G.attackState:', G?.attackState);
-    console.log('[RISKBOARD] showAttackDiceModal:', showAttackDiceModal);
-    console.log('[RISKBOARD] showBattleResultModal:', showBattleResultModal);
-    console.log('[RISKBOARD] Stage corrente:', ctx?.activePlayers?.[playerID]);
+    // Gestione del completamento dell'animazione
+    const handleAnimationComplete = () => {
+      setShowAnimationModal(false);
+      setShowResultModal(true);
+    };
 
+    // Gestione della chiusura del risultato
+    const handleResultClose = () => {
+      setShowResultModal(false);
+      // Reset IMMEDIATO del battleResult chiamando la mossa del server
+      // Questo avviene sia per chiusura manuale che automatica
+      if (moves?.resetAttackSelection) {
+        moves.resetAttackSelection();
+      }
+    };
 
     return (
       <div className="relative w-full h-screen bg-[#173C55] overflow-hidden flex flex-col">
@@ -75,14 +102,14 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
         </div>
 
         {/* MODALI */}
+        {showAnimationModal && (
+          <BattleAnimationModal onComplete={handleAnimationComplete} />
+        )}
+        {showResultModal && (
+          <BattleResultModal onClose={handleResultClose} />
+        )}
         {showAttackDiceModal && (
           <AttackDiceSelectionModal onClose={() => moves?.resetAttackSelection?.()} />
-        )}
-        {showBattleResultModal && (
-          <BattleResultModal onClose={() => {
-            // Il battleResult viene resettato automaticamente quando si chiude il modal
-            // Non serve fare nulla qui, il modal si chiuderà da solo dopo il timeout
-          }} />
         )}
         {showFortifyModal && (
           <FortifyTroopsModal onClose={() => moves?.resetFortifySelection?.()} />

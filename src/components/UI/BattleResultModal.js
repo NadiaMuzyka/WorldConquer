@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Modal from './Modal';
 import Button from './Button';
 import Die from './Die';
@@ -15,52 +15,57 @@ const getTerritoryName = (territoryId) => {
   return territoryId;
 };
 
+// Converte i colori hex dei player ai nomi che Die.js si aspetta
+const getPlayerDieColor = (playerId) => {
+  const colorMap = {
+    "0": "red",    // #d32f2f
+    "1": "blue",   // #1976d2
+    "2": "green",  // #388e3c
+    "3": "yellow", // #fbc02d
+    "4": "purple", // #9c27b0
+    "5": "black",  // #000000
+  };
+  return colorMap[playerId] || "red";
+};
+
 export default function BattleResultModal({ onClose }) {
-  // 1. CHIAMATA A TUTTI GLI HOOK (Sempre in alto)
   const { G, ctx, playerID } = useRisk();
-  const [dicePhase, setDicePhase] = useState(1);
+  const [showResults, setShowResults] = useState(false);
   
   const battleResult = G?.battleResult;
 
-  // Definisci handleClose qui perché serve nell'useEffect
-  const handleClose = () => {
-    setDicePhase(1);
+  // Usa useCallback per stabilizzare handleClose
+  const handleClose = useCallback(() => {
+    setShowResults(false);
     if (onClose) onClose();
-  };
+  }, [onClose]);
 
-  // Fase 1 -> Fase 2 dopo 2 secondi
+  // Mostra i risultati con una leggera animazione
   useEffect(() => {
-    if (battleResult && dicePhase === 1) {
-      const timer = setTimeout(() => setDicePhase(2), 2000);
+    if (battleResult) {
+      const timer = setTimeout(() => setShowResults(true), 300);
       return () => clearTimeout(timer);
     }
-  }, [dicePhase, battleResult]);
+  }, [battleResult]);
 
-  // Fase 2 -> Fase 3 dopo 1 secondo
+  // Auto-chiusura dopo 8 secondi (più tempo per leggere)
   useEffect(() => {
-    if (battleResult && dicePhase === 2) {
-      const timer = setTimeout(() => setDicePhase(3), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [dicePhase, battleResult]);
-
-  // Auto-chiusura dopo 5 secondi in fase 3
-  useEffect(() => {
-    if (battleResult && dicePhase === 3) {
+    if (battleResult && showResults) {
       const timer = setTimeout(() => {
         handleClose();
-      }, 5000);
+      }, 8000);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dicePhase, battleResult]);
+  }, [battleResult, showResults, handleClose]);
 
-  // 2. CONDIZIONE DI USCITA (Solo dopo che tutti gli hook sono stati dichiarati)
   if (!battleResult) return null;
 
-  // 3. CALCOLO VARIABILI (Sicuro perché battleResult esiste qui)
   const attackerColor = PLAYER_COLORS[ctx.currentPlayer];
-  const defenderColor = PLAYER_COLORS[G.owners[battleResult.toTerritory]];
+  // Usa il colore ORIGINALE del difensore salvato nel battleResult
+  const defenderColor = PLAYER_COLORS[battleResult.originalDefenderOwner || G.owners[battleResult.toTerritory]];
+  const attackerDieColor = getPlayerDieColor(ctx.currentPlayer);
+  // Usa il colore ORIGINALE del difensore per i dadi
+  const defenderDieColor = getPlayerDieColor(battleResult.originalDefenderOwner || G.owners[battleResult.toTerritory]);
   const fromName = getTerritoryName(battleResult.fromTerritory);
   const toName = getTerritoryName(battleResult.toTerritory);
 
@@ -79,106 +84,96 @@ export default function BattleResultModal({ onClose }) {
     }
   }
 
-  // 4. RENDER JSX
   return (
     <Modal
-      title="Lancio dei Dadi"
+      title="Risultato della Battaglia"
       size="lg"
-      preventClose={true}
+      preventClose={false}
+      onClose={handleClose}
       actionBar={
-        dicePhase === 3 && (
-          <Button variant="cyan" onClick={handleClose}>
-            Chiudi
-          </Button>
-        )
+        <Button variant="cyan" onClick={handleClose}>
+          Chiudi
+        </Button>
       }
     >
-      <div className="space-y-6">
-        {/* Fase 1: Dadi non ordinati */}
-        {dicePhase === 1 && (
-          <div className="grid grid-cols-2 gap-8">
-            {/* Attaccante */}
-            <div className="space-y-3">
-              <h4 className="text-center font-bold" style={{ color: attackerColor }}>
-                Attaccante
-              </h4>
-              <div className="flex justify-center gap-2 flex-wrap">
-                {battleResult.attackerDice.map((value, idx) => (
-                  <Die key={idx} value={value} color={ctx.currentPlayer} />
-                ))}
-              </div>
-            </div>
-
-            {/* Difensore */}
-            <div className="space-y-3">
-              <h4 className="text-center font-bold" style={{ color: defenderColor }}>
-                Difensore
-              </h4>
-              <div className="flex justify-center gap-2 flex-wrap">
-                {battleResult.defenderDice.map((value, idx) => (
-                  <Die key={idx} value={value} color={G.owners[battleResult.toTerritory]} />
-                ))}
-              </div>
-            </div>
+      <div className={`space-y-6 transition-all duration-500 ease-in-out ${showResults ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {/* Confronti con evidenziazione vincitori */}
+        <div className="space-y-4">
+          <div className="text-center">
+            <h3 className="text-lg font-bold text-gray-200 mb-4">Esito del Confronto</h3>
           </div>
-        )}
-
-        {/* Fase 2 e 3: Dadi ordinati e confrontati */}
-        {(dicePhase === 2 || dicePhase === 3) && (
-          <div className="space-y-4">
-            {/* Confronti affiancati */}
-            {Array.from({ length: comparisons }).map((_, idx) => (
-              <div key={idx} className="flex items-center justify-center gap-6">
-                <div className={`transition-all duration-300 ${
-                  dicePhase === 3 && winners[idx] === 'attacker' 
-                    ? 'ring-4 ring-yellow-400 rounded-lg shadow-lg shadow-yellow-400/50' 
-                    : ''
-                }`}>
-                  <Die value={attackerSorted[idx]} color={ctx.currentPlayer} />
-                </div>
-                
-                <span className="text-2xl font-bold text-gray-400">VS</span>
-                
-                <div className={`transition-all duration-300 ${
-                  dicePhase === 3 && winners[idx] === 'defender' 
-                    ? 'ring-4 ring-yellow-400 rounded-lg shadow-lg shadow-yellow-400/50' 
-                    : ''
-                }`}>
-                  <Die value={defenderSorted[idx]} color={G.owners[battleResult.toTerritory]} />
-                </div>
+          
+          {Array.from({ length: comparisons }).map((_, idx) => (
+            <div key={idx} className="flex items-center justify-center gap-8">
+              <div className={`transition-all duration-700 ease-in-out transform ${
+                winners[idx] === 'attacker' 
+                  ? 'ring-4 ring-yellow-400 rounded-lg shadow-2xl shadow-yellow-400/50 scale-105' 
+                  : 'scale-95 opacity-75'
+              }`}>
+                <Die value={attackerSorted[idx]} color={attackerDieColor} />
               </div>
-            ))}
-
-            {/* Fase 3: Risultato testuale */}
-            {dicePhase === 3 && (
-              <div className="mt-6 p-4 bg-gray-700 rounded-lg text-center space-y-2">
-                {battleResult.conquered ? (
-                  <div className="space-y-2">
-                    <p className="text-xl font-bold text-yellow-400">
-                      🏴 Territorio Conquistato!
-                    </p>
-                    <p className="text-gray-300">
-                      <span style={{ color: attackerColor }} className="font-bold">
-                        {ctx.currentPlayer === playerID ? 'Hai' : `Player ${ctx.currentPlayer} ha`}
-                      </span>
-                      {' '}conquistato <span className="font-bold">{toName}</span>
-                    </p>
-                  </div>
+              
+              <div className="flex flex-col items-center">
+                <span className="text-2xl font-bold text-gray-400">VS</span>
+                {winners[idx] === 'attacker' ? (
+                  <span className="text-yellow-400 text-xs font-bold mt-1">ATT</span>
                 ) : (
-                  <div className="space-y-1">
-                    <p className="text-lg font-bold">Esito della Battaglia</p>
-                    <p className="text-gray-300">
-                      Difensore perde <span className="text-red-400 font-bold">{battleResult.defenderLosses}</span> {battleResult.defenderLosses === 1 ? 'truppa' : 'truppe'}
-                    </p>
-                    <p className="text-gray-300">
-                      Attaccante perde <span className="text-red-400 font-bold">{battleResult.attackerLosses}</span> {battleResult.attackerLosses === 1 ? 'truppa' : 'truppe'}
-                    </p>
-                  </div>
+                  <span className="text-yellow-400 text-xs font-bold mt-1">DIF</span>
                 )}
               </div>
-            )}
-          </div>
-        )}
+              
+              <div className={`transition-all duration-700 ease-in-out transform ${
+                winners[idx] === 'defender' 
+                  ? 'ring-4 ring-yellow-400 rounded-lg shadow-2xl shadow-yellow-400/50 scale-105' 
+                  : 'scale-95 opacity-75'
+              }`}>
+                <Die value={defenderSorted[idx]} color={defenderDieColor} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Risultato finale */}
+        <div className="mt-8 p-6 bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg text-center space-y-3 transform transition-all duration-500 ease-in-out">
+          {battleResult.conquered ? (
+            <div className="space-y-3">
+              <p className="text-2xl font-bold text-yellow-400">
+                🏆 Territorio Conquistato!
+              </p>
+              <p className="text-lg text-gray-200">
+                <span style={{ color: attackerColor }} className="font-bold">
+                  {ctx.currentPlayer === playerID ? 'Hai' : `Player ${ctx.currentPlayer} ha`}
+                </span>
+                {' '}conquistato{' '}
+                <span className="font-bold text-cyan-300">{toName}</span>
+              </p>
+              <div className="text-sm text-gray-400">
+                <p>Da: <span className="text-cyan-200">{fromName}</span></p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xl font-bold text-orange-400">⚔️ Battaglia Completata</p>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="p-3 bg-red-900/30 rounded-lg">
+                  <p className="text-red-300 font-bold">Perdite Attaccante</p>
+                  <p className="text-2xl font-bold text-red-400">
+                    {battleResult.attackerLosses}
+                  </p>
+                </div>
+                <div className="p-3 bg-red-900/30 rounded-lg">
+                  <p className="text-red-300 font-bold">Perdite Difensore</p>
+                  <p className="text-2xl font-bold text-red-400">
+                    {battleResult.defenderLosses}
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-gray-400 mt-3">
+                <p><span className="text-cyan-200">{toName}</span> rimane sotto controllo del difensore</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );

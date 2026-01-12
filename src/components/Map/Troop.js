@@ -9,7 +9,8 @@ export const Troop = ({ color, count, x, y, shouldShow = true, animationDelay = 
 
   // Controlla se questa truppa è stata piazzata nel turno corrente
   const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
-  const isPlacedThisTurn = isReinforcementPhase && 
+  const isGameReinforcementStage = ctx?.phase === 'GAME' && ctx?.activePlayers?.[playerID] === 'reinforcement';
+  const isPlacedThisTurn = (isReinforcementPhase || isGameReinforcementStage) && 
                           G?.turnPlacements && 
                           G.turnPlacements.includes(countryId);
   

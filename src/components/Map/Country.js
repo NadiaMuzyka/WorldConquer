@@ -10,39 +10,43 @@ export function Country({ data, owner, troops }) {
   // Accediamo a G, ctx, playerID e moves tramite l'Hook useRisk
   const { G, ctx, playerID, moves } = useRisk();
   
-  // Calcola se questo territorio deve essere evidenziato
-  const isHighlighted = React.useMemo(() => {
+  // Calcola se questo territorio deve essere evidenziato e con quale colore
+  const highlightStyle = React.useMemo(() => {
     // Durante la fase di attacco
     if (ctx?.phase === 'GAME' && ctx?.activePlayers?.[playerID] === 'attack') {
       const attackFrom = G?.attackState?.from;
-      if (!attackFrom) return false;
+      if (!attackFrom) return null;
       
-      // Evidenzia il territorio attaccante
-      if (data.id === attackFrom) return true;
+      // Territorio attaccante = bordo oro
+      if (data.id === attackFrom) {
+        return { color: '#FFD700', width: '3', filter: 'url(#attackGlow)' }; // Oro
+      }
       
-      // Evidenzia territori nemici adiacenti
+      // Territori nemici adiacenti = bordo rosso
       const adjacentCountries = RISK_ADJACENCY[attackFrom] || [];
       if (adjacentCountries.includes(data.id) && owner !== playerID) {
-        return true;
+        return { color: '#FF0000', width: '3', filter: 'url(#attackGlow)' }; // Rosso
       }
     }
     
     // Durante lo spostamento strategico
     if (ctx?.phase === 'GAME' && ctx?.activePlayers?.[playerID] === 'strategicMovement') {
       const fortifyFrom = G?.fortifyState?.from;
-      if (!fortifyFrom) return false;
+      if (!fortifyFrom) return null;
       
-      // Evidenzia il territorio origine
-      if (data.id === fortifyFrom) return true;
+      // Territorio origine = bordo oro
+      if (data.id === fortifyFrom) {
+        return { color: '#FFD700', width: '3', filter: 'url(#attackGlow)' }; // Oro
+      }
       
-      // Evidenzia territori propri adiacenti
+      // Territori propri adiacenti = bordo blu
       const adjacentCountries = RISK_ADJACENCY[fortifyFrom] || [];
       if (adjacentCountries.includes(data.id) && owner === playerID) {
-        return true;
+        return { color: '#38C7D7', width: '3', filter: 'url(#attackGlow)' }; // Ciano/Blu
       }
     }
     
-    return false;
+    return null;
   }, [ctx, playerID, G?.attackState?.from, G?.fortifyState?.from, data.id, owner]);
   
   const staticMapColor = COUNTRY_COLORS[data.id] || "#cccccc";
@@ -132,8 +136,20 @@ export function Country({ data, owner, troops }) {
             moves.selectFortifyFrom(data.id);
           }
         } else {
-          // Seleziona destinazione
-          if (owner === playerID && moves?.selectFortifyTo) {
+          // C'è già un territorio origine selezionato
+          if (owner === playerID) {
+            // Click su un proprio territorio
+            if (troops >= 2 && moves?.selectFortifyFrom) {
+              // Cambia il territorio origine
+              moves.selectFortifyFrom(data.id);
+            }
+          } else {
+            // Click su territorio nemico (non dovrebbe succedere, ma ignoriamo)
+            return;
+          }
+          // Se il territorio cliccato è adiacente e valido, seleziona come destinazione
+          const adjacentCountries = RISK_ADJACENCY[G.fortifyState.from] || [];
+          if (adjacentCountries.includes(data.id) && owner === playerID && moves?.selectFortifyTo) {
             moves.selectFortifyTo(data.id);
           }
         }
@@ -148,12 +164,12 @@ export function Country({ data, owner, troops }) {
         id={data.id}
         d={data.path}
         fill={staticMapColor}
-        stroke={isHighlighted ? "#38C7D7" : "#4c4c4cff"}
-        strokeWidth={isHighlighted ? "3" : "1"}
-        filter={isHighlighted ? "url(#attackGlow)" : "none"}
-        fillOpacity={isHighlighted ? 0.8 : 1}
+        stroke={highlightStyle ? highlightStyle.color : "#4c4c4cff"}
+        strokeWidth={highlightStyle ? highlightStyle.width : "1"}
+        filter={highlightStyle ? highlightStyle.filter : "none"}
+        fillOpacity={highlightStyle ? 0.8 : 1}
         onMouseEnter={(e) => e.target.style.fillOpacity = 0.8}
-        onMouseLeave={(e) => e.target.style.fillOpacity = isHighlighted ? 0.8 : 1}
+        onMouseLeave={(e) => e.target.style.fillOpacity = highlightStyle ? 0.8 : 1}
       />
       {troops > 0 && shouldShowTroop && (
           <Troop 

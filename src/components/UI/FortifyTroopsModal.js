@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import Button from './Button';
-import RangeInput from './Input/RangeInput';
+import NumberSpinner from './NumberSpinner';
 import { useRisk } from '../../context/GameContext';
 import { CONTINENTS_DATA } from '../Constants/mapData';
 
@@ -39,51 +39,61 @@ export default function FortifyTroopsModal({ onClose }) {
 
   return (
     <Modal
-      title="Spostamento Strategico"
+      title="🚚 Spostamento Strategico"
       size="sm"
       onClose={onClose}
       actionBar={
-        <>
-          <Button variant="gray" onClick={onClose}>
+        <div className="flex gap-3 w-full">
+          <Button variant="gray" onClick={onClose} className="flex-1">
             Annulla
           </Button>
-          <Button variant="cyan" onClick={handleConfirm}>
-            Conferma Spostamento
+          <Button variant="cyan" onClick={handleConfirm} className="flex-1">
+            Conferma
           </Button>
-        </>
+        </div>
       }
     >
       <div className="space-y-6">
-        <div className="text-center space-y-2">
-          <p className="text-gray-300">
-            Da: <span className="font-bold text-white">{fromName}</span>
-          </p>
-          <p className="text-gray-300">
-            A: <span className="font-bold text-white">{toName}</span>
-          </p>
+        {/* Riquadro territorii */}
+        <div className="bg-gray-800/50 rounded-lg p-4 space-y-3 border border-gray-700/50">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400 text-sm">Da:</span>
+            <span className="font-bold text-white text-lg">{fromName}</span>
+          </div>
+          
+          <div className="flex justify-center">
+            <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400 text-sm">A:</span>
+            <span className="font-bold text-white text-lg">{toName}</span>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-300">
-            Quante truppe vuoi spostare?
-          </label>
-          
-          <RangeInput
+        {/* Sezione selezione truppe */}
+        <div className="space-y-4">
+          <NumberSpinner
+            label="Quante truppe vuoi spostare?"
             min={1}
             max={maxTroops}
             value={troopCount}
-            onChange={(e) => setTroopCount(parseInt(e.target.value))}
+            onChange={setTroopCount}
           />
 
-          <div className="flex justify-between text-sm text-gray-400">
-            <span>1 truppa</span>
-            <span className="font-bold text-cyan-400">{troopCount}</span>
-            <span>{maxTroops} {maxTroops === 1 ? 'truppa' : 'truppe'}</span>
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Min: 1</span>
+            <span>Max: {maxTroops}</span>
           </div>
 
-          <p className="text-xs text-gray-500 text-center mt-2">
-            (Rimarranno {G.troops[fromTerritory] - troopCount} {G.troops[fromTerritory] - troopCount === 1 ? 'truppa' : 'truppe'} in {fromName})
-          </p>
+          {/* Info residue */}
+          <div className="bg-gray-900/50 rounded-lg p-3 text-center border border-gray-700/30">
+            <p className="text-xs text-gray-400">
+              Rimarranno <span className="font-bold text-gray-200">{G.troops[fromTerritory] - troopCount}</span> {G.troops[fromTerritory] - troopCount === 1 ? 'truppa' : 'truppe'} in {fromName}
+            </p>
+          </div>
         </div>
       </div>
     </Modal>

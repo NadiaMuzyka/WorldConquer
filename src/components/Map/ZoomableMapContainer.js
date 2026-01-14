@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+
 import Button from '../UI/Button';
+import { Plus, Minus, RefreshCw } from 'lucide-react';
 
 export default function ZoomableMapContainer({ children, minZoom = 1, maxZoom = 3, initialZoom = 1 }) {
   const containerRef = useRef(null);
@@ -86,9 +88,36 @@ export default function ZoomableMapContainer({ children, minZoom = 1, maxZoom = 
     >
       {/* UI Pulsanti Zoom */}
       <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-black/30 rounded-lg p-2 shadow-lg pointer-events-auto">
-        <Button onClick={handleZoomIn} variant="cyan" size="xs" className="!w-10 !h-10 p-0">+</Button>
-        <Button onClick={handleZoomOut} variant="cyan" size="xs" className="!w-10 !h-10 p-0">-</Button>
-        <Button onClick={handleReset} variant="gray" size="xs" className="!w-10 !h-10 p-0">R</Button>
+        <Button
+          onClick={handleZoomIn}
+          variant={zoom < maxZoom ? 'cyan' : 'gray'}
+          size="xs"
+          className="!w-8 !h-8 p-0"
+          disabled={zoom >= maxZoom}
+          aria-label="Zoom in"
+        >
+          <Plus size={16} />
+        </Button>
+        <Button
+          onClick={handleZoomOut}
+          variant={zoom > minZoom ? 'cyan' : 'gray'}
+          size="xs"
+          className="!w-8 !h-8 p-0"
+          disabled={zoom <= minZoom}
+          aria-label="Zoom out"
+        >
+          <Minus size={16} />
+        </Button>
+        <Button
+          onClick={handleReset}
+          variant={zoom !== initialZoom || pan.x !== 0 || pan.y !== 0 ? 'cyan' : 'gray'}
+          size="xs"
+          className="!w-8 !h-8 p-0"
+          disabled={zoom === initialZoom && pan.x === 0 && pan.y === 0}
+          aria-label="Reset zoom"
+        >
+          <RefreshCw size={16} />
+        </Button>
       </div>
 
       {/* Container della Mappa */}

@@ -159,12 +159,12 @@ export function Country({ data, owner, troops }) {
   };
 
   // Effetto scurito ai territori non propri durante il proprio turno di rinforzo iniziale
-  const isMyReinforcementTurn = ctx?.phase === 'INITIAL_REINFORCEMENT' && ctx?.currentPlayer === playerID;
+  const isMyTurn = (ctx?.phase === 'INITIAL_REINFORCEMENT' || ctx?.activePlayers?.[playerID] === 'reinforcement' || ctx?.activePlayers?.[playerID] === 'attack') && ctx?.currentPlayer === playerID;
   const isMine = owner === playerID;
-  const darken = isMyReinforcementTurn && !isMine;
+  const darken = (isMyTurn && !isMine) || (ctx?.activePlayers?.[playerID] === 'attack' && troops < 2 && isMine);
 
   return (
-    <g onClick={handleClick} style={{ cursor: isMyReinforcementTurn && !isMine ? 'not-allowed' : 'pointer' }}>
+    <g onClick={handleClick} style={{ cursor: isMyTurn && !isMine ? 'not-allowed' : 'pointer' }}>
       <path
         id={data.id}
         d={data.path}
@@ -173,11 +173,8 @@ export function Country({ data, owner, troops }) {
         strokeWidth={highlightStyle ? highlightStyle.width : "1"}
         filter={highlightStyle ? highlightStyle.filter : "none"}
         fillOpacity={highlightStyle ? 0.8 : 1}
-        style={{
-          transition: 'filter 0.3s, opacity 0.3s',
-          filter: darken ? 'brightness(0.5) grayscale(0.5)' : (highlightStyle ? highlightStyle.filter : 'none'),
-          opacity: darken ? 0.6 : 1
-        }}
+        className={`transition-all duration-300${darken ? ' filter brightness-50 opacity-60' : ''}`}
+        style={highlightStyle && highlightStyle.filter ? { filter: highlightStyle.filter } : undefined}
         onMouseEnter={(e) => e.target.style.fillOpacity = 0.8}
         onMouseLeave={(e) => e.target.style.fillOpacity = highlightStyle ? 0.8 : 1}
       />

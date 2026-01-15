@@ -1,4 +1,7 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { clearMatchData } from './store/slices/matchSlice';
 import { GameProvider, useRisk } from './context/GameContext';
 import RiskMap from './components/Map/RiskMap';
 import ZoomableMapContainer from './components/Map/ZoomableMapContainer';
@@ -11,6 +14,7 @@ import AttackDiceSelectionModal from './components/UI/AttackDiceSelectionModal';
 import BattleAnimationModal from './components/UI/BattleAnimationModal';
 import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
+import EndGameModal from './components/UI/EndGameModal';
 
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
@@ -18,8 +22,15 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
   // Componente interno che usa il context
   function RiskBoardContent() {
     const { ctx, G, moves, playerID } = useRisk();
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    
+    // Redux: ottieni i dati del match per recuperare i giocatori
+    const matchData = useSelector((state) => state.match?.data);
+    
     const [showAnimationModal, setShowAnimationModal] = React.useState(false);
     const [showResultModal, setShowResultModal] = React.useState(false);
+    const [showEndGameModal, setShowEndGameModal] = React.useState(false);
     
     const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
     const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
@@ -63,6 +74,21 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
       }
     };
 
+    // Gestione fine partita - rileva ctx.gameover
+    React.useEffect(() => {
+      if (ctx?.gameover) {
+        console.log('🏆 [ENDGAME] Partita terminata! Vincitore:', ctx.gameover);
+        setShowEndGameModal(true);
+      }
+    }, [ctx?.gameover]);
+
+    // Gestione reindirizzamento dopo timeout EndGameModal
+    const handleEndGameTimerComplete = () => {
+      console.log('[ENDGAME] Timer completato, reindirizzamento alla lobby...');
+      dispatch(clearMatchData());
+      navigate('/lobby');
+    };
+
     return (
       <div className="relative w-full h-screen bg-[#173C55] overflow-hidden flex flex-col">
 
@@ -99,6 +125,15 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
             </div>
           )}
           {isGamePhase && <GameBar />}
+        {showEndGameModal && ctx?.gameover && (
+          <EndGameModal
+            winnerID={ctx.gameover}
+            winnerName={G?.players?.[ctx.gameover]?.name || matchData?.players?.find(p => p.id === ctx.gameover)?.name}
+            objective={G?.players?.[ctx.gameover]?.secretObjective}
+            players={matchData?.players || []}
+            onTimerComplete={handleEndGameTimerComplete}
+          />
+        )}
         </div>
 
         {/* MODALI */}

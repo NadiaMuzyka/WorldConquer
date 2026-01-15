@@ -89,6 +89,84 @@ const assignSecretObjectives = (G, ctx) => {
   }
 };
 
+// Funzione per controllare se un giocatore ha raggiunto il suo obiettivo
+const checkVictoryCondition = (G, events) => {
+  if (!G.players) return false;
+  
+  for (const [playerID, playerData] of Object.entries(G.players)) {
+    if (!playerData.secretObjective) continue;
+    
+    const objective = playerData.secretObjective;
+    let objectiveMet = false;
+    
+    switch (objective.type) {
+      case 'CONQUER_CONTINENT': {
+        const continent = CONTINENTS_DATA[objective.continent];
+        if (continent) {
+          objectiveMet = continent.every(territory => G.owners[territory.id] === playerID);
+        }
+        break;
+      }
+      
+      case 'CONQUER_TWO_CONTINENTS': {
+        const [cont1, cont2] = objective.continents;
+        const ownsCont1 = CONTINENTS_DATA[cont1]?.every(t => G.owners[t.id] === playerID);
+        const ownsCont2 = CONTINENTS_DATA[cont2]?.every(t => G.owners[t.id] === playerID);
+        objectiveMet = ownsCont1 && ownsCont2;
+        break;
+      }
+      
+      case 'CONQUER_CONTINENT_PLUS': {
+        const continent = CONTINENTS_DATA[objective.continent];
+        const ownsContinent = continent?.every(t => G.owners[t.id] === playerID);
+        
+        if (ownsContinent) {
+          if (objective.extraContinent) {
+            const extraTerritories = CONTINENTS_DATA[objective.extraContinent]?.filter(
+              t => G.owners[t.id] === playerID
+            ).length || 0;
+            objectiveMet = extraTerritories >= objective.extraTerritories;
+          } else {
+            const totalTerritories = Object.values(G.owners).filter(
+              owner => owner === playerID
+            ).length;
+            const continentSize = continent.length;
+            objectiveMet = totalTerritories >= continentSize + objective.extraTerritories;
+          }
+        }
+        break;
+      }
+      
+      case 'CONQUER_N_IN_CONTINENT': {
+        const continent = CONTINENTS_DATA[objective.continent];
+        const ownedCount = continent?.filter(t => G.owners[t.id] === playerID).length || 0;
+        objectiveMet = ownedCount >= objective.count;
+        break;
+      }
+      
+      case 'CONQUER_N_TERRITORIES': {
+        const ownedCount = Object.values(G.owners).filter(owner => owner === playerID).length;
+        objectiveMet = ownedCount >= objective.count;
+        break;
+      }
+      
+      case 'ELIMINATE_COLOR': {
+        const colorExists = Object.values(G.owners).some(owner => owner === objective.color);
+        objectiveMet = !colorExists;
+        break;
+      }
+    }
+    
+    if (objectiveMet) {
+      console.log(`🏆 [VICTORY] Player ${playerID} ha completato il suo obiettivo!`);
+      events.endGame({ winner: playerID });
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 const RiskGame = {
   name: 'risk',
   disableUndo: true,
@@ -394,6 +472,11 @@ const RiskGame = {
           console.log(`🎮 [STAGE] Player ${currentPlayer} entra in stage REINFORCEMENT`);
         },
         
+        // Controlla vittoria dopo ogni mossa
+        onMove: ({ G, events }) => {
+          checkVictoryCondition(G, events);
+        },
+        
         stages: {
           reinforcement: {
             moves: {
@@ -689,86 +772,6 @@ const RiskGame = {
             },
           },
         },
-      },
-      
-      endIf: ({ G, ctx }) => {
-        // Controlla se qualche giocatore ha raggiunto il suo obiettivo
-        if (!G.players) return false;
-        
-        
-        for (const [playerID, playerData] of Object.entries(G.players)) {
-          if (!playerData.secretObjective) continue;
-          
-          const objective = playerData.secretObjective;
-          let objectiveMet = false;
-          
-          switch (objective.type) {
-            case 'CONQUER_CONTINENT': {
-              const continent = CONTINENTS_DATA[objective.continent];
-              if (continent) {
-                objectiveMet = continent.every(territory => G.owners[territory.id] === playerID);
-              }
-              break;
-            }
-            
-            case 'CONQUER_TWO_CONTINENTS': {
-              const [cont1, cont2] = objective.continents;
-              const ownsCont1 = CONTINENTS_DATA[cont1]?.every(t => G.owners[t.id] === playerID);
-              const ownsCont2 = CONTINENTS_DATA[cont2]?.every(t => G.owners[t.id] === playerID);
-              objectiveMet = ownsCont1 && ownsCont2;
-              break;
-            }
-            
-            case 'CONQUER_CONTINENT_PLUS': {
-              const continent = CONTINENTS_DATA[objective.continent];
-              const ownsContinent = continent?.every(t => G.owners[t.id] === playerID);
-              
-              if (ownsContinent) {
-                if (objective.extraContinent) {
-                  // Conta territori extra in un continente specifico
-                  const extraTerritories = CONTINENTS_DATA[objective.extraContinent]?.filter(
-                    t => G.owners[t.id] === playerID
-                  ).length || 0;
-                  objectiveMet = extraTerritories >= objective.extraTerritories;
-                } else {
-                  // Conta 3 territori a scelta
-                  const totalTerritories = Object.values(G.owners).filter(
-                    owner => owner === playerID
-                  ).length;
-                  const continentSize = continent.length;
-                  objectiveMet = totalTerritories >= continentSize + objective.extraTerritories;
-                }
-              }
-              break;
-            }
-            
-            case 'CONQUER_N_IN_CONTINENT': {
-              const continent = CONTINENTS_DATA[objective.continent];
-              const ownedCount = continent?.filter(t => G.owners[t.id] === playerID).length || 0;
-              objectiveMet = ownedCount >= objective.count;
-              break;
-            }
-            
-            case 'CONQUER_N_TERRITORIES': {
-              const ownedCount = Object.values(G.owners).filter(owner => owner === playerID).length;
-              objectiveMet = ownedCount >= objective.count;
-              break;
-            }
-            
-            case 'ELIMINATE_COLOR': {
-              const colorExists = Object.values(G.owners).some(owner => owner === objective.color);
-              objectiveMet = !colorExists;
-              break;
-            }
-          }
-          
-          if (objectiveMet) {
-            console.log(`🏆 [VICTORY] Player ${playerID} ha completato il suo obiettivo!`);
-            return { winner: playerID };
-          }
-        }
-        
-        return false;
       },
     },
   },

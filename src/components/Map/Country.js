@@ -129,32 +129,28 @@ export function Country({ data, owner, troops }) {
       }
       
       // STRATEGIC_MOVEMENT stage
-      if (currentStage === 'strategicMovement') {
-        if (!G?.fortifyState?.from) {
-          // Seleziona territorio da cui spostare
-          if (owner === playerID && troops >= 2 && moves?.selectFortifyFrom) {
-            moves.selectFortifyFrom(data.id);
-          }
-        } else {
-          // C'è già un territorio origine selezionato
-          if (owner === playerID) {
-            // Click su un proprio territorio
-            if (troops >= 2 && moves?.selectFortifyFrom) {
-              // Cambia il territorio origine
-              moves.selectFortifyFrom(data.id);
+          if (currentStage === 'strategicMovement') {
+            if (!G?.fortifyState?.from) {
+              // Seleziona territorio da cui spostare
+              if (owner === playerID && troops >= 2 && moves?.selectFortifyFrom) {
+                moves.selectFortifyFrom(data.id);
+              }
+            } else {
+              const from = G.fortifyState.from;
+              const adjacentCountries = RISK_ADJACENCY[from] || [];
+              // Se clicchi su un territorio adiacente e valido come destinazione
+              if (adjacentCountries.includes(data.id) && owner === playerID && moves?.selectFortifyTo) {
+                moves.selectFortifyTo(data.id);
+                return;
+              }
+              // Se clicchi di nuovo sull'origine o su un altro tuo territorio non adiacente, cambia origine
+              if (owner === playerID && troops >= 2 && moves?.selectFortifyFrom) {
+                moves.selectFortifyFrom(data.id);
+              }
+              // Click su territorio nemico: ignora
             }
-          } else {
-            // Click su territorio nemico (non dovrebbe succedere, ma ignoriamo)
             return;
           }
-          // Se il territorio cliccato è adiacente e valido, seleziona come destinazione
-          const adjacentCountries = RISK_ADJACENCY[G.fortifyState.from] || [];
-          if (adjacentCountries.includes(data.id) && owner === playerID && moves?.selectFortifyTo) {
-            moves.selectFortifyTo(data.id);
-          }
-        }
-        return;
-      }
     }
   };
 

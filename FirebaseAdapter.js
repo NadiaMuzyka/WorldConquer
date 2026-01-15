@@ -74,9 +74,6 @@ class FirebaseAdapter {
   async setState(matchID, state, deltalog) {
     // 1. SANIFICAZIONE TOTALE (Rimuove undefined che fanno crashare Firebase)
     const cleanState = JSON.parse(JSON.stringify(state));
-    
-    // Log di debug per vedere se cleanState ha i dati giusti
-    // console.log(`[ADAPTER DEBUG] Saving state. Started? ${cleanState.G?.isGameStarted}`);
 
     // 2. SCRITTURA RTDB (Lo stato del gioco)
     try {
@@ -105,8 +102,58 @@ class FirebaseAdapter {
         console.log(`[ADAPTER] Cambio Status rilevato: ${lastKnownStatus} -> ${currentStatus}`);
         
         const updateData = { status: currentStatus };
+        
         if (currentStatus === 'FINISHED') {
-             updateData.winner = state.ctx.gameover;
+            // Estrai winnerID: ctx.gameover può essere { winner: "0" } o direttamente "0"
+            const winnerID = state.ctx.gameover?.winner || state.ctx.gameover;
+            updateData.winner = winnerID;
+            
+            // Calcola statistiche territori per ogni giocatore
+            const territoryStats = {};
+            if (state.G && state.G.owners) {
+                // Conta i territori per ogni giocatore
+                for (const [territoryId, ownerID] of Object.entries(state.G.owners)) {
+                    if (!territoryStats[ownerID]) {
+                        territoryStats[ownerID] = 0;
+                    }
+                    territoryStats[ownerID]++;
+                }
+            }
+            updateData.statistics = {
+                territoriesPerPlayer: territoryStats,
+                completedAt: new Date().toISOString()
+            };
+            
+            // Recupera informazioni complete del vincitore da Firestore
+            try {
+                const matchDoc = await this.firestore.collection('matches').doc(matchID).get();
+                if (matchDoc.exists()) {
+                    const matchDataFS = matchDoc.data();
+                    const winnerPlayer = matchDataFS.players?.find(p => p.id === winnerID);
+                    
+                    if (winnerPlayer) {
+                        updateData.winnerInfo = {
+                            id: winnerPlayer.id,
+                            name: winnerPlayer.name || 'Unknown',
+                            email: winnerPlayer.email || '',
+                            nickname: winnerPlayer.nickname || winnerPlayer.name || 'Unknown',
+                            firebaseAuthId: winnerPlayer.firebaseAuthId || winnerPlayer.id
+                        };
+                        console.log(`[ADAPTER] Winner info recuperate:`, updateData.winnerInfo);
+                    }
+                }
+            } catch (e) {
+                console.error(`[ADAPTER WARN] Impossibile recuperare info vincitore:`, e.message);
+            }
+            
+            // Cancella la partita dal Real Time Database
+            console.log(`[ADAPTER] Cancellazione partita ${matchID} da RTDB...`);
+            try {
+                await this.rtdb.ref(`matches/${matchID}`).remove();
+                console.log(`[ADAPTER] Partita ${matchID} rimossa da RTDB con successo`);
+            } catch (e) {
+                console.error(`[ADAPTER ERROR] Impossibile cancellare ${matchID} da RTDB:`, e.message);
+            }
         }
 
         try {
@@ -123,7 +170,13 @@ class FirebaseAdapter {
 
   // --- METADATI (Con transazioni per evitare race conditions) ---
   async setMetadata(matchID, metadata) {
-    await this.rtdb.ref(`matches/${matchID}/metadata`).set(metadata);
+    // Non scrivere su RTDB se la partita è FINISHED (è già stata cancellata)
+    const cachedStatus = this.statusCache.get(matchID);
+    if (cachedStatus !== 'FINISHED') {
+      await this.rtdb.ref(`matches/${matchID}/metadata`).set(metadata);
+    } else {
+      console.log(`[ADAPTER] Skip RTDB write for FINISHED match ${matchID}`);
+    }
 
     // Filtra solo i giocatori che hanno un nome (esclude i posti prenotati vuoti)
     const playersRaw = Object.values(metadata.players || {});
@@ -159,8 +212,12 @@ class FirebaseAdapter {
                 // Determina il nuovo status
                 let newStatus = currentData.status || 'OPEN';
                 
-                // Se tutti i giocatori si sono uniti, la partita passa a PLAYING
-                if (playersArray.length === currentPlayersMax && currentData.status === 'OPEN') {
+                // NON sovrascrivere lo status se la partita è già FINISHED
+                if (currentData.status === 'FINISHED') {
+                    newStatus = 'FINISHED';
+                    console.log(`[ADAPTER] Match ${matchID} già FINISHED, status mantenuto`);
+                } else if (playersArray.length === currentPlayersMax && currentData.status === 'OPEN') {
+                    // Se tutti i giocatori si sono uniti, la partita passa a PLAYING
                     newStatus = 'PLAYING';
                     this.statusCache.set(matchID, 'PLAYING');
                     console.log(`[ADAPTER] Match ${matchID} passa a PLAYING (tutti i giocatori uniti)`);

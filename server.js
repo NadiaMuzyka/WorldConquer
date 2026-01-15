@@ -32,7 +32,8 @@ const validateJoinMiddleware = async (ctx, next) => {
         const currentPlayers = matchData.playersCurrent || 0;
         const maxPlayers = matchData.playersMax || 6;
         
-        // Verifica che ci sia ancora spazio
+        // Verifica solo se la partita è piena
+        // NON leggiamo il body per evitare di consumare lo stream
         if (currentPlayers >= maxPlayers) {
           console.log(`[SERVER] Join bloccato per ${matchID}: partita piena (${currentPlayers}/${maxPlayers})`);
           ctx.status = 409;
@@ -71,45 +72,58 @@ server.app.use(cors());
 // Aggiungi il middleware PRIMA di avviare il server
 server.app.use(validateJoinMiddleware);
 
-// Endpoint custom per gestire il leave con aggiornamento Firestore
+// Middleware per intercettare il leave di boardgame.io e sincronizzare Firestore
 server.app.use(async (ctx, next) => {
-  if (ctx.method === 'POST' && ctx.path.includes('/leave')) {
-    // Leggi il body manualmente senza consumare lo stream
-    let body;
-    try {
-      const rawBody = await new Promise((resolve, reject) => {
-        let data = '';
-        ctx.req.on('data', chunk => data += chunk);
-        ctx.req.on('end', () => resolve(data));
-        ctx.req.on('error', reject);
-      });
-      body = JSON.parse(rawBody);
-    } catch (e) {
-      ctx.status = 400;
-      ctx.body = { error: 'Invalid JSON' };
-      return;
-    }
-    
+  // Salva il path e method per dopo
+  const isLeaveRequest = ctx.method === 'POST' && ctx.path.match(/\/games\/\w+\/[\w-]+\/leave/);
+  
+  if (isLeaveRequest) {
     const pathParts = ctx.path.split('/');
     const matchID = pathParts[pathParts.length - 2];
-    const playerID = body.playerID;
     
-    try {
-      // Chiama il metodo leave dell'adapter
-      await server.db.leaveMatch(matchID, playerID);
-      
-      ctx.status = 200;
-      ctx.body = { success: true };
-      return;
-    } catch (error) {
-      console.error(`[SERVER] Errore leave:`, error);
-      ctx.status = 500;
-      ctx.body = { error: error.message };
-      return;
+    // Lascia che boardgame.io gestisca il leave normalmente
+    await next();
+    
+    // Dopo che boardgame.io ha processato il leave, sincronizza Firestore
+    if (ctx.status === 200) {
+      try {
+        // Leggi i metadati aggiornati da boardgame.io
+        const metadata = await server.db.getMetadata(matchID);
+        
+        if (metadata) {
+          // Estrai i giocatori attivi
+          const playersArray = Object.values(metadata.players || {})
+            .filter(p => p && p.name)
+            .map(p => ({
+              id: p.id,
+              name: p.name,
+              avatar: p.data?.avatar || "",
+              isHost: p.id === 0 // Il primo player è l'host
+            }));
+          
+          const docRef = firestore.collection('matches').doc(matchID);
+          
+          // Se non ci sono più giocatori, elimina il match
+          if (playersArray.length === 0) {
+            console.log(`[SERVER] Nessun giocatore rimasto, eliminazione match ${matchID}`);
+            await docRef.delete();
+            await rtdb.ref(`matches/${matchID}`).remove();
+          } else {
+            // Aggiorna il contatore giocatori in Firestore
+            await docRef.update({
+              playersCurrent: playersArray.length,
+              players: playersArray
+            });
+            console.log(`[SERVER] Match ${matchID} aggiornato dopo leave: ${playersArray.length} giocatori rimanenti`);
+          }
+        }
+      } catch (error) {
+        console.error(`[SERVER] Errore sincronizzazione Firestore dopo leave:`, error);
+      }
     }
+  } else {
+    await next();
   }
-  
-  await next();
 });
 
 server.run(8000, () => {

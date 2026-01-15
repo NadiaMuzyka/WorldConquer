@@ -159,9 +159,9 @@ export function Country({ data, owner, troops }) {
   };
 
   // Effetto scurito ai territori non propri durante il proprio turno di rinforzo iniziale
-  const isMyTurn = (ctx?.phase === 'INITIAL_REINFORCEMENT' || ctx?.activePlayers?.[playerID] === 'reinforcement' || ctx?.activePlayers?.[playerID] === 'attack') && ctx?.currentPlayer === playerID;
+  const isMyTurn = (ctx?.phase === 'INITIAL_REINFORCEMENT' || ctx?.activePlayers?.[playerID] === 'reinforcement' || ctx?.activePlayers?.[playerID] === 'attack' || ctx?.activePlayers?.[playerID] === 'strategicMovement') && ctx?.currentPlayer === playerID;
   const isMine = owner === playerID;
-  const darken = (isMyTurn && !isMine) || (ctx?.activePlayers?.[playerID] === 'attack' && troops < 2 && isMine);
+  const darken = (isMyTurn && !isMine) || ((ctx?.activePlayers?.[playerID] === 'attack' || ctx?.activePlayers?.[playerID] === 'strategicMovement') && troops < 2 && isMine);
 
   return (
     <g onClick={handleClick} style={{ cursor: isMyTurn && !isMine ? 'not-allowed' : 'pointer' }}>

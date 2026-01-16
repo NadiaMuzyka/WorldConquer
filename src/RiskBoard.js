@@ -13,6 +13,7 @@ import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 import EndGameModal from './components/UI/EndGameModal';
 import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
+import Card from './components/UI/Card';
 
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
@@ -22,14 +23,14 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
     const { ctx, G, moves, playerID } = useRisk();
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    
+
     // Redux: ottieni i dati del match per recuperare i giocatori
     const matchData = useSelector((state) => state.match?.data);
-    
+
     const [showAnimationModal, setShowAnimationModal] = React.useState(false);
     const [showResultModal, setShowResultModal] = React.useState(false);
     const [showEndGameModal, setShowEndGameModal] = React.useState(false);
-    
+
     const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
     const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
     const isGamePhase = ctx?.phase === 'GAME';
@@ -43,14 +44,15 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
       winnerPlayer?.name ||
       matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
     const winnerObjective = winnerPlayer?.secretObjective;
-    
+    const secretObjective = G?.players?.[playerID]?.secretObjective?.description || null;
+
     // Verifica se è il turno del giocatore corrente
     const isMyTurn = ctx?.currentPlayer === playerID;
 
     // Mostra modali basati sullo stato G - SOLO se è il mio turno
     const showAttackDiceModal = !isGameOver && isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
     const showFortifyModal = !isGameOver && isMyTurn && G?.fortifyState?.from && G?.fortifyState?.to;
-    
+
     // Gestione dei modal di battaglia
     React.useEffect(() => {
       const hasBattleResult = G?.battleResult !== null && G?.battleResult !== undefined;
@@ -60,7 +62,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
         setShowResultModal(false);
         return;
       }
-      
+
       if (isMyTurn && hasBattleResult) {
         // Se c'è un battleResult, mostra prima l'animazione
         setShowAnimationModal(true);
@@ -135,15 +137,28 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
           {isSetupPhase && <SetupLogAnimated />}
 
-        {showEndGameModal && isGameOver && (
-          <EndGameModal
-            winnerID={winnerID}
-            winnerName={winnerName}
-            objective={winnerObjective}
-            players={matchData?.players || []}
-            onTimerComplete={handleEndGameTimerComplete}
-          />
-        )}
+          {/* Card obiettivo segreto: in basso a sinistra, fuori dalla fase di setup */}
+          {!isSetupPhase && secretObjective && (
+            <div className="fixed left-8 bottom-6 z-30">
+              <Card className="w-[320px] h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-yellow-400 shadow-lg py-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl text-yellow-400">🏆</span>
+                  <span className="text-lg font-bold text-yellow-400">IL TUO OBIETTIVO</span>
+                </div>
+                <div className="mt-1 text-base text-white">{secretObjective}</div>
+              </Card>
+            </div>
+          )}
+
+          {showEndGameModal && isGameOver && (
+            <EndGameModal
+              winnerID={winnerID}
+              winnerName={winnerName}
+              objective={winnerObjective}
+              players={matchData?.players || []}
+              onTimerComplete={handleEndGameTimerComplete}
+            />
+          )}
         </div>
 
         {/* MODALI */}

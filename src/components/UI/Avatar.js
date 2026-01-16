@@ -79,12 +79,16 @@ export const Avatar = ({
         md: "mb-3",
         lg: "mb-4"
     };
+
+    console.log('[DEBUG Avatar]', ready);
     // Icone stato
     let statusIcon = null;
-    if (showHourglass) {
+
+    if (ready) {
+        console.log("[DEBUG Avatar] Ready true");
+        statusIcon = <Check className="w-4 h-4 text-[#1B2227] " title="Pronto" />;
+    } else if (showHourglass) {
         statusIcon = <Hourglass className="w-3 h-3 text-white stroke-[3]" title="Turno attivo" />;
-    } else if (ready) {
-        statusIcon = <Check className="w-4 h-4 text-[#1B2227]" title="Pronto" />;
     } // altrimenti nessuna icona
     // Label "Tu" se è il giocatore locale
     const isMe = id === playerID;
@@ -101,7 +105,7 @@ export const Avatar = ({
                 />
                 {/* Icona stato in basso a destra, sovrapposta, con sfondo a pallino */}
                 {statusIcon && (
-                    <span className={`absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full flex items-center justify-center shadow-md ${showHourglass ? 'bg-[#2e415a]' : ready ? 'bg-[#FEC417]' : ''}`}>
+                    <span className={`absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full flex items-center justify-center shadow-md ${ready ? 'bg-[#FEC417]' : showHourglass ? 'bg-[#2e415a]' : ''}`}>
                         {statusIcon}
                     </span>
                 )}

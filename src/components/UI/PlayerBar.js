@@ -137,6 +137,7 @@ export default function PlayerBar() {
                         
                         return (
                             <div key={index} >
+
                                 <Avatar
                                     src={avatarUrl}
                                     alt={`Player ${parseInt(id) + 1}`}
@@ -145,7 +146,7 @@ export default function PlayerBar() {
                                     playerID={playerID}
                                     ready={G.playersReady?.[id]}
                                     nickname={nickname}
-                                    showHourglass={!isSetup && id === String(currentPlayer)}
+                                    showHourglass={isSetup || (!isSetup && id === String(currentPlayer))}
                                 />
                             </div>
                         );

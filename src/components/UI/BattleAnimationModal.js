@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Modal from './Modal';
 import Die from './Die';
 import { useRisk } from '../../context/GameContext';
@@ -29,27 +29,18 @@ const getPlayerDieColor = (playerId) => {
 
 export default function BattleAnimationModal({ onComplete }) {
   const { G, ctx } = useRisk();
-  const [dicePhase, setDicePhase] = useState(1);
   
   const battleResult = G?.battleResult;
 
-  // Fase 1 -> Fase 2 dopo 2 secondi
+  // Passa direttamente al modal successivo dopo 8 secondi
   useEffect(() => {
-    if (battleResult && dicePhase === 1) {
-      const timer = setTimeout(() => setDicePhase(2), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [dicePhase, battleResult]);
-
-  // Fase 2 -> Completamento dopo 1.5 secondi
-  useEffect(() => {
-    if (battleResult && dicePhase === 2) {
+    if (battleResult) {
       const timer = setTimeout(() => {
         if (onComplete) onComplete();
-      }, 1500);
+      }, 8000);
       return () => clearTimeout(timer);
     }
-  }, [dicePhase, battleResult, onComplete]);
+  }, [battleResult, onComplete]);
 
   if (!battleResult) return null;
 
@@ -60,11 +51,6 @@ export default function BattleAnimationModal({ onComplete }) {
   // Usa il colore ORIGINALE del difensore per i dadi
   const defenderDieColor = getPlayerDieColor(battleResult.originalDefenderOwner || G.owners[battleResult.toTerritory]);
 
-  // Prepara dadi ordinati per fase 2
-  const attackerSorted = [...battleResult.attackerDice].sort((a, b) => b - a);
-  const defenderSorted = [...battleResult.defenderDice].sort((a, b) => b - a);
-  const comparisons = Math.min(attackerSorted.length, defenderSorted.length);
-
   return (
     <Modal
       title="Lancio dei Dadi"
@@ -72,77 +58,37 @@ export default function BattleAnimationModal({ onComplete }) {
       preventClose={true}
     >
       <div className="space-y-6">
-        {/* Fase 1: Dadi non ordinati */}
-        {dicePhase === 1 && (
-          <div className="grid grid-cols-2 gap-8 transition-all duration-500 ease-in-out">
-            {/* Attaccante */}
-            <div className="space-y-4 transform transition-all duration-500 ease-in-out">
-              <h4 className="text-center font-bold text-xl" style={{ color: attackerColor }}>
-                Attaccante
-              </h4>
-              <div className="flex justify-center gap-3 flex-wrap">
-                {battleResult.attackerDice.map((value, idx) => (
-                  <div key={idx} className="transform transition-all duration-300 ease-in-out hover:scale-105">
-                    <Die value={value} color={attackerDieColor} />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Difensore */}
-            <div className="space-y-4 transform transition-all duration-500 ease-in-out">
-              <h4 className="text-center font-bold text-xl" style={{ color: defenderColor }}>
-                Difensore
-              </h4>
-              <div className="flex justify-center gap-3 flex-wrap">
-                {battleResult.defenderDice.map((value, idx) => (
-                  <div key={idx} className="transform transition-all duration-300 ease-in-out hover:scale-105">
-                    <Die value={value} color={defenderDieColor} />
-                  </div>
-                ))}
-              </div>
+        {/* Dadi lanciati */}
+        <div className="grid grid-cols-2 gap-8 transition-all duration-500 ease-in-out">
+          {/* Attaccante */}
+          <div className="space-y-4 transform transition-all duration-500 ease-in-out">
+            <h4 className="text-center font-bold text-xl" style={{ color: attackerColor }}>
+              Attaccante
+            </h4>
+            <div className="flex justify-center gap-3 flex-wrap">
+              {battleResult.attackerDice.map((value, idx) => (
+                <div key={idx} className="transform transition-all duration-300 ease-in-out hover:scale-105">
+                  <Die value={value} color={attackerDieColor} />
+                </div>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Fase 2: Dadi ordinati e confrontati */}
-        {dicePhase === 2 && (
-          <div className="space-y-6 transition-all duration-700 ease-in-out animate-fade-in">
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-gray-200 mb-4">Confronto</h3>
+          {/* Difensore */}
+          <div className="space-y-4 transform transition-all duration-500 ease-in-out">
+            <h4 className="text-center font-bold text-xl" style={{ color: defenderColor }}>
+              Difensore
+            </h4>
+            <div className="flex justify-center gap-3 flex-wrap">
+              {battleResult.defenderDice.map((value, idx) => (
+                <div key={idx} className="transform transition-all duration-300 ease-in-out hover:scale-105">
+                  <Die value={value} color={defenderDieColor} />
+                </div>
+              ))}
             </div>
-            
-            {/* Confronti affiancati */}
-            {Array.from({ length: comparisons }).map((_, idx) => (
-              <div key={idx} className="flex items-center justify-center gap-8 transform transition-all duration-500 ease-in-out">
-                <div className="transform transition-all duration-300 ease-in-out hover:scale-105">
-                  <Die value={attackerSorted[idx]} color={attackerDieColor} />
-                </div>
-                
-                <div className="flex flex-col items-center">
-                  <span className="text-3xl font-bold text-gray-400 animate-pulse">VS</span>
-                  <div className="text-xs text-gray-500 mt-1">#{idx + 1}</div>
-                </div>
-                
-                <div className="transform transition-all duration-300 ease-in-out hover:scale-105">
-                  <Die value={defenderSorted[idx]} color={defenderDieColor} />
-                </div>
-              </div>
-            ))}
           </div>
-        )}
+        </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.7s ease-in-out;
-        }
-      `}</style>
     </Modal>
   );
 }

@@ -6,15 +6,13 @@ import { GameProvider, useRisk } from './context/GameContext';
 import RiskMap from './components/Map/RiskMap';
 import ZoomableMapContainer from './components/Map/ZoomableMapContainer';
 import Navbar from './components/Navbar/Navbar';
-import ReinforcementPanel from './components/UI/ReinforcementPanel';
-import SetupBar from './components/UI/SetupBar';
-import SetupLogAnimated from './components/UI/SetupLogAnimated';
-import GameBar from './components/UI/GameBar';
 import AttackDiceSelectionModal from './components/UI/AttackDiceSelectionModal';
 import BattleAnimationModal from './components/UI/BattleAnimationModal';
 import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 import EndGameModal from './components/UI/EndGameModal';
+import PlayerBar from './components/UI/PlayerBar';
+import SetupLogAnimated from './components/UI/SetupLogAnimated';
 
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
@@ -116,24 +114,20 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
             </ZoomableMapContainer>
           </div>
 
-          {/* Barra Setup con giocatori e bottone start */}
-          {isSetupPhase && <SetupBar />}
+          {/* BARRA SOTTO DEL GIOCATORE */}
+          <PlayerBar />
+
           {isSetupPhase && <SetupLogAnimated />}
-          {isReinforcementPhase && (
-            <div className="flex-shrink-0">
-              <ReinforcementPanel />
-            </div>
+          
+          {showEndGameModal && ctx?.gameover && (
+            <EndGameModal
+              winnerID={ctx.gameover}
+              winnerName={G?.players?.[ctx.gameover]?.name || matchData?.players?.find(p => p.id === ctx.gameover)?.name}
+              objective={G?.players?.[ctx.gameover]?.secretObjective}
+              players={matchData?.players || []}
+              onTimerComplete={handleEndGameTimerComplete}
+            />
           )}
-          {isGamePhase && <GameBar />}
-        {showEndGameModal && ctx?.gameover && (
-          <EndGameModal
-            winnerID={ctx.gameover}
-            winnerName={G?.players?.[ctx.gameover]?.name || matchData?.players?.find(p => p.id === ctx.gameover)?.name}
-            objective={G?.players?.[ctx.gameover]?.secretObjective}
-            players={matchData?.players || []}
-            onTimerComplete={handleEndGameTimerComplete}
-          />
-        )}
         </div>
 
         {/* MODALI */}

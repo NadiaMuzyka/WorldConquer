@@ -6,8 +6,6 @@ import { Check, Hourglass } from 'lucide-react';
  * Gestisce visualizzazione avatar con nome e nickname, o solo avatar piccolo
  * @param {string} src - URL dell'immagine avatar
  * @param {string} alt - Testo alternativo
- * @param {string} firstName - Nome
- * @param {string} lastName - Cognome
  * @param {string} nickname - Nickname (opzionale)
  * @param {string} size - Dimensione: 'xs' (50px), 'sm' (64px), 'md' (96px), 'lg' (192px)
  * @param {boolean} showName - Mostra nome e cognome (default: true)
@@ -21,8 +19,6 @@ import { Check, Hourglass } from 'lucide-react';
 export const Avatar = ({
     src,
     alt,
-    firstName,
-    lastName,
     nickname,
     size = 'lg',
     showName = true,
@@ -35,7 +31,8 @@ export const Avatar = ({
     type,
     id,
     playerID,
-    ready
+    ready,
+    showHourglass
 }) => {
     // SetupBar avatar defaults
     let avatarProps = {
@@ -83,9 +80,12 @@ export const Avatar = ({
         lg: "mb-4"
     };
     // Icone stato
-    const statusIcon = ready
-        ? <Check className="w-4 h-4 text-[#1B2227]" title="Pronto" />
-        : <Hourglass className="w-3 h-3 text-white stroke-[3]" title="In attesa" />;
+    let statusIcon = null;
+    if (showHourglass) {
+        statusIcon = <Hourglass className="w-3 h-3 text-white stroke-[3]" title="Turno attivo" />;
+    } else if (ready) {
+        statusIcon = <Check className="w-4 h-4 text-[#1B2227]" title="Pronto" />;
+    } // altrimenti nessuna icona
     // Label "Tu" se è il giocatore locale
     const isMe = id === playerID;
     return (
@@ -100,9 +100,11 @@ export const Avatar = ({
                     }}
                 />
                 {/* Icona stato in basso a destra, sovrapposta, con sfondo a pallino */}
-                <span className={`absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full flex items-center justify-center shadow-md ${ready ? 'bg-[#FEC417]' : 'bg-[#2e415a]'}`}>
-                    {statusIcon}
-                </span>
+                {statusIcon && (
+                    <span className={`absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-5 h-5 rounded-full flex items-center justify-center shadow-md ${showHourglass ? 'bg-[#2e415a]' : ready ? 'bg-[#FEC417]' : ''}`}>
+                        {statusIcon}
+                    </span>
+                )}
             </div>
             {/* Nickname sotto l'avatar */}
             {nickname && (

@@ -71,6 +71,10 @@ const WaitingPage = () => {
         const currentUser = location.state?.currentUser;
         if (!currentUser) throw new Error('Dati utente mancanti');
 
+        // Pulisci sessionStorage prima del join per evitare dati sporchi
+        sessionStorage.removeItem(`joined_${matchId}_${playerID}`);
+        console.log(`[WAITING] Cleanup sessionStorage prima del join`);
+
         const { playerCredentials } = await joinGameWithRetry(
             matchId, 
             playerID, 
@@ -99,17 +103,15 @@ const WaitingPage = () => {
       // Solo se siamo ancora in attesa (non durante la partita)
       if (matchData?.status === 'OPEN' && credentials && playerID) {
         try {
-          // Usa navigator.sendBeacon per garantire che la richiesta venga inviata
-          const leaveUrl = `/games/risk/${matchId}/leave`;
-          const payload = JSON.stringify({
-            playerID: String(playerID),
-            credentials: credentials
-          });
+          // Usa leaveMatch per chiamare l'API ufficiale di boardgame.io
+          await leaveMatch(matchId, playerID, credentials);
           
-          navigator.sendBeacon(leaveUrl, new Blob([payload], { type: 'application/json' }));
-          
-          // Pulisci session storage
+          // Pulisci session storage e refs
           sessionStorage.removeItem(`joined_${matchId}_${playerID}`);
+          hasJoinedRef.current = false;
+          startedJoinRef.current = false;
+          
+          console.log('[WAITING] Player left on page unload');
         } catch (error) {
           console.error('[WAITING] Errore during leave:', error);
         }
@@ -171,13 +173,20 @@ const WaitingPage = () => {
       await leaveMatch(matchId, playerID, credentials);
       console.log('✅ Left match successfully');
       
-      // Pulisci sessionStorage
+      // Pulisci sessionStorage e refs per permettere rejoin
       sessionStorage.removeItem(`joined_${matchId}_${playerID}`);
+      hasJoinedRef.current = false;
+      startedJoinRef.current = false;
       
       // Naviga alla lobby
       navigate('/lobby');
     } catch (error) {
       console.error('❌ Error leaving match:', error);
+      // Pulisci comunque sessionStorage
+      sessionStorage.removeItem(`joined_${matchId}_${playerID}`);
+      hasJoinedRef.current = false;
+      startedJoinRef.current = false;
+      
       // Naviga comunque alla lobby
       navigate('/lobby');
     }

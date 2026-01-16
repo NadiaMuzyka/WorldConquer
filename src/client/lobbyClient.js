@@ -7,9 +7,11 @@ export const lobbyClient = new LobbyClient({
 /**
  * Gestisce il join alla partita con retry automatici e verifica
  */
-export const joinGameWithRetry = async (matchId, playerID, playerName, avatar) => {
+export const joinGameWithRetry = async (matchId, playerID, playerName, avatar, retryCount = 0) => {
+  const MAX_RETRIES = 3;
+  
   try {
-    console.log(`[LOBBY_CLIENT] Tentativo join match ${matchId} come ${playerName} (${playerID})`);
+    console.log(`[LOBBY_CLIENT] Tentativo join match ${matchId} come ${playerName} (${playerID}) - Retry ${retryCount}/${MAX_RETRIES}`);
     
     // 1. Esegui il join
     const { playerCredentials } = await lobbyClient.joinMatch('risk', matchId, {
@@ -40,6 +42,38 @@ export const joinGameWithRetry = async (matchId, playerID, playerName, avatar) =
 
   } catch (error) {
     console.error("[LOBBY_CLIENT] Join Error:", error);
+    
+    // Gestisci conflitto 409: il player è ancora registrato lato boardgame.io
+    // LobbyClientError ha la proprietà message nel formato "HTTP status 409"
+    const is409Error = error.message?.includes('409') || 
+                       error.message?.includes('Conflict') ||
+                       error.statusCode === 409 ||
+                       error.status === 409;
+    
+    if (is409Error && retryCount < MAX_RETRIES) {
+      console.warn(`[LOBBY_CLIENT] ⚠️ Conflitto 409 rilevato, cleanup e retry in 1.5s...`);
+      
+      // Attendi che il server completi eventuali operazioni pendenti
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Prova a fare leave forzato (potrebbe fallire se il player non è più nel match)
+      try {
+        await lobbyClient.leaveMatch('risk', matchId, {
+          playerID: String(playerID),
+          credentials: '' // Anche senza credenziali, prova a rimuovere
+        });
+        console.log(`[LOBBY_CLIENT] Cleanup forzato eseguito per player ${playerID}`);
+      } catch (leaveError) {
+        console.log(`[LOBBY_CLIENT] Cleanup fallito (normale se player già rimosso):`, leaveError.message);
+      }
+      
+      // Attendi ancora un po' prima di riprovare
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Riprova ricorsivamente
+      return joinGameWithRetry(matchId, playerID, playerName, avatar, retryCount + 1);
+    }
+    
     throw error;
   }
 };

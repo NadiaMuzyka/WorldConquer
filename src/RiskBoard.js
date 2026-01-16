@@ -134,12 +134,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
           <PlayerBar />
 
           {isSetupPhase && <SetupLogAnimated />}
-          {isReinforcementPhase && (
-            <div className="flex-shrink-0">
-              <ReinforcementPanel />
-            </div>
-          )}
-          {isGamePhase && <GameBar />}
+
         {showEndGameModal && isGameOver && (
           <EndGameModal
             winnerID={winnerID}

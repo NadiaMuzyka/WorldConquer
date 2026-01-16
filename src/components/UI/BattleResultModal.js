@@ -48,12 +48,12 @@ export default function BattleResultModal({ onClose }) {
     }
   }, [battleResult]);
 
-  // Auto-chiusura dopo 8 secondi (più tempo per leggere)
+  // Auto-chiusura dopo 20 secondi (più tempo per leggere)
   useEffect(() => {
     if (battleResult && showResults) {
       const timer = setTimeout(() => {
         handleClose();
-      }, 8000);
+      }, 20000);
       return () => clearTimeout(timer);
     }
   }, [battleResult, showResults, handleClose]);

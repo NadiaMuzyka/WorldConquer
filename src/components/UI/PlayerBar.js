@@ -39,9 +39,18 @@ export default function PlayerBar() {
     const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
 
     // Reinforcement logic (usata anche in SetupBar e ReinforcementPanel)
+    // Reinforcement logic (usata anche in SetupBar e ReinforcementPanel)
     const myReinforcements = G.reinforcementsRemaining?.[playerID] || 0;
     const turnPlacements = G.turnPlacements?.length || 0;
-    const maxTroopsThisTurn = Math.min(3, myReinforcements + turnPlacements);
+    // For INITIAL_REINFORCEMENT phase, logic must match ReinforcementPanel
+    let maxTroopsThisTurn = 0;
+    if (isInitialReinforcement) {
+        // Only use myReinforcements if it's my turn, else 0 for safety
+        const troopsForLogic = isMyTurn ? myReinforcements : 0;
+        maxTroopsThisTurn = Math.min(3, troopsForLogic + turnPlacements);
+    } else {
+        maxTroopsThisTurn = Math.min(3, myReinforcements + turnPlacements);
+    }
     const canEndTurn = isMyTurn && turnPlacements === maxTroopsThisTurn;
 
     // REINFORCEMENT: Mostra bottone solo se è il mio turno e ho truppe da piazzare
@@ -55,7 +64,9 @@ export default function PlayerBar() {
     const canSkipFortify = isMyTurn && currentStage === 'strategicMovement';
 
     const handleButtonClick = () => {
-        if (currentStage === 'reinforcement' && moves?.endReinforcement) {
+        if (isInitialReinforcement && isMyTurn && canEndTurn && moves && typeof moves.endPlayerTurn === 'function') {
+            moves.endPlayerTurn();
+        } else if (currentStage === 'reinforcement' && moves?.endReinforcement) {
             moves.endReinforcement();
         } else if (currentStage === 'attack' && moves?.endAttackStage) {
             moves.endAttackStage();
@@ -77,6 +88,14 @@ export default function PlayerBar() {
             buttonText = reinforcementsLeft > 0 
                 ? `${reinforcementsLeft} TRUPPE DA POSIZIONARE` 
                 : 'CONFERMA RINFORZI';
+        }
+    } else if (isInitialReinforcement) {
+        if (isMyTurn) {
+            showButton = true;
+            buttonEnabled = canEndTurn;
+            buttonText = canEndTurn
+                ? 'Conferma Fine Turno'
+                : `Piazza ancora ${maxTroopsThisTurn - turnPlacements}`;
         }
     } else if (currentStage === 'attack') {
         if (isMyTurn) {
@@ -123,10 +142,9 @@ export default function PlayerBar() {
                         const player = matchData?.players?.[index];
                         const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
                         const nickname = player?.name || `Player${parseInt(id) + 1}`;
-                        // Evidenzia il giocatore attivo in fase GAME
-                        const isActive = ctx?.phase === 'GAME' && id === String(currentPlayer);
+                        
                         return (
-                            <div key={index} className={isActive ? 'ring-4 ring-cyan-400 rounded-full transition-all duration-200' : ''}>
+                            <div key={index} >
                                 <Avatar
                                     src={avatarUrl}
                                     alt={`Player ${parseInt(id) + 1}`}
@@ -135,6 +153,7 @@ export default function PlayerBar() {
                                     playerID={playerID}
                                     ready={G.playersReady?.[id]}
                                     nickname={nickname}
+                                    showHourglass={!isSetup && id === String(currentPlayer)}
                                 />
                             </div>
                         );
@@ -177,20 +196,7 @@ export default function PlayerBar() {
                                 )}
                             </div>
                         )
-                    ) : (isInitialReinforcement) ? (
-                        <Button
-                            variant="cyan"
-                            size="lg"
-                            onClick={handleEndTurn}
-                            disabled={!canEndTurn}
-                            className={`min-w-[200px] transition-all duration-200 ${canEndTurn ? 'shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50' : 'opacity-50 cursor-not-allowed'}`}
-                        >
-                            {canEndTurn
-                                ? 'Conferma Fine Turno'
-                                : `Piazza ancora ${maxTroopsThisTurn - turnPlacements}`
-                            }
-                        </Button>
-                    ) : isGame ? (
+                    ) : (
                         // GAME: Bottone stage-specific o messaggio turno
                         showButton ? (
                             <Button
@@ -213,7 +219,7 @@ export default function PlayerBar() {
                                 </div>
                             </div>
                         )
-                    ) : null}
+                    )}
                 </div>
             </div>
         </Card>

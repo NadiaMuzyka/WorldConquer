@@ -12,6 +12,7 @@ import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 import EndGameModal from './components/UI/EndGameModal';
 import PlayerBar from './components/UI/PlayerBar';
+import SetupLogAnimated from './components/UI/SetupLogAnimated';
 
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
@@ -115,6 +116,8 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
           {/* BARRA SOTTO DEL GIOCATORE */}
           <PlayerBar />
+
+          {isSetupPhase && <SetupLogAnimated />}
           
           {showEndGameModal && ctx?.gameover && (
             <EndGameModal

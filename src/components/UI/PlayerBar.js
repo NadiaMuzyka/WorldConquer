@@ -32,8 +32,6 @@ export default function PlayerBar() {
     const phase = ctx?.phase;
     const isSetup = phase === 'SETUP_INITIAL';
     const isInitialReinforcement = phase === 'INITIAL_REINFORCEMENT';
-    const isReinforcement = ctx?.activePlayers?.[playerID] === 'reinforcement';
-    const isGame = phase === 'GAME';
     const isMyTurn = ctx?.currentPlayer === playerID;
     const currentPlayer = ctx.currentPlayer;
     const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
@@ -56,12 +54,6 @@ export default function PlayerBar() {
     // REINFORCEMENT: Mostra bottone solo se è il mio turno e ho truppe da piazzare
     const reinforcementsLeft = G.reinforcementsToPlace?.[currentPlayer] || 0;
     const canEndReinforcement = isMyTurn && reinforcementsLeft === 0;
-
-    // ATTACK: Bottone sempre disponibile per il giocatore di turno
-    const canEndAttack = isMyTurn && currentStage === 'attack';
-
-    // STRATEGIC_MOVEMENT: Bottone sempre disponibile per il giocatore di turno
-    const canSkipFortify = isMyTurn && currentStage === 'strategicMovement';
 
     const handleButtonClick = () => {
         if (isInitialReinforcement && isMyTurn && canEndTurn && moves && typeof moves.endPlayerTurn === 'function') {

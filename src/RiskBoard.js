@@ -35,17 +35,33 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
     const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
     const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
     const isGamePhase = ctx?.phase === 'GAME';
+
+    // Determina se la partita è finita
+    const isGameOver = Boolean(ctx?.gameover);
+    const rawWinnerID = ctx?.gameover?.winner ?? ctx?.gameover;
+    const winnerID = rawWinnerID !== undefined && rawWinnerID !== null ? String(rawWinnerID) : undefined;
+    const winnerPlayer = winnerID ? G?.players?.[winnerID] : undefined;
+    const winnerName =
+      winnerPlayer?.name ||
+      matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
+    const winnerObjective = winnerPlayer?.secretObjective;
     
     // Verifica se è il turno del giocatore corrente
     const isMyTurn = ctx?.currentPlayer === playerID;
 
     // Mostra modali basati sullo stato G - SOLO se è il mio turno
-    const showAttackDiceModal = isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
-    const showFortifyModal = isMyTurn && G?.fortifyState?.from && G?.fortifyState?.to;
+    const showAttackDiceModal = !isGameOver && isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
+    const showFortifyModal = !isGameOver && isMyTurn && G?.fortifyState?.from && G?.fortifyState?.to;
     
     // Gestione dei modal di battaglia
     React.useEffect(() => {
       const hasBattleResult = G?.battleResult !== null && G?.battleResult !== undefined;
+
+      if (isGameOver) {
+        setShowAnimationModal(false);
+        setShowResultModal(false);
+        return;
+      }
       
       if (isMyTurn && hasBattleResult) {
         // Se c'è un battleResult, mostra prima l'animazione
@@ -56,7 +72,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
         setShowAnimationModal(false);
         setShowResultModal(false);
       }
-    }, [isMyTurn, G?.battleResult]);
+    }, [isMyTurn, G?.battleResult, isGameOver]);
 
     // Gestione del completamento dell'animazione
     const handleAnimationComplete = () => {
@@ -125,11 +141,11 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
             </div>
           )}
           {isGamePhase && <GameBar />}
-        {showEndGameModal && ctx?.gameover && (
+        {showEndGameModal && isGameOver && (
           <EndGameModal
-            winnerID={ctx.gameover}
-            winnerName={G?.players?.[ctx.gameover]?.name || matchData?.players?.find(p => p.id === ctx.gameover)?.name}
-            objective={G?.players?.[ctx.gameover]?.secretObjective}
+            winnerID={winnerID}
+            winnerName={winnerName}
+            objective={winnerObjective}
             players={matchData?.players || []}
             onTimerComplete={handleEndGameTimerComplete}
           />
@@ -137,10 +153,10 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
         </div>
 
         {/* MODALI */}
-        {showAnimationModal && (
+        {showAnimationModal && !isGameOver && (
           <BattleAnimationModal onComplete={handleAnimationComplete} />
         )}
-        {showResultModal && (
+        {showResultModal && !isGameOver && (
           <BattleResultModal onClose={handleResultClose} />
         )}
         {showAttackDiceModal && (

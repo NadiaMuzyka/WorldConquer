@@ -35,7 +35,12 @@ export default function EndGameModal({
   }, [countdown, onTimerComplete]);
 
   // Trova il vincitore nell'array players per ottenere info aggiuntive
-  const winner = players.find(p => p.id === winnerID) || {};
+  const winner = players.find(p => String(p.id) === String(winnerID)) || {};
+  const hasAvatarUrl =
+    typeof winner.avatar === 'string' &&
+    (winner.avatar.startsWith('http://') ||
+      winner.avatar.startsWith('https://') ||
+      winner.avatar.startsWith('data:'));
   const winnerColor = PLAYER_COLORS[winnerID] || '#38C7D7';
   
   return (
@@ -56,7 +61,15 @@ export default function EndGameModal({
               borderColor: '#38C7D7'
             }}
           >
-            {winner.avatar || '👑'}
+            {hasAvatarUrl ? (
+              <img
+                src={winner.avatar}
+                alt={winnerName || winner.name || `Giocatore ${winnerID}`}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              winner.avatar || '👑'
+            )}
           </div>
           <h2 className="text-2xl font-bold text-white">
             {winnerName || winner.name || `Giocatore ${winnerID}`}

@@ -17,7 +17,6 @@ import Card from './components/UI/Card';
 import { Trophy } from 'lucide-react';
 
 
-export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
   // Componente interno che usa il context
   function RiskBoardContent() {
@@ -192,7 +191,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
     </div>
   );
-}}
+}
 
 // Il componente principale esportato
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {

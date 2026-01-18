@@ -99,7 +99,7 @@ export const Navbar = ({
   };
 
   // --- STILI BASE (CSS Figma) ---
-  const baseClasses = "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1B2227]/95 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300 h-[82px]";
+  const baseClasses = "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1B2227]/95 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300 h-[60px]";
 
   // ===========================================================================
   // MODALITÀ: GAME (Timer | Fase | Esci)
@@ -111,27 +111,17 @@ export const Navbar = ({
     return (
       <nav className={baseClasses}>
 
-        {/* 1. TIMER (Sinistra) */}
-        <div className="flex items-center">
-          {/* Se vuoi mostrare anche il gameCode, puoi metterlo qui vicino al timer */}
-          <div className="flex flex-col items-center">
-            <Timer time={timer} />
-            {/* Opzionale: Mostra GameCode piccolo sotto il timer se utile */}
-            {/* <span className="text-[10px] text-gray-500 mt-1">{gameCode}</span> */}
-          </div>
-        </div>
-
         {/* 2. FASE + STAGE (Centro Assoluto) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <PhaseInfo phase={phase} stage={currentStage} />
         </div>
 
         {/* 3. BOTTONE ABBANDONA (Destra) */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end w-full">
           <Button
             onClick={onLeave}
             variant="cyan"
-            className="w-[160px] h-[34px] gap-2 uppercase group"
+            className="w-[160px] h-[34px] gap-2 uppercase group ml-auto"
           >
             <span>Abbandona</span>
             <ArrowRight className="w-[19px] h-[19px] group-hover:translate-x-1 transition-transform" />

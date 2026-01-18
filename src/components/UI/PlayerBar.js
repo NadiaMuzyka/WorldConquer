@@ -124,7 +124,7 @@ export default function PlayerBar() {
 
     return (
         <Card
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 w-auto h-auto shadow-lg"
+            className="fixed bottom-3 left-1/2 -translate-x-1/2 z-20 w-auto h-auto shadow-lg"
             padding="none"
         >
             <div className="flex items-center gap-20 h-full px-10 py-3">
@@ -180,7 +180,7 @@ export default function PlayerBar() {
                         ) : (
                             <div className="text-center w-[180px]">
                                 <div className="text-cyan-400 font-semibold mb-2">
-                                    {allReady ? 'PARTENZA...' : 'Attesa...'}
+                                    {allReady ? 'PARTENZA...' : 'Attesa degli altri ...'}
                                 </div>
                                 {!allReady && (
                                     <div className="flex justify-center">

@@ -44,6 +44,7 @@ import { Trophy } from 'lucide-react';
     winnerPlayer?.name ||
     matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
   const winnerObjective = winnerPlayer?.secretObjective;
+  const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
   
   // Recupera l'obiettivo segreto dal G
   const secretObjective = G?.players?.[playerID]?.secretObjective?.description || null;
@@ -127,8 +128,8 @@ import { Trophy } from 'lucide-react';
       </div>
 
       {/*Layout standard full-width per altre fasi*/}
-      <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-180px)] mt-16">
-        <div className="w-full h-full lg:max-w-[65%] mx-auto flex items-center justify-center p-4">
+      <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-180px)] mt-20">
+        <div className="w-full h-full lg:max-w-[65%] mx-auto flex items-center justify-center p-4 mt-6">
           <ZoomableMapContainer>
             <RiskMap />
           </ZoomableMapContainer>
@@ -141,28 +142,32 @@ import { Trophy } from 'lucide-react';
 
           {/* Card obiettivo segreto: in basso a sinistra, fuori dalla fase di setup */}
           {!isSetupPhase && secretObjective && (
-            <div className="fixed left-8 bottom-6 z-30">
-              <Card className="w-[320px] h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-[#FEC417] shadow-lg py-0">
+            <div className="fixed left-8 bottom-3 z-30">
+              <Card className="w-auto h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-[#FEC417] shadow-lg py-0">
                 <div className="flex items-center gap-3">
                   <Trophy className="w-8 h-8 text-[#FEC417]" />
                   <span className="text-lg font-bold text-[#FEC417]">IL TUO OBIETTIVO</span>
                 </div>
-                <div className="mt-3 text-base text-white">{secretObjective}</div>
+                <div className="mt-3 text-base text-white whitespace-nowrap">{secretObjective}</div>
               </Card>
             </div>
           )}
 
           {/* MESSAGGIO UTENTE IN ALTO */}
-          <div className="fixed top-8 left-1/2 -translate-x-1/2 z-30">
-            <Card className="w-[420px] bg-[#1B2227] border-l-4 border-cyan-400 shadow-lg py-2 px-4 text-center">
-              <span className="text-lg font-bold text-cyan-400">
-                {isSetupPhase && 'Assegnazione territori in corso...'}
-                {isReinforcementPhase && 'Posiziona le tue truppe iniziali'}
-                {isGamePhase && 'Gioca il tuo turno!'}
-                {!isSetupPhase && !isReinforcementPhase && !isGamePhase && 'In attesa...'}
-              </span>
-            </Card>
-          </div>
+          {(isMyTurn || isSetupPhase) && (
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30">
+              <Card className="w-[420px] bg-[#FEC417] shadow-lg py-2 px-4 text-center mt-2">
+                <span className="text-base font-bold text-[#1B2227]">
+                  {isSetupPhase && 'Ti sono stati assegnati i seguenti territori'}
+                  {isReinforcementPhase && 'Posiziona le tue truppe iniziali'}
+                  {isGamePhase && currentStage == 'reinforcement' &&  'Posiziona le tue truppe di rinforzo'}
+                  {isGamePhase && currentStage == 'attack' &&  'Attacca i territori avversari'}
+                  {isGamePhase && currentStage == 'strategicMovement' &&  'Sposta le tue truppe'}
+                  {!isSetupPhase && !isReinforcementPhase && !isGamePhase && 'In attesa...'}
+                </span>
+              </Card>
+            </div>
+          )}
 
           {showEndGameModal && isGameOver && (
             <EndGameModal

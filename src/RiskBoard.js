@@ -14,6 +14,7 @@ import EndGameModal from './components/UI/EndGameModal';
 import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
+import { Trophy } from 'lucide-react';
 
 
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
@@ -140,15 +141,27 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
           {/* Card obiettivo segreto: in basso a sinistra, fuori dalla fase di setup */}
           {!isSetupPhase && secretObjective && (
             <div className="fixed left-8 bottom-6 z-30">
-              <Card className="w-[320px] h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-yellow-400 shadow-lg py-1">
+              <Card className="w-[320px] h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-[#FEC417] shadow-lg py-0">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl text-yellow-400">🏆</span>
-                  <span className="text-lg font-bold text-yellow-400">IL TUO OBIETTIVO</span>
+                  <Trophy className="w-8 h-8 text-[#FEC417]" />
+                  <span className="text-lg font-bold text-[#FEC417]">IL TUO OBIETTIVO</span>
                 </div>
-                <div className="mt-1 text-base text-white">{secretObjective}</div>
+                <div className="mt-3 text-base text-white">{secretObjective}</div>
               </Card>
             </div>
           )}
+
+          {/* MESSAGGIO UTENTE IN ALTO */}
+          <div className="fixed top-8 left-1/2 -translate-x-1/2 z-30">
+            <Card className="w-[420px] bg-[#1B2227] border-l-4 border-cyan-400 shadow-lg py-2 px-4 text-center">
+              <span className="text-lg font-bold text-cyan-400">
+                {isSetupPhase && 'Assegnazione territori in corso...'}
+                {isReinforcementPhase && 'Posiziona le tue truppe iniziali'}
+                {isGamePhase && 'Gioca il tuo turno!'}
+                {!isSetupPhase && !isReinforcementPhase && !isGamePhase && 'In attesa...'}
+              </span>
+            </Card>
+          </div>
 
           {showEndGameModal && isGameOver && (
             <EndGameModal

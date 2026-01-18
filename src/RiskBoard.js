@@ -15,6 +15,7 @@ import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
 import { Trophy } from 'lucide-react';
+import Avatar from './components/UI/Avatar';
 
 
 
@@ -45,6 +46,9 @@ import { Trophy } from 'lucide-react';
     matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
   const winnerObjective = winnerPlayer?.secretObjective;
   const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
+  const player = matchData?.players?.[playerID];
+  const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(playerID) + 1}&background=random`;
+  const nickname = player?.name || `Player${parseInt(playerID) + 1}`;
   
   // Recupera l'obiettivo segreto dal G
   const secretObjective = G?.players?.[playerID]?.secretObjective?.description || null;
@@ -108,6 +112,11 @@ import { Trophy } from 'lucide-react';
     navigate('/lobby');
   };
 
+  // Conta i territori posseduti dal giocatore
+  const ownedTerritories = Object.values(G.owners || {}).filter(owner => owner === playerID).length;
+  const myTerritories = Object.entries(G.owners || {}).filter(([key, owner]) => owner === playerID).map(([key]) => key);
+  const totalTroops = myTerritories.reduce((sum, territory) => sum + (G.troops?.[territory] ?? 0), 0);
+
   return (
     <div className="relative w-full h-screen bg-[#173C55] overflow-hidden flex flex-col">
 
@@ -168,6 +177,25 @@ import { Trophy } from 'lucide-react';
               </Card>
             </div>
           )}
+
+          {/* CARD INFO UTENTE IN ALTO A SINISTRA */}
+          <div className="fixed left-8 bottom-20 z-30">
+            <Card className="w-[260px] min-h-[280px] flex flex-col items-center bg-[#23282E] shadow-lg py-10 p-5 mb-12">
+              {/* Avatar placeholder */}
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mb-2">
+                <Avatar src={avatarUrl} size='sm'  />
+              </div>
+              <div className="flex justify-between w-full text-white text-sm mb-2 mt-5">
+                <span>{totalTroops} TRUPPE TOTALI</span>
+                <span>{ownedTerritories} TERRITORI</span>
+              </div>
+              <div className="w-full mt-3">
+                  <div className="bg-[#FEC417] text-[#23282E] rounded-md py-2 px-3 text-center font-bold text-lg">
+                    Carte
+                  </div>
+                </div>
+            </Card>
+          </div>
 
           {showEndGameModal && isGameOver && (
             <EndGameModal

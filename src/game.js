@@ -90,11 +90,31 @@ const assignSecretObjectives = (G, ctx) => {
 };
 
 // Funzione per controllare se un giocatore ha raggiunto il suo obiettivo
-const checkVictoryCondition = (G, events) => {
+const checkVictoryCondition = (G, events, ctx) => {
   if (!G.players) return false;
+  
+  // VITTORIA LAST MAN STANDING: Se rimane solo 1 giocatore attivo, vince
+  if (ctx && ctx.numPlayers > 1 && ctx.hasLeft) {
+    const activePlayers = [];
+    for (let i = 0; i < ctx.numPlayers; i++) {
+      const pid = String(i);
+      if (!ctx.hasLeft[pid]) {
+        activePlayers.push(pid);
+      }
+    }
+    
+    if (activePlayers.length === 1) {
+      const winner = activePlayers[0];
+      console.log(`🏆 [LAST MAN STANDING] Player ${winner} vince - unico giocatore rimasto!`);
+      events.endGame({ winner });
+      return true;
+    }
+  }
   
   for (const [playerID, playerData] of Object.entries(G.players)) {
     if (!playerData.secretObjective) continue;
+    // Skip giocatori che hanno abbandonato
+    if (ctx.hasLeft && ctx.hasLeft[playerID]) continue;
     
     const objective = playerData.secretObjective;
     let objectiveMet = false;
@@ -171,6 +191,99 @@ const RiskGame = {
   name: 'risk',
   disableUndo: true,
   playerView: PlayerView.STRIP_SECRETS,
+
+  // Implementazione AI per bot passivo
+  ai: {
+    enumerate: (G, ctx) => {
+      const moves = [];
+      const playerID = ctx.currentPlayer;
+      
+      // Solo se il giocatore corrente è un bot (hasLeft: true in ctx)
+      if (!ctx.hasLeft || !ctx.hasLeft[playerID]) {
+        return moves;
+      }
+      
+      console.log(`🤖 [AI] Enumerating moves per bot ${playerID} - Fase: ${ctx.phase}`);
+      
+      // FASE: INITIAL_REINFORCEMENT
+      if (ctx.phase === 'INITIAL_REINFORCEMENT') {
+        // Trova territori propri
+        const ownedTerritories = Object.entries(G.owners)
+          .filter(([territoryId, owner]) => owner === playerID)
+          .map(([territoryId]) => territoryId);
+        
+        if (ownedTerritories.length === 0) {
+          console.warn(`⚠️ [AI] Bot ${playerID} non possiede territori`);
+          return moves;
+        }
+        
+        // Se ha truppe da piazzare, piazzale randomicamente
+        if (G.reinforcementsRemaining && G.reinforcementsRemaining[playerID] > 0) {
+          const randomTerritory = ownedTerritories[Math.floor(Math.random() * ownedTerritories.length)];
+          moves.push({ move: 'placeReinforcement', args: [randomTerritory] });
+        } else {
+          // Finito, passa il turno
+          moves.push({ move: 'endPlayerTurn', args: [] });
+        }
+        
+        return moves;
+      }
+      
+      // FASE: GAME
+      if (ctx.phase === 'GAME') {
+        const stage = ctx.activePlayers?.[playerID];
+        
+        // STAGE: reinforcement
+        if (stage === 'reinforcement') {
+          if (G.reinforcementsToPlace && G.reinforcementsToPlace[playerID] > 0) {
+            // Piazza rinforzi su territorio casuale proprio
+            const ownedTerritories = Object.entries(G.owners)
+              .filter(([territoryId, owner]) => owner === playerID)
+              .map(([territoryId]) => territoryId);
+            
+            if (ownedTerritories.length > 0) {
+              const randomTerritory = ownedTerritories[Math.floor(Math.random() * ownedTerritories.length)];
+              moves.push({ move: 'placeReinforcement', args: [randomTerritory] });
+            }
+          } else {
+            // Finito rinforzi, passa ad attacco
+            moves.push({ move: 'endReinforcement', args: [] });
+          }
+          
+          return moves;
+        }
+        
+        // STAGE: attack (bot passivo - skippa sempre)
+        if (stage === 'attack') {
+          moves.push({ move: 'endAttackStage', args: [] });
+          return moves;
+        }
+        
+        // STAGE: strategicMovement (bot passivo - skippa sempre)
+        if (stage === 'strategicMovement') {
+          moves.push({ move: 'skipFortify', args: [] });
+          return moves;
+        }
+      }
+      
+      return moves;
+    },
+  },
+
+  // Plugin per aggiungere hasLeft al ctx
+  plugins: [
+    {
+      name: 'player-leave-tracker',
+      setup: ({ ctx }) => {
+        // Inizializza hasLeft per ogni player nel ctx
+        const hasLeft = {};
+        for (let i = 0; i < ctx.numPlayers; i++) {
+          hasLeft[String(i)] = false;
+        }
+        return { hasLeft };
+      },
+    },
+  ],
 
   // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: ({ ctx }) => {
@@ -473,8 +586,8 @@ const RiskGame = {
         },
         
         // Controlla vittoria dopo ogni mossa
-        onMove: ({ G, events }) => {
-          checkVictoryCondition(G, events);
+        onMove: ({ G, events, ctx }) => {
+          checkVictoryCondition(G, events, ctx);
         },
         
         stages: {

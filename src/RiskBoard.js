@@ -192,7 +192,7 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
 
     </div>
   );
-}
+}}
 
 // Il componente principale esportato
 export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {

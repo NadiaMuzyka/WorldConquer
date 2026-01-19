@@ -3,9 +3,10 @@ import React from 'react';
 const PhaseInfo = ({ phase, icon, stage }) => {
   // Traduci i nomi degli stage in italiano
   const stageNames = {
-    'reinforcement': 'Rinforzi',
+    'reinforcement': 'Rinforzo',
     'attack': 'Attacco',
-    'strategicMovement': 'Spostamento'
+    'strategicMovement': 'Spostamento',
+    'INITIAL_REINFORCEMENT': 'Rinforzo iniziale'
   };
 
   const stageName = stage ? stageNames[stage] || stage : null;
@@ -20,14 +21,14 @@ const PhaseInfo = ({ phase, icon, stage }) => {
           {icon}
         </div>
         <div className="flex flex-col items-start">
-          <div className="font-bold text-[32px] leading-[38px] text-white uppercase tracking-[0.2px] font-roboto">
-            {phase}
+          <div className="font-bold text-[20px] leading-[38px] text-white tracking-[0.2px]">
+            {phase == 'SETUP_INITIAL' ? 'Preparazione' : null}
+            {phase == 'INITIAL_REINFORCEMENT' ? 'Rinforzo iniziale' : null}
+            {console.log('PhaseInfo render - phase:', phase, 'stage:', stage)}
+            {phase === 'GAME' && stage == 'reinforcement' ? 'Fase di Rinforzo' : null}
+            {phase === 'GAME' && stage == 'attack' ? 'Fase di Attacco' : null}
+            {phase === 'GAME' && stage == 'strategicMovement' ? 'Fase di Spostamento Strategico' : null}
           </div>
-          {stageName && (
-            <div className="text-[18px] text-cyan-400 font-medium -mt-1">
-              {stageName}
-            </div>
-          )}
         </div>
       </div>
     </div>

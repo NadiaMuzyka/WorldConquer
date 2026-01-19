@@ -14,6 +14,8 @@ import EndGameModal from './components/UI/EndGameModal';
 import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
+import { Trophy } from 'lucide-react';
+import Avatar from './components/UI/Avatar';
 import Modal from './components/UI/Modal';
 import Button from './components/UI/Button';
 
@@ -44,6 +46,10 @@ function RiskBoardContent() {
     winnerPlayer?.name ||
     matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
   const winnerObjective = winnerPlayer?.secretObjective;
+  const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
+  const player = matchData?.players?.[playerID];
+  const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(playerID) + 1}&background=random`;
+  const nickname = player?.name || `Player${parseInt(playerID) + 1}`;
   
   // Recupera l'obiettivo segreto dal G
   const secretObjective = G?.players?.[playerID]?.secretObjective?.description || null;
@@ -106,6 +112,10 @@ function RiskBoardContent() {
     dispatch(clearMatchData());
     navigate('/lobby');
   };
+  // Conta i territori posseduti dal giocatore
+  const ownedTerritories = Object.values(G.owners || {}).filter(owner => owner === playerID).length;
+  const myTerritories = Object.entries(G.owners || {}).filter(([key, owner]) => owner === playerID).map(([key]) => key);
+  const totalTroops = myTerritories.reduce((sum, territory) => sum + (G.troops?.[territory] ?? 0), 0);
   
   // Listener per evento custom di back button (da GamePage)
   React.useEffect(() => {
@@ -207,8 +217,8 @@ function RiskBoardContent() {
       </div>
 
       {/*Layout standard full-width per altre fasi*/}
-      <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-180px)] mt-16">
-        <div className="w-full h-full lg:max-w-[65%] mx-auto flex items-center justify-center p-4">
+      <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-180px)] mt-20">
+        <div className="w-full h-full lg:max-w-[65%] mx-auto flex items-center justify-center p-4 mt-6">
           <ZoomableMapContainer>
             <RiskMap />
           </ZoomableMapContainer>
@@ -219,29 +229,64 @@ function RiskBoardContent() {
 
         {isSetupPhase && <SetupLogAnimated />}
 
-        {/* Card obiettivo segreto: in basso a sinistra, fuori dalla fase di setup */}
-        {!isSetupPhase && secretObjective && (
-          <div className="fixed left-8 bottom-6 z-30">
-            <Card className="w-[320px] h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-yellow-400 shadow-lg py-1">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl text-yellow-400">🏆</span>
-                <span className="text-lg font-bold text-yellow-400">IL TUO OBIETTIVO</span>
+          {/* Card obiettivo segreto: in basso a sinistra, fuori dalla fase di setup */}
+          {!isSetupPhase && secretObjective && (
+            <div className="fixed left-8 bottom-3 z-30">
+              <Card className="w-auto h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-[#FEC417] shadow-lg py-0">
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-8 h-8 text-[#FEC417]" />
+                  <span className="text-lg font-bold text-[#FEC417]">IL TUO OBIETTIVO</span>
+                </div>
+                <div className="mt-3 text-base text-white whitespace-nowrap">{secretObjective}</div>
+              </Card>
+            </div>
+          )}
+
+          {/* MESSAGGIO UTENTE IN ALTO */}
+          {(isMyTurn || isSetupPhase) && (
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30">
+              <Card className="w-[420px] bg-[#FEC417] shadow-lg py-2 px-4 text-center mt-2">
+                <span className="text-base font-bold text-[#1B2227]">
+                  {isSetupPhase && 'Ti sono stati assegnati i seguenti territori'}
+                  {isReinforcementPhase && 'Posiziona le tue truppe iniziali'}
+                  {isGamePhase && currentStage == 'reinforcement' &&  'Posiziona le tue truppe di rinforzo'}
+                  {isGamePhase && currentStage == 'attack' &&  'Attacca i territori avversari'}
+                  {isGamePhase && currentStage == 'strategicMovement' &&  'Sposta le tue truppe'}
+                  {!isSetupPhase && !isReinforcementPhase && !isGamePhase && 'In attesa...'}
+                </span>
+              </Card>
+            </div>
+          )}
+
+          {/* CARD INFO UTENTE IN ALTO A SINISTRA */}
+          <div className="fixed left-8 bottom-20 z-30">
+            <Card className="w-[260px] min-h-[280px] flex flex-col items-center bg-[#23282E] shadow-lg py-10 p-5 mb-12">
+              {/* Avatar placeholder */}
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mb-2">
+                <Avatar src={avatarUrl} size='sm'  />
               </div>
-              <div className="mt-1 text-base text-white">{secretObjective}</div>
+              <div className="flex justify-between w-full text-white text-sm mb-2 mt-5">
+                <span>{totalTroops} TRUPPE TOTALI</span>
+                <span>{ownedTerritories} TERRITORI</span>
+              </div>
+              <div className="w-full mt-3">
+                  <div className="bg-[#FEC417] text-[#23282E] rounded-md py-2 px-3 text-center font-bold text-lg">
+                    Carte
+                  </div>
+                </div>
             </Card>
           </div>
-        )}
 
-        {showEndGameModal && isGameOver && (
-          <EndGameModal
-            winnerID={winnerID}
-            winnerName={winnerName}
-            objective={winnerObjective}
-            players={matchData?.players || []}
-            onTimerComplete={handleEndGameTimerComplete}
-          />
-        )}
-      </div>
+          {showEndGameModal && isGameOver && (
+            <EndGameModal
+              winnerID={winnerID}
+              winnerName={winnerName}
+              objective={winnerObjective}
+              players={matchData?.players || []}
+              onTimerComplete={handleEndGameTimerComplete}
+            />
+          )}
+        </div>
 
       {/* MODALI */}
       {showAnimationModal && !isGameOver && (
@@ -307,6 +352,6 @@ export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
       <RiskBoardContent />
     </GameProvider>
   );
-};
+}
 
 export default RiskBoard;

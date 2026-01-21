@@ -27,7 +27,7 @@ export const Navbar = ({
 
   const navigate = useNavigate();
   const AVATAR_CACHE_KEY = 'user_avatar_url';
-  
+
   // Inizializza con l'avatar dalla cache se disponibile
   const [avatarUrl, setAvatarUrl] = useState(() => {
     if (userAvatar) return userAvatar;
@@ -51,7 +51,7 @@ export const Navbar = ({
       if (userAvatar) {
         return; // Usa il prop, non caricare dal DB
       }
-      
+
       const currentUser = auth.currentUser;
       if (currentUser) {
         const result = await getUserData(currentUser.uid);
@@ -99,8 +99,8 @@ export const Navbar = ({
   };
 
   // --- STILI BASE (CSS Figma) ---
-  const baseClasses = "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1B2227]/95 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300 h-[60px]";
-
+  const baseClasses = `fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-[#1B2227]/95 backdrop-blur-md shadow-[0px_4px_7px_rgba(0,0,0,0.2)] font-roboto transition-all duration-300 ${isGameMode ? 'h-[60px]' : 'h-[80px]'
+    }`;
   // ===========================================================================
   // MODALITÀ: GAME (Timer | Fase | Esci)
   // ===========================================================================
@@ -124,7 +124,9 @@ export const Navbar = ({
             className="w-[160px] h-[34px] gap-2 uppercase group ml-auto"
           >
             <span>Abbandona</span>
-            <ArrowRight className="w-[19px] h-[19px] group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-[32px] h-[32px] group-hover:translate-x-1 transition-transform"
+              style={{ minWidth: 28, minHeight: 28, width: 28, height: 28 }}
+            />
           </Button>
         </div>
 
@@ -151,38 +153,38 @@ export const Navbar = ({
         </div>
       </nav>
       {showLogoutModal && (
-              <Modal
-                // Props per il controllo
-                onClose={closeLogoutModal}
-                
-                // Titolo formale
-                title="Conferma Logout"
-                
-                // Dimensione piccola (perfetta per le conferme)
-                size="sm"
-                
-                // Contenuto testuale (Children)
-                children={
-                  <div className="text-gray-300 text-center">
-                    Sei sicuro di voler uscire dal gioco?
-                  </div>
-                }
-                
-                // Bottoni (ActionBar)
-                actionBar={
-                  <>
-                    <Button onClick={closeLogoutModal} variant="outline" className="mr-2">
-                      Annulla
-                    </Button>
-                    <Button onClick={confirmLogout} disabled={isLoggingOut} variant="primary">
-                      Esci
-                    </Button>
-                  </>
-                }
-              />
-            )}
-          </>
-        );
-      };
+        <Modal
+          // Props per il controllo
+          onClose={closeLogoutModal}
+
+          // Titolo formale
+          title="Conferma Logout"
+
+          // Dimensione piccola (perfetta per le conferme)
+          size="sm"
+
+          // Contenuto testuale (Children)
+          children={
+            <div className="text-gray-300 text-center">
+              Sei sicuro di voler uscire dal gioco?
+            </div>
+          }
+
+          // Bottoni (ActionBar)
+          actionBar={
+            <>
+              <Button onClick={closeLogoutModal} variant="outline" className="mr-2">
+                Annulla
+              </Button>
+              <Button onClick={confirmLogout} disabled={isLoggingOut} variant="primary">
+                Esci
+              </Button>
+            </>
+          }
+        />
+      )}
+    </>
+  );
+};
 
 export default Navbar;

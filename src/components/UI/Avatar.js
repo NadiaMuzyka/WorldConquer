@@ -80,7 +80,7 @@ export const Avatar = ({
         lg: "mb-4"
     };
 
-    console.log('[DEBUG Avatar]', ready);
+    //console.log('[DEBUG Avatar]', ready);
     // Icone stato
     let statusIcon = null;
 

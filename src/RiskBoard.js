@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { clearMatchData } from './store/slices/matchSlice';
 import { GameProvider, useRisk } from './context/GameContext';
@@ -16,14 +16,14 @@ import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
 import { Trophy } from 'lucide-react';
 import Avatar from './components/UI/Avatar';
+import Modal from './components/UI/Modal';
+import Button from './components/UI/Button';
 
-
-
-  // Componente interno che usa il context
-  function RiskBoardContent() {
-    const { ctx, G, moves, playerID } = useRisk();
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
+function RiskBoardContent() {
+  const { ctx, G, moves, playerID } = useRisk();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { matchId } = useParams(); // Ottieni matchID dall'URL
 
   // Redux: ottieni i dati del match per recuperare i giocatori
   const matchData = useSelector((state) => state.match?.data);
@@ -31,6 +31,7 @@ import Avatar from './components/UI/Avatar';
   const [showAnimationModal, setShowAnimationModal] = React.useState(false);
   const [showResultModal, setShowResultModal] = React.useState(false);
   const [showEndGameModal, setShowEndGameModal] = React.useState(false);
+  const [showExitModal, setShowExitModal] = React.useState(false); // Modal uscita volontaria
 
   const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
   const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
@@ -111,11 +112,90 @@ import Avatar from './components/UI/Avatar';
     dispatch(clearMatchData());
     navigate('/lobby');
   };
-
   // Conta i territori posseduti dal giocatore
   const ownedTerritories = Object.values(G.owners || {}).filter(owner => owner === playerID).length;
   const myTerritories = Object.entries(G.owners || {}).filter(([key, owner]) => owner === playerID).map(([key]) => key);
   const totalTroops = myTerritories.reduce((sum, territory) => sum + (G.troops?.[territory] ?? 0), 0);
+  
+  // Listener per evento custom di back button (da GamePage)
+  React.useEffect(() => {
+    const handleShowExitModal = () => {
+      console.log('[RISKBOARD] Evento show-exit-modal ricevuto');
+      setShowExitModal(true);
+    };
+    
+    window.addEventListener('show-exit-modal', handleShowExitModal);
+    
+    return () => {
+      window.removeEventListener('show-exit-modal', handleShowExitModal);
+    };
+  }, []);
+  
+  // Handler per conferma uscita
+  const handleConfirmExit = async () => {
+    console.log('[RISKBOARD] Uscita confermata - chiamo BoardGame.io leave');
+    
+    // Ottieni matchID da useParams
+    if (!matchId) {
+      console.error('[RISKBOARD] MatchID non trovato in URL');
+      dispatch(clearMatchData());
+      navigate('/lobby', { replace: true });
+      return;
+    }
+    
+    console.log(`[RISKBOARD] MatchID da URL: ${matchId}`);
+    
+    try {
+      // Recupera credentials da sessionStorage (salvate da WaitingPage)
+      const credentialsKey = `credentials_${matchId}_${playerID}`;
+      const credentials = sessionStorage.getItem(credentialsKey);
+      
+      if (!credentials) {
+        console.warn('[RISKBOARD] Credentials non trovate in sessionStorage');
+      }
+      
+      console.log(`[RISKBOARD] Chiamata leave per match ${matchId}, player ${playerID}`);
+      
+      // Usa l'endpoint nativo di BoardGame.io per leave
+      const response = await fetch(`http://localhost:8000/games/risk/${matchId}/leave`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerID: playerID,
+          credentials: credentials || 'fallback-credentials',
+        }),
+      });
+      
+      if (!response.ok) {
+        console.error('[RISKBOARD] Errore leave:', await response.text());
+      } else {
+        console.log('[RISKBOARD] Leave completato con successo');
+        // Rimuovi credentials dopo leave
+        sessionStorage.removeItem(credentialsKey);
+      }
+      
+    } catch (error) {
+      console.error('[RISKBOARD] Errore chiamata leave:', error);
+    }
+    
+    // Cleanup e naviga alla lobby
+    dispatch(clearMatchData());
+    navigate('/lobby', { replace: true });
+  };
+  
+  // Handler per annullare uscita
+  const handleCancelExit = () => {
+    console.log('[RISKBOARD] Uscita annullata');
+    setShowExitModal(false);
+  };
+  
+  // Handler per bottone Abbandona nella Navbar
+  const handleNavbarLeave = () => {
+    console.log('[RISKBOARD] Bottone Abbandona cliccato dalla Navbar');
+    setShowExitModal(true);
+  };
 
   return (
     <div className="relative w-full h-screen bg-[#173C55] overflow-hidden flex flex-col">
@@ -131,7 +211,7 @@ import Avatar from './components/UI/Avatar';
           phase={ctx?.phase || "PREPARAZIONE"}
           gameCode={ctx?.matchID || "DEBUG-123"}
           playerTurn={ctx?.currentPlayer}
-          onLeave={() => console.log("Abbandona")}
+          onLeave={handleNavbarLeave}
           ctx={ctx}
         />
       </div>
@@ -220,6 +300,45 @@ import Avatar from './components/UI/Avatar';
       )}
       {showFortifyModal && (
         <FortifyTroopsModal onClose={() => moves?.resetFortifySelection?.()} />
+      )}
+      
+      {/* Modal di conferma uscita (back button) */}
+      {showExitModal && (
+        <Modal
+          title="Abbandonare la partita?"
+          size="md"
+          preventClose={true}
+          onClose={handleCancelExit}
+          actionBar={
+            <>
+              <Button
+                onClick={handleCancelExit}
+                variant="outline"
+                size="md"
+                className="px-6 py-2"
+              >
+                Annulla
+              </Button>
+              <Button
+                onClick={handleConfirmExit}
+                variant="cyan"
+                size="md"
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 border-0"
+              >
+                Esci
+              </Button>
+            </>
+          }
+        >
+          <div className="text-center">
+            <p className="text-gray-300 mb-4">
+              Se esci dalla partita, verrai sostituito da un Bot AI.
+            </p>
+            <p className="text-yellow-400 text-sm">
+              ⚠️ Non potrai più rientrare in questa partita.
+            </p>
+          </div>
+        </Modal>
       )}
 
     </div>

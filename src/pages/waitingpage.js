@@ -84,6 +84,8 @@ const WaitingPage = () => {
         
         hasJoinedRef.current = true;
         sessionStorage.setItem(`joined_${matchId}_${playerID}`, 'true');
+        // Salva credentials per usarle in GamePage/RiskBoard per leave
+        sessionStorage.setItem(`credentials_${matchId}_${playerID}`, playerCredentials);
         setCredentials(playerCredentials);
         dispatch(enterMatch(matchId));
       } catch (error) {

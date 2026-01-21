@@ -131,13 +131,16 @@ export default function PlayerBar() {
                 {/* Avatars dei giocatori */}
                 <div className="flex items-center gap-4">
                     {players.map((id, index) => {
-                        const player = matchData?.players?.[index];
+                        // Trova il player corrispondente a questo ID in matchData
+                        const player = matchData?.players?.find(p => p.id === parseInt(id));
                         const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
                         const nickname = player?.name || `Player${parseInt(id) + 1}`;
                         
+                        // Verifica se il player è un bot (ctx.hasLeft = true)
+                        const isBot = ctx.hasLeft?.[id] === true;
+                        
                         return (
-                            <div key={index} >
-
+                            <div key={index} className="relative">
                                 <Avatar
                                     src={avatarUrl}
                                     alt={`Player ${parseInt(id) + 1}`}
@@ -148,6 +151,13 @@ export default function PlayerBar() {
                                     nickname={nickname}
                                     showHourglass={isSetup || (!isSetup && id === String(currentPlayer))}
                                 />
+                                
+                                {/* Badge BOT AI */}
+                                {isBot && (
+                                    <div className="absolute -top-1 -right-1 bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#1B2227] shadow-lg">
+                                        🤖 BOT
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

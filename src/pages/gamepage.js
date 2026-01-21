@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { subscribeToMatch, clearMatchData } from '../store/slices/matchSlice';
@@ -37,6 +37,51 @@ const GamePage = () => {
       dispatch(clearMatchData());
     };
   }, [matchId, dispatch]);
+
+  // HISTORY TRAP: Blocca tasto "Indietro" e mostra Modal custom
+  // NOTA: Il Modal sarà gestito da RiskBoard che ha accesso alle moves
+  useEffect(() => {
+    // Solo se abbiamo credenziali valide (stiamo effettivamente giocando)
+    if (!playerID || !credentials) return;
+    
+    // Crea una voce "finta" nella history al montaggio
+    window.history.pushState(null, '', window.location.href);
+    
+    const handlePopState = (e) => {
+      // Annulla l'azione "indietro" re-pushando lo stato
+      window.history.pushState(null, '', window.location.href);
+      
+      // Trigger evento custom che RiskBoard intercetterà
+      window.dispatchEvent(new CustomEvent('show-exit-modal'));
+      
+      console.log('[GAMEPAGE] Back button intercettato - evento show-exit-modal lanciato');
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [playerID, credentials]);
+  
+  // BEFOREUNLOAD: Prompt nativo browser per chiusura tab/finestra
+  useEffect(() => {
+    // Solo se abbiamo credenziali valide (stiamo effettivamente giocando)
+    if (!playerID || !credentials) return;
+    
+    const handleBeforeUnload = (e) => {
+      // Mostra il prompt nativo del browser
+      e.preventDefault();
+      e.returnValue = ''; // Chrome richiede questo
+      return ''; // Altri browser
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [playerID, credentials]);
 
   // Se non ci sono credenziali, torna alla lobby
   if (!playerID || !credentials) {

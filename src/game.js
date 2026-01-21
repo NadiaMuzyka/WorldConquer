@@ -192,84 +192,6 @@ const RiskGame = {
   disableUndo: true,
   playerView: PlayerView.STRIP_SECRETS,
 
-  // Implementazione AI per bot passivo
-  ai: {
-    enumerate: (G, ctx) => {
-      const moves = [];
-      const playerID = ctx.currentPlayer;
-      
-      // Solo se il giocatore corrente è un bot (hasLeft: true in ctx)
-      if (!ctx.hasLeft || !ctx.hasLeft[playerID]) {
-        return moves;
-      }
-      
-      console.log(`🤖 [AI] Enumerating moves per bot ${playerID} - Fase: ${ctx.phase}`);
-      
-      // FASE: INITIAL_REINFORCEMENT
-      if (ctx.phase === 'INITIAL_REINFORCEMENT') {
-        // Trova territori propri
-        const ownedTerritories = Object.entries(G.owners)
-          .filter(([territoryId, owner]) => owner === playerID)
-          .map(([territoryId]) => territoryId);
-        
-        if (ownedTerritories.length === 0) {
-          console.warn(`⚠️ [AI] Bot ${playerID} non possiede territori`);
-          return moves;
-        }
-        
-        // Se ha truppe da piazzare, piazzale randomicamente
-        if (G.reinforcementsRemaining && G.reinforcementsRemaining[playerID] > 0) {
-          const randomTerritory = ownedTerritories[Math.floor(Math.random() * ownedTerritories.length)];
-          moves.push({ move: 'placeReinforcement', args: [randomTerritory] });
-        } else {
-          // Finito, passa il turno
-          moves.push({ move: 'endPlayerTurn', args: [] });
-        }
-        
-        return moves;
-      }
-      
-      // FASE: GAME
-      if (ctx.phase === 'GAME') {
-        const stage = ctx.activePlayers?.[playerID];
-        
-        // STAGE: reinforcement
-        if (stage === 'reinforcement') {
-          if (G.reinforcementsToPlace && G.reinforcementsToPlace[playerID] > 0) {
-            // Piazza rinforzi su territorio casuale proprio
-            const ownedTerritories = Object.entries(G.owners)
-              .filter(([territoryId, owner]) => owner === playerID)
-              .map(([territoryId]) => territoryId);
-            
-            if (ownedTerritories.length > 0) {
-              const randomTerritory = ownedTerritories[Math.floor(Math.random() * ownedTerritories.length)];
-              moves.push({ move: 'placeReinforcement', args: [randomTerritory] });
-            }
-          } else {
-            // Finito rinforzi, passa ad attacco
-            moves.push({ move: 'endReinforcement', args: [] });
-          }
-          
-          return moves;
-        }
-        
-        // STAGE: attack (bot passivo - skippa sempre)
-        if (stage === 'attack') {
-          moves.push({ move: 'endAttackStage', args: [] });
-          return moves;
-        }
-        
-        // STAGE: strategicMovement (bot passivo - skippa sempre)
-        if (stage === 'strategicMovement') {
-          moves.push({ move: 'skipFortify', args: [] });
-          return moves;
-        }
-      }
-      
-      return moves;
-    },
-  },
-
   // Plugin per aggiungere hasLeft al ctx
   plugins: [
     {
@@ -335,8 +257,7 @@ const RiskGame = {
       },
 
       turn: {
-        // Nessun limite di mosse qui (default: infinito)
-        // Perfetto per gestire i click sui bottoni senza far scattare endTurn automatici
+        order: TurnOrder.SKIP, // Salta chi ha hasLeft: true nel ctx
 
         activePlayers: { all: 'viewing' },
 
@@ -388,17 +309,14 @@ const RiskGame = {
         
         // Calcola le truppe iniziali in base al numero di giocatori
         const totalTroops = {
-          3: 15, 4: 30, 5: 25, 6: 20, //RICORDATI DI RIMETTERE 35 TRUPPE PER 3 GIOCATORI
+          3: 15, 4: 30, 5: 25, 6: 20,
         };
 
         const troopsPerPlayer = totalTroops[ctx.numPlayers] || 20;
 
-        // Inizializza i rinforzi rimanenti per ogni giocatore
-        // Sottrai 1 per ogni territorio già posseduto (piazzato in SETUP_INITIAL)
         G.reinforcementsRemaining = {};
         for (let i = 0; i < ctx.numPlayers; i++) {
           const playerId = String(i);
-          // Conta i territori posseduti dal giocatore
           const territoriesOwned = Object.values(G.owners).filter(
             owner => owner === playerId
           ).length;
@@ -407,40 +325,34 @@ const RiskGame = {
         }
 
         G.turnPlacements = [];
-        console.log("📊 [REINFORCEMENTS] Truppe rimanenti:", G.reinforcementsRemaining);
       },
 
-      // La fase finisce quando tutti i giocatori hanno 0 truppe rimanenti
       endIf: ({ G }) => {
-        // Verifica che reinforcementsRemaining sia stato inizializzato
         if (!G.reinforcementsRemaining) return false;
 
         const allDone = Object.values(G.reinforcementsRemaining).every(
           remaining => remaining === 0
         );
-        if (allDone) {
-          console.log("✅ [PHASE END] Tutti i giocatori hanno completato i rinforzi");
-        }
         return allDone;
       },
 
       onEnd: ({ G }) => {
         console.log("🎲 [PHASE TRANSITION] INITIAL_REINFORCEMENT -> GAME");
-        // Pulizia dello stato temporaneo
         delete G.turnPlacements;
       },
 
       turn: {
-        order: TurnOrder.RESET, // Resetta l'ordine dei turni all'inizio della fase
+        order: TurnOrder.SKIP, // Salta chi ha hasLeft: true nel ctx
         
         onBegin: ({ G, ctx, events }) => {
-          // Reset dei piazzamenti del turno
-          G.turnPlacements = [];
-          console.log(`🔄 [TURN START] Player ${ctx.currentPlayer} - Truppe rimanenti: ${G.reinforcementsRemaining[ctx.currentPlayer]}`);
+          const currentPlayer = ctx.currentPlayer;
 
-          // Auto-skip se il giocatore non ha più truppe da piazzare
-          if (G.reinforcementsRemaining[ctx.currentPlayer] === 0) {
-            console.log(`⏭️ [AUTO-SKIP] Player ${ctx.currentPlayer} ha finito i rinforzi`);
+          // Check Last Man Standing
+          if (checkVictoryCondition(G, events, ctx)) return;
+
+          G.turnPlacements = [];
+          
+          if (G.reinforcementsRemaining[currentPlayer] === 0) {
             events.endTurn();
           }
         },
@@ -449,79 +361,34 @@ const RiskGame = {
       moves: {
         placeReinforcement: ({ G, ctx, playerID }, countryId) => {
           const currentPlayer = String(playerID);
+          if (!G.turnPlacements) G.turnPlacements = [];
+          if (G.owners[countryId] !== currentPlayer) return;
+          if (G.reinforcementsRemaining[currentPlayer] <= 0) return;
 
-          // Inizializza turnPlacements se non esiste
-          if (!G.turnPlacements) {
-            G.turnPlacements = [];
-          }
-
-          // Validazione 1: Il territorio deve appartenere al giocatore
-          if (G.owners[countryId] !== currentPlayer) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} non possiede ${countryId}`);
-            return;
-          }
-
-          // Validazione 2: Il giocatore deve avere truppe rimanenti
-          if (G.reinforcementsRemaining[currentPlayer] <= 0) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} non ha truppe rimanenti`);
-            return;
-          }
-
-          // Validazione 3: Limite di 3 truppe per turno (o meno se ne rimangono meno)
           const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[currentPlayer] + G.turnPlacements.length);
-          if (G.turnPlacements.length >= maxTroopsThisTurn) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} ha già piazzato ${G.turnPlacements.length}/${maxTroopsThisTurn} truppe questo turno`);
-            return;
-          }
+          if (G.turnPlacements.length >= maxTroopsThisTurn) return;
 
-          // Aggiungi la truppa
           G.troops[countryId] = (G.troops[countryId] || 0) + 1;
           G.reinforcementsRemaining[currentPlayer] -= 1;
           G.turnPlacements.push(countryId);
-
-          console.log(`✅ [PLACE] Player ${currentPlayer} piazza truppa in ${countryId} (${G.turnPlacements.length}/${maxTroopsThisTurn} questo turno, ${G.reinforcementsRemaining[currentPlayer]} rimanenti)`);
         },
 
         removeReinforcement: ({ G, ctx, playerID }, countryId) => {
           const currentPlayer = String(playerID);
-
-          // Inizializza turnPlacements se non esiste
-          if (!G.turnPlacements) {
-            G.turnPlacements = [];
-          }
-
-          // Validazione: Il territorio deve essere nei piazzamenti di questo turno
+          if (!G.turnPlacements) G.turnPlacements = [];
           const index = G.turnPlacements.indexOf(countryId);
-          if (index === -1) {
-            console.warn(`❌ [INVALID] ${countryId} non è stato piazzato in questo turno`);
-            return;
-          }
+          if (index === -1) return;
 
-          // Rimuovi la truppa
           G.troops[countryId] -= 1;
           G.reinforcementsRemaining[currentPlayer] += 1;
           G.turnPlacements.splice(index, 1);
-
-          console.log(`↩️ [REMOVE] Player ${currentPlayer} rimuove truppa da ${countryId} (${G.turnPlacements.length} piazzate questo turno, ${G.reinforcementsRemaining[currentPlayer]} rimanenti)`);
         },
 
         endPlayerTurn: ({ G, ctx, events, playerID }) => {
           const currentPlayer = String(playerID);
-
-          // Inizializza turnPlacements se non esiste
-          if (!G.turnPlacements) {
-            G.turnPlacements = [];
-          }
-
+          if (!G.turnPlacements) G.turnPlacements = [];
           const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[currentPlayer] + G.turnPlacements.length);
-
-          // Validazione: Deve aver piazzato tutte le truppe del turno
-          if (G.turnPlacements.length < maxTroopsThisTurn) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} deve piazzare ${maxTroopsThisTurn} truppe (ne ha piazzate ${G.turnPlacements.length})`);
-            return;
-          }
-
-          console.log(`✅ [END TURN] Player ${currentPlayer} passa il turno`);
+          if (G.turnPlacements.length < maxTroopsThisTurn) return;
           events.endTurn();
         },
       },
@@ -530,62 +397,48 @@ const RiskGame = {
     GAME: {
       onBegin: ({ G, ctx }) => {
         console.log("🎲 [PHASE START] Fase GAME iniziata");
-        // Pulizia finale dello stato di reinforcement
         delete G.reinforcementsRemaining;
         delete G.turnPlacements;
       },
 
       turn: {
-        order: TurnOrder.RESET,
+        order: TurnOrder.SKIP, // Salta chi ha hasLeft: true nel ctx
         
         onBegin: ({ G, ctx, events }) => {
+          // Check Last Man Standing
+          if (checkVictoryCondition(G, events, ctx)) return;
+
           const currentPlayer = ctx.currentPlayer;
-          console.log(`🔄 [TURN START] Player ${currentPlayer} inizia il turno GAME`);
           
-          // Reset stati precedenti
           G.attackState = null;
           G.fortifyState = null;
           G.battleResult = null;
           G.turnPlacements = [];
           
-          // Calcola rinforzi per il giocatore corrente
           const territoriesOwned = Object.values(G.owners).filter(
             owner => owner === currentPlayer
           ).length;
           
-          // Minimo 3 truppe, altrimenti territori/3 arrotondato per difetto
           let reinforcements = Math.max(3, Math.floor(territoriesOwned / 3));
           
-          // Aggiungi bonus continenti
           const CONTINENT_BONUSES = {
-            'NORD_AMERICA': 5,
-            'SUD_AMERICA': 2,
-            'EUROPA': 5,
-            'AFRICA': 3,
-            'ASIA': 7,
-            'OCEANIA': 2
+            'NORD_AMERICA': 5, 'SUD_AMERICA': 2, 'EUROPA': 5,
+            'AFRICA': 3, 'ASIA': 7, 'OCEANIA': 2
           };
           
           Object.entries(CONTINENTS_DATA).forEach(([continentName, territories]) => {
             const ownsAll = territories.every(territory => G.owners[territory.id] === currentPlayer);
             if (ownsAll) {
-              const bonus = CONTINENT_BONUSES[continentName] || 0;
-              reinforcements += bonus;
-              console.log(`🌍 [BONUS] Player ${currentPlayer} possiede ${continentName} (+${bonus} truppe)`);
+              reinforcements += CONTINENT_BONUSES[continentName] || 0;
             }
           });
           
           G.reinforcementsToPlace = G.reinforcementsToPlace || {};
           G.reinforcementsToPlace[currentPlayer] = reinforcements;
           
-          console.log(`🎖️ [REINFORCEMENTS] Player ${currentPlayer} riceve ${reinforcements} truppe`);
-          
           events.setActivePlayers({ currentPlayer: 'reinforcement' });
-
-          console.log(`🎮 [STAGE] Player ${currentPlayer} entra in stage REINFORCEMENT`);
         },
         
-        // Controlla vittoria dopo ogni mossa
         onMove: ({ G, events, ctx }) => {
           checkVictoryCondition(G, events, ctx);
         },
@@ -595,56 +448,29 @@ const RiskGame = {
             moves: {
               placeReinforcement: ({ G, playerID }, countryId) => {
                 const currentPlayer = String(playerID);
-                
                 if (!G.turnPlacements) G.turnPlacements = [];
+                if (G.owners[countryId] !== currentPlayer) return;
+                if (G.reinforcementsToPlace[currentPlayer] <= 0) return;
                 
-                // Validazioni
-                if (G.owners[countryId] !== currentPlayer) {
-                  console.warn(`❌ [INVALID] Player ${currentPlayer} non possiede ${countryId}`);
-                  return;
-                }
-                
-                if (G.reinforcementsToPlace[currentPlayer] <= 0) {
-                  console.warn(`❌ [INVALID] Player ${currentPlayer} non ha truppe rimanenti`);
-                  return;
-                }
-                
-                // Piazza truppa
                 G.troops[countryId] = (G.troops[countryId] || 0) + 1;
                 G.reinforcementsToPlace[currentPlayer] -= 1;
                 G.turnPlacements.push(countryId);
-                
-                console.log(`✅ [PLACE] Player ${currentPlayer} piazza truppa in ${countryId} (${G.reinforcementsToPlace[currentPlayer]} rimanenti)`);
               },
               
               removeReinforcement: ({ G, playerID }, countryId) => {
                 const currentPlayer = String(playerID);
-                
                 if (!G.turnPlacements) G.turnPlacements = [];
-                
                 const index = G.turnPlacements.indexOf(countryId);
-                if (index === -1) {
-                  console.warn(`❌ [INVALID] ${countryId} non è stato piazzato in questo turno`);
-                  return;
-                }
+                if (index === -1) return;
                 
                 G.troops[countryId] -= 1;
                 G.reinforcementsToPlace[currentPlayer] += 1;
                 G.turnPlacements.splice(index, 1);
-                
-                console.log(`↩️ [REMOVE] Player ${currentPlayer} rimuove truppa da ${countryId}`);
               },
               
               endReinforcement: ({ G, ctx, events, playerID }) => {
                 const currentPlayer = String(playerID);
-                
-                if (G.reinforcementsToPlace[currentPlayer] > 0) {
-                  console.warn(`❌ [INVALID] Player ${currentPlayer} deve piazzare tutte le truppe`);
-                  return;
-                }
-                
-                console.log(`✅ [STAGE END] Player ${currentPlayer} passa allo stage ATTACK`);
-                
+                if (G.reinforcementsToPlace[currentPlayer] > 0) return;
                 events.setActivePlayers({ currentPlayer: 'attack' })
               },
             },
@@ -654,116 +480,61 @@ const RiskGame = {
             moves: {
               selectAttackerTerritory: ({ G, playerID }, territoryId) => {
                 const currentPlayer = String(playerID);
-                
                 if (!G.attackState) G.attackState = { from: null, to: null, attackDiceCount: null };
-                
-                if (G.owners[territoryId] !== currentPlayer) {
-                  console.warn(`❌ [INVALID] Player ${currentPlayer} non possiede ${territoryId}`);
-                  return;
-                }
-                
-                if (G.troops[territoryId] < 2) {
-                  console.warn(`❌ [INVALID] Territorio ${territoryId} ha meno di 2 truppe`);
-                  return;
-                }
-                
+                if (G.owners[territoryId] !== currentPlayer) return;
+                if (G.troops[territoryId] < 2) return;
                 G.attackState.from = territoryId;
-                console.log(`⚔️ [ATTACK] Player ${currentPlayer} seleziona attaccante: ${territoryId}`);
               },
               
               selectDefenderTerritory: ({ G, playerID }, territoryId) => {
                 const currentPlayer = String(playerID);
-                
-                if (!G.attackState || !G.attackState.from) {
-                  console.warn(`❌ [INVALID] Nessun territorio attaccante selezionato`);
-                  return;
-                }
-                
-                if (!RISK_ADJACENCY[G.attackState.from].includes(territoryId)) {
-                  console.warn(`❌ [INVALID] ${territoryId} non è adiacente a ${G.attackState.from}`);
-                  return;
-                }
-                
-                if (G.owners[territoryId] === currentPlayer) {
-                  console.warn(`❌ [INVALID] Non puoi attaccare un tuo territorio`);
-                  return;
-                }
-                
+                if (!G.attackState || !G.attackState.from) return;
+                if (!RISK_ADJACENCY[G.attackState.from].includes(territoryId)) return;
+                if (G.owners[territoryId] === currentPlayer) return;
                 G.attackState.to = territoryId;
-                console.log(`🎯 [ATTACK] Player ${currentPlayer} seleziona bersaglio: ${territoryId}`);
               },
               
               confirmAttackDice: ({ G, playerID }, diceCount) => {
-                const currentPlayer = String(playerID);
-                
-                if (!G.attackState || !G.attackState.from) {
-                  console.warn(`❌ [INVALID] Nessun attacco in corso`);
-                  return;
-                }
-                
+                if (!G.attackState || !G.attackState.from) return;
                 const maxDice = Math.min(3, G.troops[G.attackState.from] - 1);
-                if (diceCount > maxDice || diceCount < 1) {
-                  console.warn(`❌ [INVALID] Puoi usare da 1 a ${maxDice} dadi`);
-                  return;
-                }
-                
+                if (diceCount > maxDice || diceCount < 1) return;
                 G.attackState.attackDiceCount = diceCount;
-                console.log(`🎲 [ATTACK] Player ${currentPlayer} attacca con ${diceCount} dadi`);
               },
               
               executeAttack: {
                 move: ({ G, ctx, random }) => {
-                  if (!G.attackState || !G.attackState.from || !G.attackState.to || !G.attackState.attackDiceCount) {
-                    console.warn(`❌ [INVALID] Stato attacco incompleto`);
-                    return;
-                  }
+                  if (!G.attackState || !G.attackState.from || !G.attackState.to || !G.attackState.attackDiceCount) return;
                   
                   const from = G.attackState.from;
                   const to = G.attackState.to;
                   const attackDiceCount = G.attackState.attackDiceCount;
                   
-                  // Lancia dadi attaccante
                   const attackerRolls = Array.from({ length: attackDiceCount }, () => random.D6()).sort((a, b) => b - a);
-                  
-                  // Lancia dadi difensore (max 3, o quante truppe ha)
                   const defenderDiceCount = Math.min(G.troops[to], 3);
                   const defenderRolls = Array.from({ length: defenderDiceCount }, () => random.D6()).sort((a, b) => b - a);
                   
-                  console.log(`🎲 [DICE] Attaccante: ${attackerRolls.join(', ')} | Difensore: ${defenderRolls.join(', ')}`);
-                  
-                  // Confronta dadi
                   let attackerLosses = 0;
                   let defenderLosses = 0;
                   const comparisons = Math.min(attackerRolls.length, defenderRolls.length);
                   
                   for (let i = 0; i < comparisons; i++) {
-                    if (attackerRolls[i] > defenderRolls[i]) {
-                      defenderLosses++;
-                    } else {
-                      // Pareggio = difensore vince
-                      attackerLosses++;
-                    }
+                    if (attackerRolls[i] > defenderRolls[i]) defenderLosses++;
+                    else attackerLosses++;
                   }
                   
-                  // Applica perdite
                   G.troops[from] -= attackerLosses;
                   G.troops[to] -= defenderLosses;
                   
                   let conquered = false;
-                  // Salva il colore originale del difensore PRIMA della conquista
                   const originalDefenderOwner = G.owners[to];
                   
-                  // Conquista territorio se difensore a 0 truppe
                   if (G.troops[to] === 0) {
                     conquered = true;
                     G.owners[to] = ctx.currentPlayer;
-                    // Sposta truppe dell'attacco
                     G.troops[to] = attackDiceCount;
                     G.troops[from] -= attackDiceCount;
-                    console.log(`🏴 [CONQUERED] Player ${ctx.currentPlayer} conquista ${to}!`);
                   }
                   
-                  // Salva risultato con il colore ORIGINALE del difensore
                   G.battleResult = {
                     attackerDice: attackerRolls,
                     defenderDice: defenderRolls,
@@ -772,14 +543,11 @@ const RiskGame = {
                     conquered,
                     fromTerritory: from,
                     toTerritory: to,
-                    originalDefenderOwner: originalDefenderOwner // Colore originale del difensore
+                    originalDefenderOwner: originalDefenderOwner
                   };
                   
-                  // Reset solo il target, mantieni from per attacchi consecutivi
                   G.attackState.to = null;
                   G.attackState.attackDiceCount = null;
-                  
-                  console.log(`⚔️ [BATTLE] Attaccante perde ${attackerLosses}, Difensore perde ${defenderLosses}`);
                 },
                 client: false,
               },
@@ -787,13 +555,11 @@ const RiskGame = {
               resetAttackSelection: ({ G }) => {
                 G.attackState = { from: null, to: null, attackDiceCount: null };
                 G.battleResult = null;
-                console.log(`🔄 [RESET] Selezione attacco resettata`);
               },
               
               endAttackStage: ({ G, events }) => {
                 G.attackState = null;
                 G.battleResult = null;
-                console.log(`✅ [STAGE END] Passaggio a STRATEGIC_MOVEMENT`);
                 events.setActivePlayers({ currentPlayer: 'strategicMovement' });
               },
             },
@@ -803,84 +569,39 @@ const RiskGame = {
             moves: {
               selectFortifyFrom: ({ G, playerID }, territoryId) => {
                 const currentPlayer = String(playerID);
-                
                 if (!G.fortifyState) G.fortifyState = { from: null, to: null };
-                
-                if (G.owners[territoryId] !== currentPlayer) {
-                  console.warn(`❌ [INVALID] Player ${currentPlayer} non possiede ${territoryId}`);
-                  return;
-                }
-                
-                if (G.troops[territoryId] < 2) {
-                  console.warn(`❌ [INVALID] Territorio ${territoryId} ha meno di 2 truppe`);
-                  return;
-                }
-                
+                if (G.owners[territoryId] !== currentPlayer) return;
+                if (G.troops[territoryId] < 2) return;
                 G.fortifyState.from = territoryId;
-                console.log(`🚚 [FORTIFY] Player ${currentPlayer} seleziona origine: ${territoryId}`);
               },
               
               selectFortifyTo: ({ G, playerID }, territoryId) => {
                 const currentPlayer = String(playerID);
-                
-                if (!G.fortifyState || !G.fortifyState.from) {
-                  console.warn(`❌ [INVALID] Nessun territorio origine selezionato`);
-                  return;
-                }
-                
-                if (!RISK_ADJACENCY[G.fortifyState.from].includes(territoryId)) {
-                  console.warn(`❌ [INVALID] ${territoryId} non è adiacente a ${G.fortifyState.from}`);
-                  return;
-                }
-                
-                if (G.owners[territoryId] !== currentPlayer) {
-                  console.warn(`❌ [INVALID] Non possiedi ${territoryId}`);
-                  return;
-                }
-                
+                if (!G.fortifyState || !G.fortifyState.from) return;
+                if (!RISK_ADJACENCY[G.fortifyState.from].includes(territoryId)) return;
+                if (G.owners[territoryId] !== currentPlayer) return;
                 G.fortifyState.to = territoryId;
-                console.log(`📍 [FORTIFY] Player ${currentPlayer} seleziona destinazione: ${territoryId}`);
               },
               
               executeFortify: ({ G, events }, troopCount) => {
-                if (!G.fortifyState || !G.fortifyState.from || !G.fortifyState.to) {
-                  console.warn(`❌ [INVALID] Fortify incompleto`);
-                  return;
-                }
-                
+                if (!G.fortifyState || !G.fortifyState.from || !G.fortifyState.to) return;
                 const from = G.fortifyState.from;
                 const to = G.fortifyState.to;
+                if (troopCount < 1 || G.troops[from] - troopCount < 1) return;
                 
-                if (troopCount < 1) {
-                  console.warn(`❌ [INVALID] Devi spostare almeno 1 truppa`);
-                  return;
-                }
-                
-                if (G.troops[from] - troopCount < 1) {
-                  console.warn(`❌ [INVALID] Devi lasciare almeno 1 truppa in ${from}`);
-                  return;
-                }
-                
-                // Esegui spostamento
                 G.troops[from] -= troopCount;
                 G.troops[to] += troopCount;
-                
-                console.log(`✅ [FORTIFY] Spostato ${troopCount} truppe da ${from} a ${to}`);
-                
-                // Reset e termina turno
                 G.fortifyState = null;
                 events.endTurn();
               },
               
               skipFortify: ({ G, events }) => {
-                console.log(`⏭️ [SKIP] Fortify saltato, turno terminato`);
                 G.fortifyState = null;
                 events.endTurn();
               },
               
               resetFortifySelection: ({ G }) => {
                 G.fortifyState = { from: null, to: null };
-                console.log(`🔄 [RESET] Selezione fortify resettata`);
               },
             },
           },

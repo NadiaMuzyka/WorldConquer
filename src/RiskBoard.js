@@ -333,7 +333,7 @@ function RiskBoardContent() {
         >
           <div className="text-center">
             <p className="text-gray-300 mb-4">
-              Se esci dalla partita, verrai sostituito da un Bot AI.
+              I tuoi territori rimarranno sulla mappa e il tuo turno verrà automaticamente saltato.
             </p>
             <p className="text-yellow-400 text-sm">
               ⚠️ Non potrai più rientrare in questa partita.

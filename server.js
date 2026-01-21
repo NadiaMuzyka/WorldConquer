@@ -3,7 +3,7 @@ const { Server, Origins } = require('boardgame.io/server');
 const { RiskGame } = require('./src/game');
 const admin = require('firebase-admin');
 const serviceAccount = require('./serviceAccountKey.json');
-const FirebaseAdapter = require('./FirebaseAdapter'); // <--- Importiamo la classe
+const FirebaseAdapter = require('./FirebaseAdapter');
 const cors = require('@koa/cors');
 
 // 1. Configurazione Admin
@@ -135,9 +135,109 @@ server.app.use(async (ctx, next) => {
           
           state.ctx.hasLeft[playerID] = true;
           
+          // Se il giocatore che abbandona è il currentPlayer, passa al prossimo turno
+          if (state.ctx.currentPlayer === playerID) {
+            console.log(`🔄 [LEAVE] Player ${playerID} abbandona durante il suo turno - passo al prossimo`);
+            
+            // Trova il prossimo giocatore attivo usando la stessa logica del TurnOrder
+            const currentPos = state.ctx.playOrderPos;
+            const numPlayers = state.ctx.numPlayers;
+            let foundNext = false;
+            
+            for (let i = 1; i <= numPlayers; i++) {
+              const nextPos = (currentPos + i) % numPlayers;
+              const nextPlayer = state.ctx.playOrder[nextPos];
+              
+              // Se il prossimo giocatore non ha abbandonato, passa a lui
+              if (!state.ctx.hasLeft[nextPlayer]) {
+                state.ctx.currentPlayer = nextPlayer;
+                state.ctx.playOrderPos = nextPos;
+                state.ctx.turn = state.ctx.turn + 1;
+                
+                // Reset activePlayers per il nuovo turno
+                state.ctx.activePlayers = null;
+                
+                // Se siamo nella fase INITIAL_REINFORCEMENT, reset turnPlacements
+                if (state.ctx.phase === 'INITIAL_REINFORCEMENT') {
+                  state.G.turnPlacements = [];
+                  console.log(`✅ [LEAVE] INITIAL_REINFORCEMENT - Reset turnPlacements`);
+                }
+                
+                // Se siamo nella fase GAME, reset stati e calcola rinforzi
+                if (state.ctx.phase === 'GAME') {
+                  state.G.attackState = null;
+                  state.G.fortifyState = null;
+                  state.G.battleResult = null;
+                  state.G.turnPlacements = [];
+                  
+                  // Calcola rinforzi per il nuovo giocatore
+                  const territoriesOwned = Object.values(state.G.owners).filter(
+                    owner => owner === nextPlayer
+                  ).length;
+                  
+                  let reinforcements = Math.max(3, Math.floor(territoriesOwned / 3));
+                  
+                  // Aggiungi bonus continenti (semplificato)
+                  const CONTINENT_BONUSES = {
+                    'NORD_AMERICA': 5,
+                    'SUD_AMERICA': 2,
+                    'EUROPA': 5,
+                    'AFRICA': 3,
+                    'ASIA': 7,
+                    'OCEANIA': 2
+                  };
+                  
+                  state.G.reinforcementsToPlace = state.G.reinforcementsToPlace || {};
+                  state.G.reinforcementsToPlace[nextPlayer] = reinforcements;
+                  
+                  // Imposta stage reinforcement
+                  state.ctx.activePlayers = { [nextPlayer]: 'reinforcement' };
+                  
+                  console.log(`✅ [LEAVE] GAME - Calcolati ${reinforcements} rinforzi per player ${nextPlayer}`);
+                }
+                
+                console.log(`✅ [LEAVE] Turno passato a player ${nextPlayer} (pos ${nextPos}, turn ${state.ctx.turn})`);
+                foundNext = true;
+                break;
+              }
+            }
+            
+            if (!foundNext) {
+              console.log(`⚠️ [LEAVE] Nessun giocatore attivo trovato dopo player ${playerID}`);
+            }
+          } else {
+            console.log(`📌 [LEAVE] Player ${playerID} non è il currentPlayer (${state.ctx.currentPlayer}), nessun cambio turno`);
+          }
+          
           // Salva lo stato aggiornato
           await server.db.setState(matchID, state);
-          console.log(`✅ [BOT] Player ${playerID} convertito in Bot - ctx.hasLeft[${playerID}]=true salvato`);
+          
+          // Ricarica lo stato dal database per ottenere _stateID aggiornato
+          const { state: updatedState } = await server.db.fetch(matchID, { state: true });
+          
+          // Notifica i client via Socket.IO con lo stato aggiornato
+          const io = server.app.context.io;
+          if (io) {
+            // Invia a tutti i client nella room del match
+            io.in(matchID).emit('sync', matchID, updatedState);
+            console.log(`📡 [LEAVE] Stato aggiornato notificato ai client (turn: ${updatedState.ctx.turn}, currentPlayer: ${updatedState.ctx.currentPlayer}, _stateID: ${updatedState._stateID})`);
+            
+            // Disconnetti forzatamente il socket del giocatore che abbandona
+            // BoardGame.io usa room format: "{matchID}:{playerID}"
+            const roomName = `${matchID}:${playerID}`;
+            
+            // Itera su tutti i socket connessi per trovare quelli nella room del player
+            if (io.sockets && io.sockets.sockets) {
+              io.sockets.sockets.forEach((socket) => {
+                if (socket.rooms.has(roomName)) {
+                  console.log(`🔌 [LEAVE] Disconnetto socket ${socket.id} per player ${playerID}`);
+                  socket.disconnect(true);
+                }
+              });
+            }
+            
+            console.log(`📡 [LEAVE] Player ${playerID} disconnesso - isConnected verrà aggiornato da BoardGame.io`);
+          }
           
           // Controlla vittoria Last Man Standing
           const activePlayers = [];
@@ -155,6 +255,15 @@ server.app.use(async (ctx, next) => {
             console.log(`🏆 [LEAVE] Last Man Standing - Winner: ${winner}`);
             state.ctx.gameover = { winner };
             await server.db.setState(matchID, state);
+            
+            // Ricarica lo stato aggiornato
+            const { state: gameoverState } = await server.db.fetch(matchID, { state: true });
+            
+            // Notifica gameover ai client via Socket.IO
+            if (io) {
+              io.in(matchID).emit('sync', matchID, gameoverState);
+              console.log(`📡 [LEAVE-GAMEOVER] Vittoria notificata ai client via Socket.IO`);
+            }
             
             // Aggiorna Firestore per notificare frontend
             const docRef = firestore.collection('matches').doc(matchID);
@@ -283,15 +392,20 @@ server.run(8000, () => {
               return;
             }
             
-            // PLAYER DEFINITIVAMENTE DISCONNESSO: Forza hasLeft=true
-            console.log(`🤖 [DISCONNECT] Player ${playerID} definitivamente disconnesso - subentra Bot AI`);
+            // PLAYER DEFINITIVAMENTE DISCONNESSO: Imposta hasLeft=true
+            console.log(`[DISCONNECT] Player ${playerID} definitivamente disconnesso`);
             
             state.ctx.hasLeft[playerID] = true;
             
             // Salva lo stato aggiornato
             await server.db.setState(matchID, state);
             
-            console.log(`✅ [BOT] Player ${playerID} convertito in Bot - ctx.hasLeft[${playerID}]=true salvato`);
+            // Ricarica lo stato dal database per ottenere _stateID aggiornato
+            const { state: disconnectState } = await server.db.fetch(matchID, { state: true });
+            
+            // Notifica i client via Socket.IO
+            io.in(matchID).emit('sync', matchID, disconnectState);
+            console.log(`📡 [DISCONNECT] Stato notificato ai client via Socket.IO`);
             
             // Controlla vittoria Last Man Standing
             const activePlayers = [];
@@ -307,6 +421,13 @@ server.run(8000, () => {
               console.log(`🏆 [DISCONNECT] Last Man Standing - Winner: ${winner}`);
               state.ctx.gameover = { winner };
               await server.db.setState(matchID, state);
+              
+              // Ricarica lo stato aggiornato
+              const { state: gameoverState } = await server.db.fetch(matchID, { state: true });
+              
+              // Notifica gameover ai client via Socket.IO
+              io.in(matchID).emit('sync', matchID, gameoverState);
+              console.log(`📡 [DISCONNECT-GAMEOVER] Vittoria notificata ai client via Socket.IO`);
             }
             
             disconnectTimers.delete(timerKey);
@@ -326,162 +447,5 @@ server.run(8000, () => {
   } else {
     console.warn('⚠️ [SOCKET] Socket.IO non disponibile - disconnect handler non configurato');
   }
-  
-  // BOT AI AUTO-PLAY SYSTEM
-  // Monitora tutte le partite attive e fa giocare i bot automaticamente
-  const botPlayInterval = setInterval(async () => {
-    try {
-      // Ottieni lista di tutte le partite attive
-      const matchesSnapshot = await firestore.collection('matches')
-        .where('status', '==', 'PLAYING')
-        .get();
-      
-      // Se non ci sono partite attive, skippa
-      if (matchesSnapshot.empty) return;
-      
-      for (const matchDoc of matchesSnapshot.docs) {
-        const matchID = matchDoc.id;
-        
-        try {
-          // Verifica che il match esista prima di fetchare
-          const matchData = matchDoc.data();
-          if (!matchData) {
-            console.warn(`[BOT-AI] Match ${matchID} senza dati, skip`);
-            continue;
-          }
-          
-          // Recupera lo stato della partita
-          const fetchResult = await server.db.fetch(matchID, { state: true });
-          
-          // Se lo stato non esiste, skippa (match probabilmente terminato)
-          if (!fetchResult || !fetchResult.state) {
-            // Aggiorna status in Firestore se mismatch
-            if (matchData.status === 'PLAYING') {
-              await firestore.collection('matches').doc(matchID).update({ status: 'FINISHED' });
-              console.log(`[BOT-AI] Match ${matchID} senza stato - marcato FINISHED`);
-            }
-            continue;
-          }
-          
-          const { state } = fetchResult;
-          
-          if (!state || !state.ctx || !state.G) continue;
-          
-          // Se la partita è finita, aggiorna Firestore e skippa
-          if (state.ctx.gameover) {
-            if (matchData.status !== 'FINISHED') {
-              await firestore.collection('matches').doc(matchID).update({ status: 'FINISHED' });
-              console.log(`[BOT-AI] Match ${matchID} terminato - status aggiornato`);
-            }
-            continue;
-          }
-          
-          const { ctx, G } = state;
-          const currentPlayer = ctx.currentPlayer;
-          
-          // Verifica se il giocatore corrente è un bot (usa ctx.hasLeft)
-          if (!ctx.hasLeft || !ctx.hasLeft[currentPlayer]) continue;
-          
-          // È un bot! Esegui la sua mossa
-          console.log(`🤖 [BOT-AI] Player ${currentPlayer} è un bot - eseguo mossa automatica`);
-          
-          // Chiama enumerate per ottenere le mosse possibili
-          const aiMoves = RiskGame.ai.enumerate(G, ctx);
-          
-          if (aiMoves.length === 0) {
-            console.warn(`⚠️ [BOT-AI] Nessuna mossa disponibile per bot ${currentPlayer}`);
-            continue;
-          }
-          
-          // Prendi la prima mossa (l'AI restituisce già la mossa migliore/casuale)
-          const { move: moveName, args } = aiMoves[0];
-          
-          console.log(`🎮 [BOT-AI] Eseguo mossa: ${moveName}(${args?.join(', ') || ''})`);
-          
-          // Delay breve per evitare race conditions
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          // USA BoardGame.io lobbyAPI per eseguire la mossa
-          try {
-            // Ottieni l'istanza del match dal database
-            const matchInstance = await server.db.fetch(matchID, { state: true, metadata: true });
-            
-            if (!matchInstance || !matchInstance.state) {
-              console.error(`⚠️ [BOT-AI] Match ${matchID} non trovato`);
-              continue;
-            }
-            
-            // Esegui la mossa usando la game logic di BoardGame.io
-            const game = RiskGame;
-            let move = null;
-            
-            // Cerca la move prima a livello globale, poi nelle phases
-            if (game.moves && game.moves[moveName]) {
-              move = game.moves[moveName];
-            } else if (matchInstance.state.ctx.phase && game.phases && game.phases[matchInstance.state.ctx.phase]) {
-              const currentPhase = game.phases[matchInstance.state.ctx.phase];
-              if (currentPhase.moves && currentPhase.moves[moveName]) {
-                move = currentPhase.moves[moveName];
-              }
-            }
-            
-            if (!move) {
-              console.error(`⚠️ [BOT-AI] Move ${moveName} non trovata nella fase ${matchInstance.state.ctx.phase}`);
-              continue;
-            }
-            
-            // Crea un contesto mock per la move
-            const { G, ctx } = matchInstance.state;
-            const events = {
-              endGame: (result) => {
-                matchInstance.state.ctx.gameover = result;
-              },
-              endTurn: () => {
-                // Passa al prossimo giocatore
-                const nextPlayer = (parseInt(currentPlayer) + 1) % ctx.numPlayers;
-                matchInstance.state.ctx.currentPlayer = String(nextPlayer);
-                matchInstance.state.ctx.turn = (matchInstance.state.ctx.turn || 0) + 1;
-              },
-              setActivePlayers: (config) => {
-                matchInstance.state.ctx.activePlayers = config;
-              },
-              endPhase: () => {
-                // Implementa se necessario
-              },
-              setPhase: (phaseName) => {
-                matchInstance.state.ctx.phase = phaseName;
-              }
-            };
-            
-            // Esegui la move (passa il contesto completo)
-            const moveToExecute = typeof move === 'function' ? move : move.move;
-            moveToExecute({ G, ctx, playerID: currentPlayer, events }, ...(args || []));
-            
-            // Salva lo stato aggiornato
-            await server.db.setState(matchID, matchInstance.state);
-            console.log(`✅ [BOT-AI] Mossa ${moveName} eseguita - stato salvato`);
-            
-          } catch (botError) {
-            console.error(`⚠️ [BOT-AI] Errore esecuzione mossa:`, botError.message);
-          }
-          
-        } catch (matchError) {
-          console.error(`[BOT-AI] Errore processando match ${matchID}:`, matchError.message);
-        }
-      }
-      
-    } catch (error) {
-      console.error('[BOT-AI] Errore nel bot play interval:', error);
-    }
-  }, 2000); // Controlla ogni 2 secondi
-  
-  console.log('✅ [BOT-AI] Sistema auto-play bot attivato (check ogni 2s)');
-  
-  // Cleanup interval on server shutdown
-  process.on('SIGINT', () => {
-    clearInterval(botPlayInterval);
-    console.log('🛑 [BOT-AI] Sistema auto-play fermato');
-    process.exit(0);
-  });
   
 });

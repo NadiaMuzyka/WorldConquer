@@ -152,10 +152,10 @@ export default function PlayerBar() {
                                     showHourglass={isSetup || (!isSetup && id === String(currentPlayer))}
                                 />
                                 
-                                {/* Badge BOT AI */}
+                                {/* Badge ABBANDONATO */}
                                 {isBot && (
-                                    <div className="absolute -top-1 -right-1 bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#1B2227] shadow-lg">
-                                        🤖 BOT
+                                    <div className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#1B2227] shadow-lg uppercase">
+                                        ❌ Abbandonato
                                     </div>
                                 )}
                             </div>

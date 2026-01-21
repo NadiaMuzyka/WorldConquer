@@ -4,6 +4,40 @@ const { COUNTRY_COLORS, PLAYER_COLORS } = require('./components/Constants/colors
 const { CONTINENTS_DATA } = require('./components/Constants/mapData');
 const { RISK_ADJACENCY } = require('./components/Constants/adjacency');
 
+// TurnOrder custom che salta i giocatori disconnessi
+const SkipDisconnectedPlayers = {
+  first: ({ ctx }) => {
+    // Trova il primo giocatore connesso
+    for (let i = 0; i < ctx.numPlayers; i++) {
+      const playerID = String(i);
+      if (!ctx.hasLeft || !ctx.hasLeft[playerID]) {
+        return i;
+      }
+    }
+    return 0; // Fallback
+  },
+  next: ({ ctx, G }) => {
+    if (!ctx || !ctx.playOrder) return ctx.currentPlayer;
+    
+    const currentPos = ctx.playOrderPos;
+    const numPlayers = ctx.numPlayers;
+    
+    // Cerca il prossimo giocatore connesso
+    for (let i = 1; i <= numPlayers; i++) {
+      const nextPos = (currentPos + i) % numPlayers;
+      const nextPlayer = ctx.playOrder[nextPos];
+      
+      // Se il giocatore non ha abbandonato, è il prossimo
+      if (!ctx.hasLeft || !ctx.hasLeft[nextPlayer]) {
+        return nextPos;
+      }
+    }
+    
+    // Se tutti hanno abbandonato, torna al corrente (non dovrebbe succedere)
+    return currentPos;
+  }
+};
+
 // Funzione per assegnare obiettivi segreti ai giocatori
 const assignSecretObjectives = (G, ctx) => {
   const numPlayers = ctx.numPlayers;
@@ -171,8 +205,11 @@ const checkVictoryCondition = (G, events, ctx) => {
       }
       
       case 'ELIMINATE_COLOR': {
-        const colorExists = Object.values(G.owners).some(owner => owner === objective.color);
-        objectiveMet = !colorExists;
+        const targetColor = objective.color;
+        const colorExists = Object.values(G.owners).some(owner => owner === targetColor);
+        // Obiettivo completato se il colore non possiede territori O se ha abbandonato
+        const targetHasLeft = ctx.hasLeft && ctx.hasLeft[targetColor];
+        objectiveMet = !colorExists || targetHasLeft;
         break;
       }
     }
@@ -191,84 +228,6 @@ const RiskGame = {
   name: 'risk',
   disableUndo: true,
   playerView: PlayerView.STRIP_SECRETS,
-
-  // Implementazione AI per bot passivo
-  ai: {
-    enumerate: (G, ctx) => {
-      const moves = [];
-      const playerID = ctx.currentPlayer;
-      
-      // Solo se il giocatore corrente è un bot (hasLeft: true in ctx)
-      if (!ctx.hasLeft || !ctx.hasLeft[playerID]) {
-        return moves;
-      }
-      
-      console.log(`🤖 [AI] Enumerating moves per bot ${playerID} - Fase: ${ctx.phase}`);
-      
-      // FASE: INITIAL_REINFORCEMENT
-      if (ctx.phase === 'INITIAL_REINFORCEMENT') {
-        // Trova territori propri
-        const ownedTerritories = Object.entries(G.owners)
-          .filter(([territoryId, owner]) => owner === playerID)
-          .map(([territoryId]) => territoryId);
-        
-        if (ownedTerritories.length === 0) {
-          console.warn(`⚠️ [AI] Bot ${playerID} non possiede territori`);
-          return moves;
-        }
-        
-        // Se ha truppe da piazzare, piazzale randomicamente
-        if (G.reinforcementsRemaining && G.reinforcementsRemaining[playerID] > 0) {
-          const randomTerritory = ownedTerritories[Math.floor(Math.random() * ownedTerritories.length)];
-          moves.push({ move: 'placeReinforcement', args: [randomTerritory] });
-        } else {
-          // Finito, passa il turno
-          moves.push({ move: 'endPlayerTurn', args: [] });
-        }
-        
-        return moves;
-      }
-      
-      // FASE: GAME
-      if (ctx.phase === 'GAME') {
-        const stage = ctx.activePlayers?.[playerID];
-        
-        // STAGE: reinforcement
-        if (stage === 'reinforcement') {
-          if (G.reinforcementsToPlace && G.reinforcementsToPlace[playerID] > 0) {
-            // Piazza rinforzi su territorio casuale proprio
-            const ownedTerritories = Object.entries(G.owners)
-              .filter(([territoryId, owner]) => owner === playerID)
-              .map(([territoryId]) => territoryId);
-            
-            if (ownedTerritories.length > 0) {
-              const randomTerritory = ownedTerritories[Math.floor(Math.random() * ownedTerritories.length)];
-              moves.push({ move: 'placeReinforcement', args: [randomTerritory] });
-            }
-          } else {
-            // Finito rinforzi, passa ad attacco
-            moves.push({ move: 'endReinforcement', args: [] });
-          }
-          
-          return moves;
-        }
-        
-        // STAGE: attack (bot passivo - skippa sempre)
-        if (stage === 'attack') {
-          moves.push({ move: 'endAttackStage', args: [] });
-          return moves;
-        }
-        
-        // STAGE: strategicMovement (bot passivo - skippa sempre)
-        if (stage === 'strategicMovement') {
-          moves.push({ move: 'skipFortify', args: [] });
-          return moves;
-        }
-      }
-      
-      return moves;
-    },
-  },
 
   // Plugin per aggiungere hasLeft al ctx
   plugins: [
@@ -431,16 +390,18 @@ const RiskGame = {
       },
 
       turn: {
-        order: TurnOrder.RESET, // Resetta l'ordine dei turni all'inizio della fase
+        order: SkipDisconnectedPlayers, // Usa il TurnOrder custom che salta i disconnessi
         
         onBegin: ({ G, ctx, events }) => {
+          const currentPlayer = ctx.currentPlayer;
+          
           // Reset dei piazzamenti del turno
           G.turnPlacements = [];
-          console.log(`🔄 [TURN START] Player ${ctx.currentPlayer} - Truppe rimanenti: ${G.reinforcementsRemaining[ctx.currentPlayer]}`);
+          console.log(`🔄 [TURN START] Player ${currentPlayer} - Truppe rimanenti: ${G.reinforcementsRemaining[currentPlayer]}`);
 
           // Auto-skip se il giocatore non ha più truppe da piazzare
-          if (G.reinforcementsRemaining[ctx.currentPlayer] === 0) {
-            console.log(`⏭️ [AUTO-SKIP] Player ${ctx.currentPlayer} ha finito i rinforzi`);
+          if (G.reinforcementsRemaining[currentPlayer] === 0) {
+            console.log(`⏭️ [AUTO-SKIP] Player ${currentPlayer} ha finito i rinforzi`);
             events.endTurn();
           }
         },
@@ -536,10 +497,11 @@ const RiskGame = {
       },
 
       turn: {
-        order: TurnOrder.RESET,
+        order: SkipDisconnectedPlayers, // Usa il TurnOrder custom che salta i disconnessi
         
         onBegin: ({ G, ctx, events }) => {
           const currentPlayer = ctx.currentPlayer;
+          
           console.log(`🔄 [TURN START] Player ${currentPlayer} inizia il turno GAME`);
           
           // Reset stati precedenti

@@ -260,11 +260,12 @@ function RiskBoardContent() {
 
           {/* CARD INFO UTENTE IN ALTO A SINISTRA */}
           <div className="fixed left-8 bottom-20 z-30">
-            <Card className="w-[260px] min-h-[280px] flex flex-col items-center bg-[#23282E] shadow-lg py-10 p-5 mb-12">
+            <Card className="w-[260px] min-h-[280px] flex flex-col items-center bg-[#1B2227] shadow-lg py-10 p-5 mb-12">
               {/* Avatar placeholder */}
-              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mb-2">
-                <Avatar src={avatarUrl} size='sm'  />
+              <div className="mb-2">
+                <Avatar src={avatarUrl} size='md' />
               </div>
+              <div className="text-white text-base font-semibold mb-1">{"@" + nickname}</div>
               <div className="flex justify-between w-full text-white text-sm mb-2 mt-5">
                 <span>{totalTroops} TRUPPE TOTALI</span>
                 <span>{ownedTerritories} TERRITORI</span>

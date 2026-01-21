@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  body {
+    @apply font-sans;
+  }
 
     /* Fix autofill browser - mantiene colori originali */
     input:-webkit-autofill,

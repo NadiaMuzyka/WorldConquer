@@ -2,7 +2,7 @@ import React from 'react';
 import { Bolt, ShieldPlus, PlusCircle, Sword, Move } from 'lucide-react';
 
 const PhaseInfo = ({ phase, stage }) => {
-  // Traduci i nomi degli stage in italiano
+
   const getPhaseIconAndText = () => {
     if (phase === 'SETUP_INITIAL') return [<Bolt className="w-8 h-8 inline-block" key="icon" />, 'Preparazione'];
     if (phase === 'INITIAL_REINFORCEMENT') return [<ShieldPlus className="w-8 h-8 inline-block" key="icon" />, 'Rinforzo iniziale'];

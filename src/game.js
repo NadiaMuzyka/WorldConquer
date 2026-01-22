@@ -3,6 +3,38 @@ const { TurnOrder, PlayerView } = require('boardgame.io/core');
 const { COUNTRY_COLORS, PLAYER_COLORS } = require('./components/Constants/colors');
 const { CONTINENTS_DATA } = require('./components/Constants/mapData');
 const { RISK_ADJACENCY } = require('./components/Constants/adjacency');
+const { PHASE_TIMEOUTS } = require('./components/Constants/timeouts');
+
+// ===== HELPER FUNCTIONS =====
+
+// Funzione per piazzare truppe casuali per un giocatore AFK
+const autoPlaceTroops = (G, ctx, playerID, count) => {
+  if (count <= 0) return;
+  
+  // Ottieni tutti i territori posseduti dal giocatore
+  const ownedTerritories = Object.entries(G.owners)
+    .filter(([id, owner]) => owner === playerID)
+    .map(([id]) => id);
+  
+  if (ownedTerritories.length === 0) {
+    console.warn(`⚠️ [AUTO-PLACE] Player ${playerID} non ha territori!`);
+    return;
+  }
+  
+  // Fisher-Yates shuffle manuale (ctx.random non è disponibile nel client)
+  const shuffled = [...ownedTerritories];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  // Piazza le truppe senza log (solo il server determina i territori effettivi)
+  for (let i = 0; i < count; i++) {
+    const territoryIndex = i % shuffled.length;
+    const territory = shuffled[territoryIndex];
+    G.troops[territory] = (G.troops[territory] || 0) + 1;
+  }
+};
 
 // Funzione per assegnare obiettivi segreti ai giocatori
 const assignSecretObjectives = (G, ctx) => {
@@ -198,6 +230,7 @@ const RiskGame = {
 
         G.playersReady = {}; 
         G.setupAssignmentOrder = [];
+        G.turnStartTime = Date.now();
         
         if (!ctx || !ctx.numPlayers) {
           console.error("⚠️ ctx non disponibile in onBegin, skip distribuzione");
@@ -250,9 +283,33 @@ const RiskGame = {
                   console.log("⏳ [ACTION] Attesa -> events.endStage()");
                   events.endStage();
                 }
+              },
+              
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK] SETUP_INITIAL - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.SETUP_INITIAL) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.SETUP_INITIAL/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] SETUP_INITIAL scaduto! Forzando Ready per tutti i giocatori`);
+                
+                // Forza Ready per tutti i giocatori non pronti
+                if (!G.playersReady) G.playersReady = {};
+                for (let i = 0; i < ctx.numPlayers; i++) {
+                  const playerId = String(i);
+                  if (!G.playersReady[playerId]) {
+                    G.playersReady[playerId] = true;
+                    console.log(`  ↳ Player ${playerId} forzato a Ready`);
+                  }
+                }
+                
+                events.endPhase();
               }
             }
-          }
+          },
         }
       },
       
@@ -268,6 +325,7 @@ const RiskGame = {
       onBegin: ({ G, ctx }) => {
         delete G.setupAssignmentOrder;
         delete G.playersReady;
+        delete G.turnStartTime;
         console.log("🎲 [PHASE START] Fase INITIAL_REINFORCEMENT");
 
         G.reinforcementsRemaining = {};
@@ -320,9 +378,15 @@ const RiskGame = {
       turn: {
         order: TurnOrder.RESET, // Resetta l'ordine dei turni all'inizio della fase
         
+        activePlayers: {
+          currentPlayer: { stage: null },  // Accede alle mosse di fase
+          others: 'monitoring'              // Solo checkTimeout
+        },
+        
         onBegin: ({ G, ctx, events }) => {
           // Reset dei piazzamenti del turno
           G.turnPlacements = [];
+          G.turnStartTime = Date.now();
           console.log(`🔄 [TURN START] Player ${ctx.currentPlayer} - Truppe rimanenti: ${G.reinforcementsRemaining[ctx.currentPlayer]}`);
 
           // Auto-skip se il giocatore non ha più truppe da piazzare
@@ -331,6 +395,39 @@ const RiskGame = {
             events.endTurn();
           }
         },
+        
+        stages: {
+          monitoring: {
+            moves: {
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK RIVAL] INITIAL_REINFORCEMENT - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.INITIAL_REINFORCEMENT) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.INITIAL_REINFORCEMENT/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] INITIAL_REINFORCEMENT scaduto per Player ${ctx.currentPlayer}!`);
+                
+                // Calcola quante truppe deve ancora piazzare in questo turno
+                const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[ctx.currentPlayer] + (G.turnPlacements?.length || 0));
+                const troopsToPlace = maxTroopsThisTurn - (G.turnPlacements?.length || 0);
+                
+                console.log(`  ↳ Truppe da piazzare questo turno: ${troopsToPlace}`);
+                
+                if (troopsToPlace > 0) {
+                  autoPlaceTroops(G, ctx, ctx.currentPlayer, troopsToPlace);
+                  
+                  // Aggiorna reinforcementsRemaining
+                  G.reinforcementsRemaining[ctx.currentPlayer] -= troopsToPlace;
+                }
+                
+                events.endTurn();
+              }
+            }
+          }
+        }
       },
 
       moves: {
@@ -434,6 +531,7 @@ const RiskGame = {
           G.fortifyState = null;
           G.battleResult = null;
           G.turnPlacements = [];
+          G.turnStartTime = Date.now();
           
           // Calcola rinforzi per il giocatore corrente
           const territoriesOwned = Object.values(G.owners).filter(
@@ -467,9 +565,11 @@ const RiskGame = {
           
           console.log(`🎖️ [REINFORCEMENTS] Player ${currentPlayer} riceve ${reinforcements} truppe`);
           
-          events.setActivePlayers({ currentPlayer: 'reinforcement' });
-
-          console.log(`🎮 [STAGE] Player ${currentPlayer} entra in stage REINFORCEMENT`);
+          // Setta currentPlayer in reinforcement, others in monitoringReinforcement
+          events.setActivePlayers({ 
+            currentPlayer: 'reinforcement',
+            others: 'monitoringReinforcement'
+          });
         },
         
         // Controlla vittoria dopo ogni mossa
@@ -532,7 +632,34 @@ const RiskGame = {
                 
                 console.log(`✅ [STAGE END] Player ${currentPlayer} passa allo stage ATTACK`);
                 
-                events.setActivePlayers({ currentPlayer: 'attack' })
+                G.turnStartTime = Date.now();
+                events.setActivePlayers({ 
+                  currentPlayer: 'attack',
+                  others: 'monitoringAttack'
+                });
+              },
+              
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK] GAME/reinforcement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.GAME_REINFORCEMENT) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.GAME_REINFORCEMENT/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] REINFORCEMENT scaduto per Player ${ctx.currentPlayer}!`);
+                
+                const troopsToPlace = G.reinforcementsToPlace[ctx.currentPlayer] || 0;
+                
+                if (troopsToPlace > 0) {
+                  console.log(`  ↳ Auto-piazzamento di ${troopsToPlace} truppe`);
+                  autoPlaceTroops(G, ctx, ctx.currentPlayer, troopsToPlace);
+                  G.reinforcementsToPlace[ctx.currentPlayer] = 0;
+                }
+                
+                G.turnStartTime = Date.now();
+                events.setActivePlayers({ all: 'attack' });
               },
             },
           },
@@ -681,7 +808,29 @@ const RiskGame = {
                 G.attackState = null;
                 G.battleResult = null;
                 console.log(`✅ [STAGE END] Passaggio a STRATEGIC_MOVEMENT`);
-                events.setActivePlayers({ currentPlayer: 'strategicMovement' });
+                G.turnStartTime = Date.now();
+                events.setActivePlayers({ 
+                  currentPlayer: 'strategicMovement',
+                  others: 'monitoringStrategicMovement'
+                });
+              },
+              
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK] GAME/attack - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.GAME_ATTACK) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.GAME_ATTACK/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] ATTACK scaduto per Player ${ctx.currentPlayer}!`);
+                console.log(`  ↳ Skip fase attacco`);
+                G.attackState = null;
+                G.battleResult = null;
+                
+                G.turnStartTime = Date.now();
+                events.setActivePlayers({ all: 'strategicMovement' });
               },
             },
           },
@@ -768,6 +917,99 @@ const RiskGame = {
               resetFortifySelection: ({ G }) => {
                 G.fortifyState = { from: null, to: null };
                 console.log(`🔄 [RESET] Selezione fortify resettata`);
+              },
+              
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK] GAME/strategicMovement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.GAME_STRATEGIC_MOVEMENT) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.GAME_STRATEGIC_MOVEMENT/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] STRATEGIC_MOVEMENT scaduto per Player ${ctx.currentPlayer}!`);
+                console.log(`  ↳ Skip spostamento strategico`);
+                G.fortifyState = null;
+                
+                events.endTurn();
+              },
+            },
+          },
+          
+          // ===== STAGE PARALLELI PER RIVALI (SOLO CHECKTIMEOUT) =====
+          
+          monitoringReinforcement: {
+            moves: {
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK RIVAL] GAME/reinforcement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.GAME_REINFORCEMENT) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.GAME_REINFORCEMENT/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] REINFORCEMENT scaduto per Player ${ctx.currentPlayer}!`);
+                
+                const troopsToPlace = G.reinforcementsToPlace[ctx.currentPlayer] || 0;
+                
+                if (troopsToPlace > 0) {
+                  console.log(`  ↳ Auto-piazzamento di ${troopsToPlace} truppe`);
+                  autoPlaceTroops(G, ctx, ctx.currentPlayer, troopsToPlace);
+                  G.reinforcementsToPlace[ctx.currentPlayer] = 0;
+                }
+                
+                G.turnStartTime = Date.now();
+                events.setActivePlayers({ 
+                  currentPlayer: 'attack',
+                  others: 'monitoringAttack'
+                });
+              },
+            },
+          },
+          
+          monitoringAttack: {
+            moves: {
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK RIVAL] GAME/attack - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.GAME_ATTACK) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.GAME_ATTACK/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] ATTACK scaduto per Player ${ctx.currentPlayer}!`);
+                console.log(`  ↳ Skip fase attacco`);
+                G.attackState = null;
+                G.battleResult = null;
+                
+                G.turnStartTime = Date.now();
+                events.setActivePlayers({ 
+                  currentPlayer: 'strategicMovement',
+                  others: 'monitoringStrategicMovement'
+                });
+              },
+            },
+          },
+          
+          monitoringStrategicMovement: {
+            moves: {
+              checkTimeout: ({ G, ctx, events }) => {
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK RIVAL] GAME/strategicMovement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.GAME_STRATEGIC_MOVEMENT) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.GAME_STRATEGIC_MOVEMENT/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] STRATEGIC_MOVEMENT scaduto per Player ${ctx.currentPlayer}!`);
+                console.log(`  ↳ Skip spostamento strategico`);
+                G.fortifyState = null;
+                
+                events.endTurn();
               },
             },
           },

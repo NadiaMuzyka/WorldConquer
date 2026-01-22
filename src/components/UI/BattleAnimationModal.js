@@ -32,12 +32,12 @@ export default function BattleAnimationModal({ onComplete }) {
   
   const battleResult = G?.battleResult;
 
-  // Passa direttamente al modal successivo dopo 8 secondi
+  // Passa direttamente al modal successivo dopo 3 secondi
   useEffect(() => {
     if (battleResult) {
       const timer = setTimeout(() => {
         if (onComplete) onComplete();
-      }, 8000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [battleResult, onComplete]);

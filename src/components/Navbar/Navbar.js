@@ -111,23 +111,33 @@ export const Navbar = ({
     return (
       <nav className={baseClasses}>
 
-        {/* 2. FASE + STAGE (Centro Assoluto) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <PhaseInfo phase={phase} stage={currentStage} />
-        </div>
+        {/* Layout a 3 colonne: Timer (sx) | PhaseInfo (centro) | Abbandona (dx) */}
+        <div className="flex items-center justify-between w-full h-full px-8">
+          
+          {/* 1. TIMER (Sinistra) */}
+          <div className="flex items-center">
+            <Timer />
+          </div>
 
-        {/* 3. BOTTONE ABBANDONA (Destra) */}
-        <div className="flex items-center justify-end w-full">
-          <Button
-            onClick={onLeave}
-            variant="cyan"
-            className="w-[160px] h-[34px] gap-2 uppercase group ml-auto"
-          >
-            <span>Abbandona</span>
-            <ArrowRight className="w-[32px] h-[32px] group-hover:translate-x-1 transition-transform"
-              style={{ minWidth: 28, minHeight: 28, width: 28, height: 28 }}
-            />
-          </Button>
+          {/* 2. FASE + STAGE (Centro Assoluto - mantiene il posizionamento esistente) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <PhaseInfo phase={phase} stage={currentStage} />
+          </div>
+
+          {/* 3. BOTTONE ABBANDONA (Destra) */}
+          <div className="flex items-center justify-end">
+            <Button
+              onClick={onLeave}
+              variant="cyan"
+              className="w-[160px] h-[34px] gap-2 uppercase group"
+            >
+              <span>Abbandona</span>
+              <ArrowRight className="w-[32px] h-[32px] group-hover:translate-x-1 transition-transform"
+                style={{ minWidth: 28, minHeight: 28, width: 28, height: 28 }}
+              />
+            </Button>
+          </div>
+        
         </div>
 
       </nav>

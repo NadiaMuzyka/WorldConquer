@@ -125,7 +125,19 @@ const assignSecretObjectives = (G, ctx) => {
 const checkVictoryCondition = (G, events) => {
   if (!G.players) return false;
   
+  // Controlla se tutti i giocatori hanno abbandonato
+  const totalPlayers = Object.keys(G.players).length;
+  const abandonedCount = Object.values(G.hasLeft || {}).filter(left => left === true).length;
+  
+  if (abandonedCount === totalPlayers - 1 ) {
+    console.log('🏁 [GAME END] Tutti i giocatori hanno abbandonato');
+    events.endGame({ draw: true, reason: 'Tutti i giocatori hanno abbandonato' });
+    return true;
+  }
+  
   for (const [playerID, playerData] of Object.entries(G.players)) {
+    // Skip giocatori che hanno abbandonato
+    if (G.hasLeft?.[playerID]) continue;
     if (!playerData.secretObjective) continue;
     
     const objective = playerData.secretObjective;
@@ -217,6 +229,7 @@ const RiskGame = {
       troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
       owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
       players,     // Oggetto segreto per player con obiettivi
+      hasLeft: {}, // Tracking giocatori che hanno abbandonato (playerID -> true)
     };
   },
 
@@ -379,7 +392,7 @@ const RiskGame = {
         order: TurnOrder.RESET, // Resetta l'ordine dei turni all'inizio della fase
         
         activePlayers: {
-          currentPlayer: { stage: null },  // Accede alle mosse di fase
+          currentPlayer: 'reinforcement',  // Stage per piazzare truppe
           others: 'monitoring'              // Solo checkTimeout
         },
         
@@ -388,6 +401,22 @@ const RiskGame = {
           G.turnPlacements = [];
           G.turnStartTime = Date.now();
           console.log(`🔄 [TURN START] Player ${ctx.currentPlayer} - Truppe rimanenti: ${G.reinforcementsRemaining[ctx.currentPlayer]}`);
+          console.log(`  ↳ activePlayers:`, JSON.stringify(ctx.activePlayers));
+          console.log(`  ↳ hasLeft:`, JSON.stringify(G.hasLeft));
+
+          // Auto-skip se il giocatore ha abbandonato
+          if (G.hasLeft?.[ctx.currentPlayer]) {
+            console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+            const remaining = G.reinforcementsRemaining[ctx.currentPlayer] || 0;
+            const toPlace = Math.min(3, remaining);
+            if (toPlace > 0) {
+              autoPlaceTroops(G, ctx, ctx.currentPlayer, toPlace);
+              G.reinforcementsRemaining[ctx.currentPlayer] -= toPlace;
+              console.log(`  ↳ Auto-piazzate ${toPlace} truppe`);
+            }
+            events.endTurn();
+            return;
+          }
 
           // Auto-skip se il giocatore non ha più truppe da piazzare
           if (G.reinforcementsRemaining[ctx.currentPlayer] === 0) {
@@ -397,9 +426,122 @@ const RiskGame = {
         },
         
         stages: {
-          monitoring: {
+          reinforcement: {
             moves: {
+              placeReinforcement: ({ G, ctx, playerID }, countryId) => {
+                const currentPlayer = String(playerID);
+
+                // Inizializza turnPlacements se non esiste
+                if (!G.turnPlacements) {
+                  G.turnPlacements = [];
+                }
+
+                // Validazione 1: Il territorio deve appartenere al giocatore
+                if (G.owners[countryId] !== currentPlayer) {
+                  console.warn(`❌ [INVALID] Player ${currentPlayer} non possiede ${countryId}`);
+                  return;
+                }
+
+                // Validazione 2: Il giocatore deve avere truppe rimanenti
+                if (G.reinforcementsRemaining[currentPlayer] <= 0) {
+                  console.warn(`❌ [INVALID] Player ${currentPlayer} non ha truppe rimanenti`);
+                  return;
+                }
+
+                // Validazione 3: Limite di 3 truppe per turno (o meno se ne rimangono meno)
+                const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[currentPlayer] + G.turnPlacements.length);
+                if (G.turnPlacements.length >= maxTroopsThisTurn) {
+                  console.warn(`❌ [INVALID] Player ${currentPlayer} ha già piazzato ${G.turnPlacements.length}/${maxTroopsThisTurn} truppe questo turno`);
+                  return;
+                }
+
+                // Aggiungi la truppa
+                G.troops[countryId] = (G.troops[countryId] || 0) + 1;
+                G.reinforcementsRemaining[currentPlayer] -= 1;
+                G.turnPlacements.push(countryId);
+
+                console.log(`✅ [PLACE] Player ${currentPlayer} piazza truppa in ${countryId} (${G.turnPlacements.length}/${maxTroopsThisTurn} questo turno, ${G.reinforcementsRemaining[currentPlayer]} rimanenti)`);
+              },
+
+              removeReinforcement: ({ G, ctx, playerID }, countryId) => {
+                const currentPlayer = String(playerID);
+
+                // Inizializza turnPlacements se non esiste
+                if (!G.turnPlacements) {
+                  G.turnPlacements = [];
+                }
+
+                // Validazione: Il territorio deve essere nei piazzamenti di questo turno
+                const index = G.turnPlacements.indexOf(countryId);
+                if (index === -1) {
+                  console.warn(`❌ [INVALID] ${countryId} non è stato piazzato in questo turno`);
+                  return;
+                }
+
+                // Rimuovi la truppa
+                G.troops[countryId] -= 1;
+                G.reinforcementsRemaining[currentPlayer] += 1;
+                G.turnPlacements.splice(index, 1);
+
+                console.log(`↩️ [REMOVE] Player ${currentPlayer} rimuove truppa da ${countryId} (${G.turnPlacements.length} piazzate questo turno, ${G.reinforcementsRemaining[currentPlayer]} rimanenti)`);
+              },
+
+              endPlayerTurn: ({ G, ctx, events, playerID }) => {
+                const currentPlayer = String(playerID);
+
+                // Inizializza turnPlacements se non esiste
+                if (!G.turnPlacements) {
+                  G.turnPlacements = [];
+                }
+
+                const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[currentPlayer] + G.turnPlacements.length);
+
+                // Validazione: Deve aver piazzato tutte le truppe del turno
+                if (G.turnPlacements.length < maxTroopsThisTurn) {
+                  console.warn(`❌ [INVALID] Player ${currentPlayer} deve piazzare ${maxTroopsThisTurn} truppe (ne ha piazzate ${G.turnPlacements.length})`);
+                  return;
+                }
+
+                console.log(`✅ [END TURN] Player ${currentPlayer} passa il turno`);
+                events.endTurn();
+              },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (INITIAL_REINFORCEMENT/reinforcement)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente, auto-piazza truppe e passa turno
+                if (ctx.currentPlayer === playerID) {
+                  const remaining = G.reinforcementsRemaining[playerID] || 0;
+                  const toPlace = Math.min(3, remaining);
+                  if (toPlace > 0) {
+                    autoPlaceTroops(G, ctx, playerID, toPlace);
+                    G.reinforcementsRemaining[playerID] -= toPlace;
+                    console.log(`  ↳ Auto-piazzate ${toPlace} truppe prima dell'uscita`);
+                  }
+                  G.turnPlacements = [];
+                  console.log(`  ↳ Chiamata events.endTurn()`);
+                  events.endTurn();
+                  return;
+                }
+              },
+              
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  const remaining = G.reinforcementsRemaining[ctx.currentPlayer] || 0;
+                  const toPlace = Math.min(3, remaining);
+                  if (toPlace > 0) {
+                    autoPlaceTroops(G, ctx, ctx.currentPlayer, toPlace);
+                    G.reinforcementsRemaining[ctx.currentPlayer] -= toPlace;
+                  }
+                  events.endTurn();
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK RIVAL] INITIAL_REINFORCEMENT - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -426,88 +568,74 @@ const RiskGame = {
                 events.endTurn();
               }
             }
+          },
+          
+          monitoring: {
+            moves: {
+              checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  const remaining = G.reinforcementsRemaining[ctx.currentPlayer] || 0;
+                  const toPlace = Math.min(3, remaining);
+                  if (toPlace > 0) {
+                    autoPlaceTroops(G, ctx, ctx.currentPlayer, toPlace);
+                    G.reinforcementsRemaining[ctx.currentPlayer] -= toPlace;
+                  }
+                  events.endTurn();
+                  return;
+                }
+                
+                const elapsed = Date.now() - (G.turnStartTime || Date.now());
+                console.log(`⏱️ [TIMEOUT CHECK RIVAL] INITIAL_REINFORCEMENT - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
+                
+                if (elapsed < PHASE_TIMEOUTS.INITIAL_REINFORCEMENT) {
+                  console.log(`⏱️ [TIMEOUT] Tempo non scaduto (${Math.floor(elapsed/1000)}s / ${PHASE_TIMEOUTS.INITIAL_REINFORCEMENT/1000}s)`);
+                  return;
+                }
+                
+                console.log(`⏰ [TIMEOUT] INITIAL_REINFORCEMENT scaduto per Player ${ctx.currentPlayer}!`);
+                
+                // Calcola quante truppe deve ancora piazzare in questo turno
+                const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[ctx.currentPlayer] + (G.turnPlacements?.length || 0));
+                const troopsToPlace = maxTroopsThisTurn - (G.turnPlacements?.length || 0);
+                
+                console.log(`  ↳ Truppe da piazzare questo turno: ${troopsToPlace}`);
+                
+                if (troopsToPlace > 0) {
+                  autoPlaceTroops(G, ctx, ctx.currentPlayer, troopsToPlace);
+                  
+                  // Aggiorna reinforcementsRemaining
+                  G.reinforcementsRemaining[ctx.currentPlayer] -= troopsToPlace;
+                }
+                
+                events.endTurn();
+              },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (INITIAL_REINFORCEMENT/monitoring)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente
+                if (ctx.currentPlayer === playerID) {
+                  const remaining = G.reinforcementsRemaining[playerID] || 0;
+                  const toPlace = Math.min(3, remaining);
+                  if (toPlace > 0) {
+                    autoPlaceTroops(G, ctx, playerID, toPlace);
+                    G.reinforcementsRemaining[playerID] -= toPlace;
+                    console.log(`  ↳ Auto-piazzate ${toPlace} truppe prima dell'uscita`);
+                  }
+                  G.turnPlacements = [];
+                  console.log(`  ↳ Chiamata events.endTurn()`);
+                  events.endTurn();
+                  return;
+                }
+              },
+            }
           }
         }
-      },
-
-      moves: {
-        placeReinforcement: ({ G, ctx, playerID }, countryId) => {
-          const currentPlayer = String(playerID);
-
-          // Inizializza turnPlacements se non esiste
-          if (!G.turnPlacements) {
-            G.turnPlacements = [];
-          }
-
-          // Validazione 1: Il territorio deve appartenere al giocatore
-          if (G.owners[countryId] !== currentPlayer) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} non possiede ${countryId}`);
-            return;
-          }
-
-          // Validazione 2: Il giocatore deve avere truppe rimanenti
-          if (G.reinforcementsRemaining[currentPlayer] <= 0) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} non ha truppe rimanenti`);
-            return;
-          }
-
-          // Validazione 3: Limite di 3 truppe per turno (o meno se ne rimangono meno)
-          const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[currentPlayer] + G.turnPlacements.length);
-          if (G.turnPlacements.length >= maxTroopsThisTurn) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} ha già piazzato ${G.turnPlacements.length}/${maxTroopsThisTurn} truppe questo turno`);
-            return;
-          }
-
-          // Aggiungi la truppa
-          G.troops[countryId] = (G.troops[countryId] || 0) + 1;
-          G.reinforcementsRemaining[currentPlayer] -= 1;
-          G.turnPlacements.push(countryId);
-
-          console.log(`✅ [PLACE] Player ${currentPlayer} piazza truppa in ${countryId} (${G.turnPlacements.length}/${maxTroopsThisTurn} questo turno, ${G.reinforcementsRemaining[currentPlayer]} rimanenti)`);
-        },
-
-        removeReinforcement: ({ G, ctx, playerID }, countryId) => {
-          const currentPlayer = String(playerID);
-
-          // Inizializza turnPlacements se non esiste
-          if (!G.turnPlacements) {
-            G.turnPlacements = [];
-          }
-
-          // Validazione: Il territorio deve essere nei piazzamenti di questo turno
-          const index = G.turnPlacements.indexOf(countryId);
-          if (index === -1) {
-            console.warn(`❌ [INVALID] ${countryId} non è stato piazzato in questo turno`);
-            return;
-          }
-
-          // Rimuovi la truppa
-          G.troops[countryId] -= 1;
-          G.reinforcementsRemaining[currentPlayer] += 1;
-          G.turnPlacements.splice(index, 1);
-
-          console.log(`↩️ [REMOVE] Player ${currentPlayer} rimuove truppa da ${countryId} (${G.turnPlacements.length} piazzate questo turno, ${G.reinforcementsRemaining[currentPlayer]} rimanenti)`);
-        },
-
-        endPlayerTurn: ({ G, ctx, events, playerID }) => {
-          const currentPlayer = String(playerID);
-
-          // Inizializza turnPlacements se non esiste
-          if (!G.turnPlacements) {
-            G.turnPlacements = [];
-          }
-
-          const maxTroopsThisTurn = Math.min(3, G.reinforcementsRemaining[currentPlayer] + G.turnPlacements.length);
-
-          // Validazione: Deve aver piazzato tutte le truppe del turno
-          if (G.turnPlacements.length < maxTroopsThisTurn) {
-            console.warn(`❌ [INVALID] Player ${currentPlayer} deve piazzare ${maxTroopsThisTurn} truppe (ne ha piazzate ${G.turnPlacements.length})`);
-            return;
-          }
-
-          console.log(`✅ [END TURN] Player ${currentPlayer} passa il turno`);
-          events.endTurn();
-        },
       },
     },
 
@@ -564,6 +692,16 @@ const RiskGame = {
           G.reinforcementsToPlace[currentPlayer] = reinforcements;
           
           console.log(`🎖️ [REINFORCEMENTS] Player ${currentPlayer} riceve ${reinforcements} truppe`);
+          
+          // Auto-skip se il giocatore ha abbandonato
+          if (G.hasLeft?.[currentPlayer]) {
+            console.log(`🚪 [AUTO-SKIP LEFT] Player ${currentPlayer} ha abbandonato, skip turno completo`);
+            autoPlaceTroops(G, ctx, currentPlayer, reinforcements);
+            G.reinforcementsToPlace[currentPlayer] = 0;
+            console.log(`  ↳ Auto-piazzate ${reinforcements} truppe`);
+            events.endTurn();
+            return;
+          }
           
           // Setta currentPlayer in reinforcement, others in monitoringReinforcement
           events.setActivePlayers({ 
@@ -640,6 +778,22 @@ const RiskGame = {
               },
               
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  const troopsToPlace = G.reinforcementsToPlace[ctx.currentPlayer] || 0;
+                  if (troopsToPlace > 0) {
+                    autoPlaceTroops(G, ctx, ctx.currentPlayer, troopsToPlace);
+                    G.reinforcementsToPlace[ctx.currentPlayer] = 0;
+                  }
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'attack',
+                    others: 'monitoringAttack'
+                  });
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK] GAME/reinforcement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -816,6 +970,19 @@ const RiskGame = {
               },
               
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  G.attackState = null;
+                  G.battleResult = null;
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'strategicMovement',
+                    others: 'monitoringStrategicMovement'
+                  });
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK] GAME/attack - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -830,7 +997,28 @@ const RiskGame = {
                 G.battleResult = null;
                 
                 G.turnStartTime = Date.now();
-                events.setActivePlayers({ all: 'strategicMovement' });
+                events.setActivePlayers({ 
+                  currentPlayer: 'strategicMovement',
+                  others: 'monitoringStrategicMovement'
+                });
+              },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/attack)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente
+                if (ctx.currentPlayer === playerID) {
+                  G.attackState = null;
+                  G.battleResult = null;
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'strategicMovement',
+                    others: 'monitoringStrategicMovement'
+                  });
+                }
               },
             },
           },
@@ -920,6 +1108,14 @@ const RiskGame = {
               },
               
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  G.fortifyState = null;
+                  events.endTurn();
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK] GAME/strategicMovement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -934,6 +1130,19 @@ const RiskGame = {
                 
                 events.endTurn();
               },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/strategicMovement)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente
+                if (ctx.currentPlayer === playerID) {
+                  G.fortifyState = null;
+                  events.endTurn();
+                }
+              },
             },
           },
           
@@ -942,6 +1151,22 @@ const RiskGame = {
           monitoringReinforcement: {
             moves: {
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  const troopsToPlace = G.reinforcementsToPlace[ctx.currentPlayer] || 0;
+                  if (troopsToPlace > 0) {
+                    autoPlaceTroops(G, ctx, ctx.currentPlayer, troopsToPlace);
+                    G.reinforcementsToPlace[ctx.currentPlayer] = 0;
+                  }
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'attack',
+                    others: 'monitoringAttack'
+                  });
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK RIVAL] GAME/reinforcement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -966,12 +1191,48 @@ const RiskGame = {
                   others: 'monitoringAttack'
                 });
               },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/monitoringReinforcement)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente
+                if (ctx.currentPlayer === playerID) {
+                  const troopsToPlace = G.reinforcementsToPlace[playerID] || 0;
+                  if (troopsToPlace > 0) {
+                    autoPlaceTroops(G, ctx, playerID, troopsToPlace);
+                    G.reinforcementsToPlace[playerID] = 0;
+                    console.log(`  ↳ Auto-piazzate ${troopsToPlace} truppe prima dell'uscita`);
+                  }
+                  G.turnPlacements = [];
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'attack',
+                    others: 'monitoringAttack'
+                  });
+                }
+              },
             },
           },
           
           monitoringAttack: {
             moves: {
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  G.attackState = null;
+                  G.battleResult = null;
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'strategicMovement',
+                    others: 'monitoringStrategicMovement'
+                  });
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK RIVAL] GAME/attack - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -991,12 +1252,38 @@ const RiskGame = {
                   others: 'monitoringStrategicMovement'
                 });
               },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/monitoringAttack)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente
+                if (ctx.currentPlayer === playerID) {
+                  G.attackState = null;
+                  G.battleResult = null;
+                  G.turnStartTime = Date.now();
+                  events.setActivePlayers({ 
+                    currentPlayer: 'strategicMovement',
+                    others: 'monitoringStrategicMovement'
+                  });
+                }
+              },
             },
           },
           
           monitoringStrategicMovement: {
             moves: {
               checkTimeout: ({ G, ctx, events }) => {
+                // Auto-skip immediato se giocatore ha abbandonato
+                if (G.hasLeft?.[ctx.currentPlayer]) {
+                  console.log(`🚪 [AUTO-SKIP LEFT] Player ${ctx.currentPlayer} ha abbandonato`);
+                  G.fortifyState = null;
+                  events.endTurn();
+                  return;
+                }
+                
                 const elapsed = Date.now() - (G.turnStartTime || Date.now());
                 console.log(`⏱️ [TIMEOUT CHECK RIVAL] GAME/strategicMovement - Player ${ctx.currentPlayer} - Elapsed: ${Math.floor(elapsed/1000)}s`);
                 
@@ -1010,6 +1297,19 @@ const RiskGame = {
                 G.fortifyState = null;
                 
                 events.endTurn();
+              },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/monitoringStrategicMovement)`);
+                
+                if (!G.hasLeft) G.hasLeft = {};
+                G.hasLeft[playerID] = true;
+                
+                // Se è il turno del giocatore uscente
+                if (ctx.currentPlayer === playerID) {
+                  G.fortifyState = null;
+                  events.endTurn();
+                }
               },
             },
           },

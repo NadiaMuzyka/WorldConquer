@@ -136,8 +136,8 @@ export default function PlayerBar() {
                         const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
                         const nickname = player?.name || `Player${parseInt(id) + 1}`;
                         
-                        // Verifica se il player è un bot (ctx.hasLeft = true)
-                        const isBot = ctx.hasLeft?.[id] === true;
+                        // Verifica se il player ha abbandonato (G.hasLeft = true)
+                        const isBot = G.hasLeft?.[id] === true;
                         
                         return (
                             <div key={index} className="relative">

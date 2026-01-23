@@ -54,6 +54,15 @@ function RiskBoardContent() {
   // Recupera l'obiettivo segreto dal G
   const secretObjective = G?.players?.[playerID]?.secretObjective?.description || null;
 
+  // Redirect automatico se il giocatore ha abbandonato (dopo refresh)
+  React.useEffect(() => {
+    if (G?.hasLeft?.[playerID]) {
+      console.log('[RISKBOARD] Giocatore ha abbandonato, redirect alla lobby');
+      dispatch(clearMatchData());
+      navigate('/lobby', { replace: true });
+    }
+  }, [G?.hasLeft, playerID, dispatch, navigate]);
+
   // Verifica se è il turno del giocatore corrente
   const isMyTurn = ctx?.currentPlayer === playerID;
 
@@ -133,59 +142,28 @@ function RiskBoardContent() {
   
   // Handler per conferma uscita
   const handleConfirmExit = async () => {
-    console.log('[RISKBOARD] Uscita confermata - chiamo BoardGame.io leave');
+    console.log('[RISKBOARD] Uscita confermata - imposto hasLeft e reindirizzo');
     
-    // Ottieni matchID da useParams
-    if (!matchId) {
-      console.error('[RISKBOARD] MatchID non trovato in URL');
-      dispatch(clearMatchData());
-      navigate('/lobby', { replace: true });
-      return;
+    // Chiama move leaveMatch per impostare G.hasLeft[playerID] = true
+    if (moves?.leaveMatch) {
+      try {
+        moves.leaveMatch();
+        console.log('[RISKBOARD] leaveMatch chiamato con successo');
+        
+        // Attendi propagazione dello stato
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error('[RISKBOARD] Errore chiamata leaveMatch:', error);
+      }
+    } else {
+      console.warn('[RISKBOARD] moves.leaveMatch non disponibile');
     }
     
-    console.log(`[RISKBOARD] MatchID da URL: ${matchId}`);
-    
-    try {
-      // Recupera credentials da sessionStorage (salvate da WaitingPage)
-      const credentialsKey = `credentials_${matchId}_${playerID}`;
-      const credentials = sessionStorage.getItem(credentialsKey);
-      
-      if (!credentials) {
-        console.warn('[RISKBOARD] Credentials non trovate in sessionStorage');
-      }
-      
-      console.log(`[RISKBOARD] Chiamata leave per match ${matchId}, player ${playerID}`);
-      
-      // Usa l'endpoint nativo di BoardGame.io per leave
-      const response = await fetch(`http://localhost:8000/games/risk/${matchId}/leave`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          playerID: playerID,
-          credentials: credentials || 'fallback-credentials',
-        }),
-      });
-      
-      if (!response.ok) {
-        console.error('[RISKBOARD] Errore leave:', await response.text());
-      } else {
-        console.log('[RISKBOARD] Leave completato con successo');
-        // Rimuovi credentials dopo leave
-        sessionStorage.removeItem(credentialsKey);
-      }
-      
-    } catch (error) {
-      console.error('[RISKBOARD] Errore chiamata leave:', error);
-    }
-    
-    // Cleanup e naviga alla lobby
+    // Redirect alla lobby preservando metadata/credentials per refresh
     dispatch(clearMatchData());
     navigate('/lobby', { replace: true });
   };
   
-  // Handler per annullare uscita
   const handleCancelExit = () => {
     console.log('[RISKBOARD] Uscita annullata');
     setShowExitModal(false);

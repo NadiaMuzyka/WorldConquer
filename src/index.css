@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply font-sans;
+    @apply bg-[#173C55];
   }
 
     /* Fix autofill browser - mantiene colori originali */

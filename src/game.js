@@ -36,6 +36,50 @@ const autoPlaceTroops = (G, ctx, playerID, count) => {
   }
 };
 
+// Funzione helper per gestire l'uscita di un giocatore (volontaria o disconnessione)
+// IDEMPOTENTE: Se il giocatore ha già abbandonato, non fa nulla
+const handlePlayerExit = (G, ctx, events, playerID, reason = 'leave') => {
+  // CONTROLLO IDEMPOTENZA: se il giocatore ha già abbandonato, ritorna subito
+  if (!G.hasLeft) G.hasLeft = {};
+  if (G.hasLeft[playerID] === true) {
+    console.log(`⚠️ [EXIT-SKIP] Player ${playerID} ha già abbandonato - skip duplicato`);
+    return;
+  }
+
+  console.log(`🚪 [EXIT] Player ${playerID} abbandona (reason: ${reason})`);
+  
+  // Segna il giocatore come uscito
+  G.hasLeft[playerID] = true;
+  
+  // Se è il turno del giocatore uscente, auto-completa le azioni e passa il turno
+  if (ctx.currentPlayer === playerID) {
+    console.log(`  ↳ Auto-completamento turno per player ${playerID}`);
+    
+    // Auto-piazza truppe se siamo in fase di rinforzo
+    if (ctx.phase === 'INITIAL_REINFORCEMENT') {
+      const remaining = G.reinforcementsRemaining?.[playerID] || 0;
+      const toPlace = Math.min(3, remaining);
+      if (toPlace > 0) {
+        autoPlaceTroops(G, ctx, playerID, toPlace);
+        G.reinforcementsRemaining[playerID] -= toPlace;
+        console.log(`    ↳ Auto-piazzate ${toPlace} truppe`);
+      }
+      G.turnPlacements = [];
+    } else if (ctx.phase === 'GAME') {
+      // In fase GAME, auto-piazza eventuali rinforzi rimanenti
+      const reinforcements = G.reinforcementsToPlace?.[playerID] || 0;
+      if (reinforcements > 0) {
+        autoPlaceTroops(G, ctx, playerID, reinforcements);
+        G.reinforcementsToPlace[playerID] = 0;
+        console.log(`    ↳ Auto-piazzati ${reinforcements} rinforzi`);
+      }
+    }
+    
+    console.log(`  ↳ Chiamata events.endTurn()`);
+    events.endTurn();
+  }
+};
+
 // Funzione per assegnare obiettivi segreti ai giocatori
 const assignSecretObjectives = (G, ctx) => {
   const numPlayers = ctx.numPlayers;
@@ -219,17 +263,20 @@ const RiskGame = {
   // 1. SETUP: Inizializziamo truppe e proprietari vuoti
   setup: ({ ctx }) => {
     const players = {};
+    const hasLeft = {};
     for (let i = 0; i < ctx.numPlayers; i++) {
-      players[String(i)] = {
+      const playerId = String(i);
+      players[playerId] = {
         secretObjective: null,
       };
+      hasLeft[playerId] = false; // Inizializza esplicitamente a false
     }
     
     return {
       troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
       owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
       players,     // Oggetto segreto per player con obiettivi
-      hasLeft: {}, // Tracking giocatori che hanno abbandonato (playerID -> true)
+      hasLeft,     // Tracking giocatori che hanno abbandonato (playerID -> false/true)
     };
   },
 
@@ -507,25 +554,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (INITIAL_REINFORCEMENT/reinforcement)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente, auto-piazza truppe e passa turno
-                if (ctx.currentPlayer === playerID) {
-                  const remaining = G.reinforcementsRemaining[playerID] || 0;
-                  const toPlace = Math.min(3, remaining);
-                  if (toPlace > 0) {
-                    autoPlaceTroops(G, ctx, playerID, toPlace);
-                    G.reinforcementsRemaining[playerID] -= toPlace;
-                    console.log(`  ↳ Auto-piazzate ${toPlace} truppe prima dell'uscita`);
-                  }
-                  G.turnPlacements = [];
-                  console.log(`  ↳ Chiamata events.endTurn()`);
-                  events.endTurn();
-                  return;
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
               
               checkTimeout: ({ G, ctx, events }) => {
@@ -613,25 +647,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (INITIAL_REINFORCEMENT/monitoring)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente
-                if (ctx.currentPlayer === playerID) {
-                  const remaining = G.reinforcementsRemaining[playerID] || 0;
-                  const toPlace = Math.min(3, remaining);
-                  if (toPlace > 0) {
-                    autoPlaceTroops(G, ctx, playerID, toPlace);
-                    G.reinforcementsRemaining[playerID] -= toPlace;
-                    console.log(`  ↳ Auto-piazzate ${toPlace} truppe prima dell'uscita`);
-                  }
-                  G.turnPlacements = [];
-                  console.log(`  ↳ Chiamata events.endTurn()`);
-                  events.endTurn();
-                  return;
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
             }
           }
@@ -1004,21 +1025,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/attack)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente
-                if (ctx.currentPlayer === playerID) {
-                  G.attackState = null;
-                  G.battleResult = null;
-                  G.turnStartTime = Date.now();
-                  events.setActivePlayers({ 
-                    currentPlayer: 'strategicMovement',
-                    others: 'monitoringStrategicMovement'
-                  });
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
             },
           },
@@ -1132,16 +1144,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/strategicMovement)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente
-                if (ctx.currentPlayer === playerID) {
-                  G.fortifyState = null;
-                  events.endTurn();
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
             },
           },
@@ -1193,26 +1201,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/monitoringReinforcement)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente
-                if (ctx.currentPlayer === playerID) {
-                  const troopsToPlace = G.reinforcementsToPlace[playerID] || 0;
-                  if (troopsToPlace > 0) {
-                    autoPlaceTroops(G, ctx, playerID, troopsToPlace);
-                    G.reinforcementsToPlace[playerID] = 0;
-                    console.log(`  ↳ Auto-piazzate ${troopsToPlace} truppe prima dell'uscita`);
-                  }
-                  G.turnPlacements = [];
-                  G.turnStartTime = Date.now();
-                  events.setActivePlayers({ 
-                    currentPlayer: 'attack',
-                    others: 'monitoringAttack'
-                  });
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
             },
           },
@@ -1254,21 +1248,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/monitoringAttack)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente
-                if (ctx.currentPlayer === playerID) {
-                  G.attackState = null;
-                  G.battleResult = null;
-                  G.turnStartTime = Date.now();
-                  events.setActivePlayers({ 
-                    currentPlayer: 'strategicMovement',
-                    others: 'monitoringStrategicMovement'
-                  });
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
             },
           },
@@ -1300,16 +1285,12 @@ const RiskGame = {
               },
               
               leaveMatch: ({ G, ctx, playerID, events }) => {
-                console.log(`🚪 [LEAVE] Player ${playerID} abbandona la partita (GAME/monitoringStrategicMovement)`);
-                
-                if (!G.hasLeft) G.hasLeft = {};
-                G.hasLeft[playerID] = true;
-                
-                // Se è il turno del giocatore uscente
-                if (ctx.currentPlayer === playerID) {
-                  G.fortifyState = null;
-                  events.endTurn();
-                }
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
+              
+              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
+                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
               },
             },
           },

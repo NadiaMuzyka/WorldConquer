@@ -18,6 +18,10 @@ import { Trophy } from 'lucide-react';
 import Avatar from './components/UI/Avatar';
 import Modal from './components/UI/Modal';
 import Button from './components/UI/Button';
+import ConnectionGuardian from './components/ConnectionGuardian';
+import { setUserOffline } from './firebase/presence';
+import { useUserPresence } from './hooks/useUserPresence';
+import { getGameUser } from './utils/getUser';
 
 function RiskBoardContent() {
   const { ctx, G, moves, playerID } = useRisk();
@@ -53,6 +57,24 @@ function RiskBoardContent() {
   
   // Recupera l'obiettivo segreto dal G
   const secretObjective = G?.players?.[playerID]?.secretObjective?.description || null;
+
+  // Stato per l'utente autenticato
+  const [currentUser, setCurrentUser] = React.useState(null);
+
+  // Ascolta lo stato di autenticazione
+  React.useEffect(() => {
+    const user = getGameUser();
+    console.log('🛡️ [AUTH] Utente recuperato:', user?.uid || 'null');
+    setCurrentUser(user);
+  }, []);
+
+  // Inizializza Firebase Presence usando l'hook dedicato
+  useUserPresence(currentUser, {
+    currentMatchId: matchId,
+    playerID: playerID,
+    username: nickname,
+    photoURL: avatarUrl
+  });
 
   // Redirect automatico se il giocatore ha abbandonato (dopo refresh)
   React.useEffect(() => {
@@ -144,6 +166,12 @@ function RiskBoardContent() {
   const handleConfirmExit = async () => {
     console.log('[RISKBOARD] Uscita confermata - imposto hasLeft e reindirizzo');
     
+    // Imposta manualmente lo stato offline su Firebase prima di uscire
+    if (currentUser?.uid) {
+      console.log('🛡️ [PRESENCE] Imposto manualmente offline prima dell\'uscita');
+      await setUserOffline(currentUser.uid);
+    }
+    
     // Chiama move leaveMatch per impostare G.hasLeft[playerID] = true
     if (moves?.leaveMatch) {
       try {
@@ -194,6 +222,14 @@ function RiskBoardContent() {
         />
       </div>
 
+      {/* CONNECTION GUARDIAN - Monitora disconnessioni giocatori */}
+      <ConnectionGuardian 
+        ctx={ctx} 
+        moves={moves} 
+        playerID={playerID} 
+        G={G}
+      />
+
       {/*Layout standard full-width per altre fasi*/}
       <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-180px)] mt-20">
         <div className="w-full h-full lg:max-w-[65%] mx-auto flex items-center justify-center p-4 mt-6">
@@ -227,9 +263,9 @@ function RiskBoardContent() {
                 <span className="text-base font-bold text-[#1B2227]">
                   {isSetupPhase && 'Ti sono stati assegnati i seguenti territori'}
                   {isReinforcementPhase && 'Posiziona le tue truppe iniziali'}
-                  {isGamePhase && currentStage == 'reinforcement' &&  'Posiziona le tue truppe di rinforzo'}
-                  {isGamePhase && currentStage == 'attack' &&  'Attacca i territori avversari'}
-                  {isGamePhase && currentStage == 'strategicMovement' &&  'Sposta le tue truppe'}
+                  {isGamePhase && currentStage === 'reinforcement' &&  'Posiziona le tue truppe di rinforzo'}
+                  {isGamePhase && currentStage === 'attack' &&  'Attacca i territori avversari'}
+                  {isGamePhase && currentStage === 'strategicMovement' &&  'Sposta le tue truppe'}
                   {!isSetupPhase && !isReinforcementPhase && !isGamePhase && 'In attesa...'}
                 </span>
               </Card>

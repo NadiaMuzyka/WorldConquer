@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { subscribeToMatch, clearMatchData } from '../store/slices/matchSlice';
@@ -13,8 +13,58 @@ const GamePage = () => {
   // LEGGI DATI MATCH DA REDUX
   const { data: matchData } = useSelector((state) => state.match || { data: null }); 
 
-  const playerID = location.state?.playerID; 
-  const credentials = location.state?.credentials; 
+  // PERSISTENZA CREDENZIALI: useMemo per inizializzare playerID e credentials
+  // Controlla prima location.state, poi recupera da sessionStorage se mancanti
+  const playerID = useMemo(() => {
+    if (location.state?.playerID) {
+      return location.state.playerID;
+    }
+    // Recupera da sessionStorage
+    const storageKey = `risk_match_creds_${matchId}`;
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed.playerID;
+      } catch (e) {
+        console.error('[GAMEPAGE] Errore parsing sessionStorage:', e);
+        return null;
+      }
+    }
+    return null;
+  }, [matchId, location.state?.playerID]);
+
+  const credentials = useMemo(() => {
+    if (location.state?.credentials) {
+      return location.state.credentials;
+    }
+    // Recupera da sessionStorage
+    const storageKey = `risk_match_creds_${matchId}`;
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed.credentials;
+      } catch (e) {
+        console.error('[GAMEPAGE] Errore parsing sessionStorage:', e);
+        return null;
+      }
+    }
+    return null;
+  }, [matchId, location.state?.credentials]);
+
+  // Salva le credenziali in sessionStorage quando disponibili da location.state
+  useEffect(() => {
+    if (location.state?.playerID && location.state?.credentials && matchId) {
+      const storageKey = `risk_match_creds_${matchId}`;
+      const data = {
+        playerID: location.state.playerID,
+        credentials: location.state.credentials
+      };
+      sessionStorage.setItem(storageKey, JSON.stringify(data));
+      console.log('[GAMEPAGE] Credenziali salvate in sessionStorage');
+    }
+  }, [matchId, location.state?.playerID, location.state?.credentials]); 
 
   // Inizializza Redux con i dati passati da WaitingPage (evita race condition)
   useEffect(() => {

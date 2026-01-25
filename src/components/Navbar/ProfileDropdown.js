@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, LogOut, Loader2 } from 'lucide-react';
+import { User, LogOut, Loader2, BarChart2 } from 'lucide-react';
 import DropdownMenuItem from '../UI/DropdownItem';
 import Avatar from '../UI/Avatar';
 
@@ -11,7 +11,7 @@ import Avatar from '../UI/Avatar';
  * @param {Function} props.onProfileClick - Callback per il click su "Profilo"
  * @param {Function} props.onLogoutClick - Callback per il click su "Logout"
  */
-const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onLogoutClick }) => {
+const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onStatsClick, onLogoutClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -67,6 +67,17 @@ const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onLogou
             variant="default"
             onClick={() => {
               onProfileClick();
+              setIsOpen(false);
+            }}
+          />
+
+          {/* Menu Item: Statistiche */}
+          <DropdownMenuItem
+            icon={BarChart2}
+            label="Statistiche"
+            variant="default"
+            onClick={() => {
+              if (onStatsClick) onStatsClick();
               setIsOpen(false);
             }}
           />

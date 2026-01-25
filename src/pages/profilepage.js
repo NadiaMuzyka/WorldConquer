@@ -346,10 +346,6 @@ const ProfilePage = () => {
                             <Card className="text-center sticky top-24">
                             <Avatar
                                 src={userData.photoURL}
-                                alt={userData.nickname}
-                                firstName={userData.firstName}
-                                lastName={userData.lastName}
-                                nickname={userData.nickname}
                                 size="lg"
                                 className="mb-4"
                             />

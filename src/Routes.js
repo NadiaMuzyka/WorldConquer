@@ -13,6 +13,8 @@ import RegistrationPage from "./pages/registrationpage";
 import CompleteProfilePage from "./pages/completeprofilepage";
 import ErrorPage from "./pages/errorpage";
 import ProfilePage from "./pages/profilepage";
+import StatsPage from "./pages/statspage";
+
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -37,6 +39,11 @@ const router = createBrowserRouter([
     element: <HomePage />,
     loader: lobbyAuthLoader,
     loadingElement: <Spinner />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/stats",
+    element: <StatsPage />,
     errorElement: <ErrorPage />,
   },
 

@@ -158,6 +158,7 @@ export const Navbar = ({
             avatarUrl={displayAvatar}
             isLoading={isLoading}
             onProfileClick={() => navigate('/profile')}
+            onStatsClick={() => navigate('/stats')}
             onLogoutClick={handleLogout}
           />
         </div>

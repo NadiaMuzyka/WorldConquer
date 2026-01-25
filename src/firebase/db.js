@@ -1,3 +1,4 @@
+
 // src/firebase/db.js
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
 import { app, auth } from "./firebaseConfig";
@@ -433,4 +434,48 @@ export const deleteUserAccount = async () => {
   }
 };
 
+  // ===========================================================================
+  // STATISTICHE PARTITE
+  // ===========================================================================
+
+/**
+ * Recupera tutte le partite FINISHED dove l'utente ha partecipato
+ * @param {string} uid - ID Firebase dell'utente
+ * @returns {Promise<Array>} Lista partite
+ */
+export const getUserFinishedMatches = async (uid) => {
+  try {
+    const matchesCol = collection(db, "matches");
+    // Prende solo le partite FINISHED
+    const q = query(matchesCol, where("status", "==", "FINISHED"));
+    const querySnapshot = await getDocs(q);
+    // Filtra solo quelle dove l'utente è tra i players
+    const matches = querySnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(match => Array.isArray(match.players) && match.players.some(p => p && (p.uid === uid || p.id === uid || p.name === uid)));
+    return matches;
+  } catch (error) {
+    console.error('Errore getUserFinishedMatches:', error);
+    return [];
+  }
+};
+
+/**
+ * Recupera tutte le partite FINISHED (per statistiche globali)
+ * @returns {Promise<Array>} Lista partite
+ */
+export const getAllFinishedMatches = async () => {
+  try {
+    const matchesCol = collection(db, "matches");
+    const q = query(matchesCol, where("status", "==", "FINISHED"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Errore getAllFinishedMatches:', error);
+    return [];
+  }
+};
+
 export default db;
+
+

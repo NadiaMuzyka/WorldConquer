@@ -1,46 +1,49 @@
 // src/components/ConnectionGuardian.js
 import { useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
-import { watchUserPresence } from '../firebase/presence';
+import { watchHeartbeat } from '../firebase/presence';
 
 /**
- * ConnectionGuardian - Monitora la presenza del giocatore di turno
+ * ConnectionGuardian - Monitora l'heartbeat del giocatore di turno (Logica "Sceriffo")
  * 
- * Questo componente sorveglia lo stato di presenza (online/offline) del giocatore
- * che ha il turno corrente. Se il giocatore va offline, avvia un timer di 15 secondi.
- * Se il timer scade e il giocatore è ancora offline, chiama automaticamente
- * moves.reportPlayerDisconnected per gestire la disconnessione.
+ * Sistema di monitoraggio distribuito dove SOLO il giocatore successivo nella sequenza
+ * di gioco sorveglia quello corrente.
  * 
- * @param {Object} props
- * @param {Object} props.ctx - Contesto Boardgame.io (per currentPlayer)
- * @param {Object} props.moves - Moves Boardgame.io (per reportPlayerDisconnected)
- * @param {string} props.playerID - ID del giocatore corrente (per evitare self-monitoring)
+ * Usa un sistema di heartbeat (ping ogni 3s) per rilevare disconnessioni.
+ * Se l'heartbeat è più vecchio di 7 secondi, considera il giocatore disconnesso
+ * e chiama moves.reportPlayerDisconnected.
+ * 
+ * @param {Object} props.ctx - Contesto boardgame.io (playOrder, playOrderPos, currentPlayer)
+ * @param {Object} props.moves - Moves boardgame.io (per reportPlayerDisconnected)
+ * @param {string} props.playerID - ID del giocatore corrente (per determinare se sono il guardiano)
  * @param {Object} props.G - Game state (per accedere a hasLeft)
+ * @param {string} props.matchID - ID della partita
  */
-const ConnectionGuardian = ({ ctx, moves, playerID, G }) => {
+const ConnectionGuardian = ({ ctx, moves, playerID, G, matchID }) => {
   const disconnectTimerRef = useRef(null);
-  const currentPlayerUidRef = useRef(null);
   
-  // Ottieni i dati del match da Redux per mappare playerID -> UID
-  const matchData = useSelector((state) => state.match?.data);
-
-  console.log(`🛡️ [GUARDIAN] 🔄 Render - currentPlayer: ${ctx?.currentPlayer}, myPlayer: ${playerID}`);
-
   useEffect(() => {
-    console.log(`🛡️ [GUARDIAN] useEffect triggered - currentPlayer: ${ctx?.currentPlayer}, myPlayerID: ${playerID}`);
-    
-    // Se non abbiamo i dati necessari, non facciamo nulla
-    if (!ctx?.currentPlayer || !matchData?.players || !moves?.reportPlayerDisconnected) {
-      console.warn(`⚠️ [GUARDIAN] Dati mancanti - ctx.currentPlayer: ${!!ctx?.currentPlayer}, matchData.players: ${!!matchData?.players}, moves.reportPlayerDisconnected: ${!!moves?.reportPlayerDisconnected}`);
+    // Validazione dati necessari
+    if (!ctx?.currentPlayer || !ctx?.playOrder || !moves?.reportPlayerDisconnected || !matchID) {
       return;
     }
 
     const currentPlayerID = ctx.currentPlayer;
 
-    // NON monitorare noi stessi
+    // Logica "Sceriffo" - Solo il prossimo giocatore monitora
+    const nextPlayerPos = (ctx.playOrderPos + 1) % ctx.playOrder.length;
+    const nextPlayerID = ctx.playOrder[nextPlayerPos];
+    
+    // Se IO non sono il prossimo giocatore, NON devo monitorare
+    if (String(playerID) !== String(nextPlayerID)) {
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Non monitorare noi stessi (non dovrebbe mai accadere con la logica dello sceriffo)
     if (currentPlayerID === playerID) {
-      console.log(`🛡️ [GUARDIAN] Skip monitoring - è il mio turno (Player ${playerID})`);
-      // Pulizia eventuale timer se avevamo monitorato qualcun altro prima
       if (disconnectTimerRef.current) {
         clearTimeout(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
@@ -48,11 +51,8 @@ const ConnectionGuardian = ({ ctx, moves, playerID, G }) => {
       return;
     }
 
-    // NON monitorare giocatori che hanno già abbandonato
-    // Usa una snapshot del valore hasLeft invece di G come dipendenza
-    const hasLeftSnapshot = G?.hasLeft?.[currentPlayerID];
-    if (hasLeftSnapshot === true) {
-      console.log(`🛡️ [GUARDIAN] Player ${currentPlayerID} ha già abbandonato - skip monitoring`);
+    // Non monitorare giocatori che hanno già abbandonato
+    if (G?.hasLeft?.[currentPlayerID] === true) {
       if (disconnectTimerRef.current) {
         clearTimeout(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
@@ -60,97 +60,43 @@ const ConnectionGuardian = ({ ctx, moves, playerID, G }) => {
       return;
     }
 
-    // Trova l'UID del giocatore di turno
-    const currentPlayerData = matchData.players.find(
-      (p) => String(p.id) === String(currentPlayerID)
-    );
-
-    if (!currentPlayerData?.uid) {
-      console.warn(`⚠️ [GUARDIAN] UID non trovato per player ${currentPlayerID}`, matchData.players);
-      return;
-    }
-
-    const currentPlayerUid = currentPlayerData.uid;
-    currentPlayerUidRef.current = currentPlayerUid;
-
-    console.log(`🛡️ [GUARDIAN] ✅ Inizio monitoraggio presenza di Player ${currentPlayerID} (UID: ${currentPlayerUid})`);
-
-    // Callback per gestire i cambiamenti di presenza
-    const handlePresenceChange = (presenceData) => {
-      const { state, lastSeen } = presenceData;
-
-      console.log(`🛡️ [GUARDIAN] 📡 Presenza Player ${currentPlayerID} (UID: ${currentPlayerUid}): ${state}`, { lastSeen, presenceData });
-
-      if (state === 'offline') {
-        // Il giocatore è offline - avvia timer se non già attivo
+    // Callback per gestire i cambiamenti di heartbeat
+    const handleHeartbeatChange = ({ isAlive, age }) => {
+      if (!isAlive) {
+        // Il giocatore non invia più heartbeat - avvia timer se non già attivo
         if (!disconnectTimerRef.current) {
-          console.log(`⏱️ [GUARDIAN] ⏰ Player ${currentPlayerID} offline - avvio timer 15s`);
+          console.log(`⚠️ Player ${currentPlayerID} non risponde - Timer 3s avviato`);
           
           disconnectTimerRef.current = setTimeout(() => {
-            console.log(`⏰ [GUARDIAN] 🔔 Timer scaduto - Player ${currentPlayerID} ancora offline`);
-            
-            // Rileggi hasLeft al momento dell'esecuzione del timer
-            // NON usare la closure, accedi direttamente a G
-            const currentHasLeft = G?.hasLeft?.[currentPlayerID];
-            console.log(`   ↳ hasLeft[${currentPlayerID}] al momento del timeout: ${currentHasLeft}`);
-            console.log(`   ↳ moves.reportPlayerDisconnected disponibile: ${!!moves?.reportPlayerDisconnected}`);
-            
-            // Verifica che il giocatore non abbia già abbandonato nel frattempo
-            if (currentHasLeft !== true) {
-              console.log(`🔌 [GUARDIAN] 📞 Chiamata moves.reportPlayerDisconnected(${currentPlayerID})`);
-              try {
-                moves.reportPlayerDisconnected(currentPlayerID);
-                console.log(`✅ [GUARDIAN] Move chiamata con successo`);
-              } catch (error) {
-                console.error(`❌ [GUARDIAN] Errore chiamata move:`, error);
-              }
-            } else {
-              console.log(`🛡️ [GUARDIAN] ⚠️ Player ${currentPlayerID} ha già abbandonato - skip report`);
+            if (G?.hasLeft?.[currentPlayerID] !== true) {
+              console.log(`❌ Player ${currentPlayerID} disconnesso - Rimozione dalla partita`);
+              moves.reportPlayerDisconnected(currentPlayerID);
             }
-            
             disconnectTimerRef.current = null;
-          }, 15000); // 15 secondi
-        } else {
-          console.log(`⏱️ [GUARDIAN] Timer già attivo per Player ${currentPlayerID}`);
+          }, 5000);
         }
-      } else if (state === 'online') {
-        // Il giocatore è tornato online - cancella il timer
+      } else {
+        // Il giocatore è vivo - cancella il timer
         if (disconnectTimerRef.current) {
-          console.log(`✅ [GUARDIAN] 🟢 Player ${currentPlayerID} tornato online - cancello timer`);
           clearTimeout(disconnectTimerRef.current);
           disconnectTimerRef.current = null;
         }
       }
     };
 
-    // Avvia il listener di presenza
-    console.log(`🛡️ [GUARDIAN] 🎧 Avvio listener presenza per UID ${currentPlayerUid}`);
-    const unsubscribe = watchUserPresence(currentPlayerUid, handlePresenceChange);
+    // Avvia il listener di heartbeat
+    const unsubscribe = watchHeartbeat(matchID, currentPlayerID, handleHeartbeatChange);
 
-    if (!unsubscribe) {
-      console.error(`❌ [GUARDIAN] watchUserPresence non ha ritornato unsubscribe function!`);
-    }
-
-    // Cleanup quando il componente si smonta o currentPlayer cambia
+    // Cleanup
     return () => {
-      console.log(`🛡️ [GUARDIAN] 🧹 Cleanup monitoraggio Player ${currentPlayerID}`);
-      
-      // Rimuovi il listener
-      if (unsubscribe) {
-        unsubscribe();
-        console.log(`   ↳ Listener rimosso`);
-      }
-      
-      // Cancella il timer se attivo
+      if (unsubscribe) unsubscribe();
       if (disconnectTimerRef.current) {
-        console.log(`   ↳ Timer cancellato`);
         clearTimeout(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
       }
     };
-  }, [ctx?.currentPlayer, matchData, moves, playerID]); // RIMOSSO G dalle dipendenze!
+  }, [ctx?.currentPlayer, matchID, moves, playerID, G?.hasLeft]);
 
-  // Questo componente non renderizza nulla
   return null;
 };
 

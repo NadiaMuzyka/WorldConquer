@@ -169,13 +169,19 @@ const assignSecretObjectives = (G, ctx) => {
 const checkVictoryCondition = (G, events) => {
   if (!G.players) return false;
   
-  // Controlla se tutti i giocatori hanno abbandonato
+  // Controlla se tutti i giocatori hanno abbandonato tranne uno (Last Man Standing)
   const totalPlayers = Object.keys(G.players).length;
   const abandonedCount = Object.values(G.hasLeft || {}).filter(left => left === true).length;
   
-  if (abandonedCount === totalPlayers - 1 ) {
-    console.log('🏁 [GAME END] Tutti i giocatori hanno abbandonato');
-    events.endGame({ draw: true, reason: 'Tutti i giocatori hanno abbandonato' });
+  if (abandonedCount === totalPlayers - 1) {
+    // Trova l'ultimo giocatore rimasto
+    const lastPlayerStanding = Object.keys(G.hasLeft).find(playerID => !G.hasLeft[playerID]);
+    console.log(`🏁 [GAME END] Last Man Standing: Player ${lastPlayerStanding}`);
+    events.endGame({ 
+      winner: lastPlayerStanding, 
+      victoryType: 'lastManStanding',
+      reason: 'Tutti gli avversari hanno abbandonato'
+    });
     return true;
   }
   
@@ -247,7 +253,11 @@ const checkVictoryCondition = (G, events) => {
     
     if (objectiveMet) {
       console.log(`🏆 [VICTORY] Player ${playerID} ha completato il suo obiettivo!`);
-      events.endGame({ winner: playerID });
+      events.endGame({ 
+        winner: playerID, 
+        victoryType: 'objective',
+        objectiveCompleted: objective 
+      });
       return true;
     }
   }
@@ -557,9 +567,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
               
               checkTimeout: ({ G, ctx, events }) => {
@@ -650,9 +663,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             }
           }
@@ -1028,9 +1044,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1147,9 +1166,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1204,9 +1226,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1251,9 +1276,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1288,9 +1316,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },

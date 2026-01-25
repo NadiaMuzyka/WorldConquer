@@ -19,7 +19,7 @@ import Avatar from './components/UI/Avatar';
 import Modal from './components/UI/Modal';
 import Button from './components/UI/Button';
 import ConnectionGuardian from './components/ConnectionGuardian';
-import { setUserOffline } from './firebase/presence';
+import { setUserOffline, startHeartbeat } from './firebase/presence';
 import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';
 
@@ -50,6 +50,7 @@ function RiskBoardContent() {
     winnerPlayer?.name ||
     matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
   const winnerObjective = winnerPlayer?.secretObjective;
+  const victoryType = ctx?.gameover?.victoryType || 'objective';
   const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
   const player = matchData?.players?.[playerID];
   const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(playerID) + 1}&background=random`;
@@ -75,6 +76,24 @@ function RiskBoardContent() {
     username: nickname,
     photoURL: avatarUrl
   });
+
+  // Avvia heartbeat per questo giocatore
+  React.useEffect(() => {
+    console.log(`❤️ [RISKBOARD] useEffect heartbeat - matchId: ${matchId}, playerID: ${playerID}`);
+    
+    if (!matchId || playerID === undefined || playerID === null) {
+      console.warn(`❤️ [RISKBOARD] ⚠️ Skip heartbeat - matchId: ${matchId}, playerID: ${playerID}`);
+      return;
+    }
+
+    console.log(`❤️ [RISKBOARD] ✅ Avvio heartbeat per Player ${playerID} in match ${matchId}`);
+    const stopHeartbeat = startHeartbeat(matchId, playerID);
+
+    return () => {
+      console.log(`❤️ [RISKBOARD] Cleanup heartbeat per Player ${playerID}`);
+      stopHeartbeat();
+    };
+  }, [matchId, playerID]);
 
   // Redirect automatico se il giocatore ha abbandonato (dopo refresh)
   React.useEffect(() => {
@@ -228,6 +247,7 @@ function RiskBoardContent() {
         moves={moves} 
         playerID={playerID} 
         G={G}
+        matchID={matchId}
       />
 
       {/*Layout standard full-width per altre fasi*/}
@@ -297,6 +317,7 @@ function RiskBoardContent() {
               winnerID={winnerID}
               winnerName={winnerName}
               objective={winnerObjective}
+              victoryType={victoryType}
               players={matchData?.players || []}
               onTimerComplete={handleEndGameTimerComplete}
             />

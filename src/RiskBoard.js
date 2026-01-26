@@ -11,6 +11,7 @@ import BattleAnimationModal from './components/UI/BattleAnimationModal';
 import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 import EndGameModal from './components/UI/EndGameModal';
+import CardsModal from './components/UI/CardsModal';
 import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
@@ -36,6 +37,7 @@ function RiskBoardContent() {
   const [showResultModal, setShowResultModal] = React.useState(false);
   const [showEndGameModal, setShowEndGameModal] = React.useState(false);
   const [showExitModal, setShowExitModal] = React.useState(false); // Modal uscita volontaria
+  const [showCardsModal, setShowCardsModal] = React.useState(false); // Modal carte bonus
 
   const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
   const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
@@ -107,6 +109,12 @@ function RiskBoardContent() {
   // Verifica se è il turno del giocatore corrente
   const isMyTurn = ctx?.currentPlayer === playerID;
 
+  // Il giocatore può scambiare carte solo durante il suo stage di reinforcement
+  const canExchangeCards = isMyTurn && currentStage === 'reinforcement';
+  
+  // Ottieni le carte del giocatore corrente (protette da PlayerView)
+  const playerCards = G?.players?.[playerID]?.cards || [];
+
   // Mostra modali basati sullo stato G - SOLO se è il mio turno
   const showAttackDiceModal = !isGameOver && isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
   const showFortifyModal = !isGameOver && isMyTurn && G?.fortifyState?.from && G?.fortifyState?.to;
@@ -145,6 +153,14 @@ function RiskBoardContent() {
     // Questo avviene sia per chiusura manuale che automatica
     if (moves?.resetAttackSelection) {
       moves.resetAttackSelection();
+    }
+  };
+
+  // Gestione scambio carte
+  const handleExchangeCards = (cardIndices) => {
+    if (moves?.exchangeCards && canExchangeCards) {
+      moves.exchangeCards(cardIndices);
+      console.log('🎴 [CARDS] Scambio carte:', cardIndices);
     }
   };
 
@@ -305,10 +321,15 @@ function RiskBoardContent() {
                 <span>{ownedTerritories} TERRITORI</span>
               </div>
               <div className="w-full mt-3">
-                  <div className="bg-[#FEC417] text-[#23282E] rounded-md py-2 px-3 text-center font-bold text-lg">
-                    Carte
-                  </div>
-                </div>
+                <Button
+                  variant="yellow"
+                  size="lg"
+                  onClick={() => setShowCardsModal(true)}
+                  className="w-full"
+                >
+                  Carte ({playerCards.length})
+                </Button>
+              </div>
             </Card>
           </div>
 
@@ -327,6 +348,15 @@ function RiskBoardContent() {
       {/* MODALI */}
       {showAnimationModal && !isGameOver && (
         <BattleAnimationModal onComplete={handleAnimationComplete} />
+      )}
+
+      {showCardsModal && (
+        <CardsModal
+          onClose={() => setShowCardsModal(false)}
+          playerCards={playerCards}
+          onExchangeCards={handleExchangeCards}
+          canExchange={canExchangeCards}
+        />
       )}
       {showResultModal && !isGameOver && (
         <BattleResultModal onClose={handleResultClose} />

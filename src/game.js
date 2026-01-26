@@ -7,6 +7,83 @@ const { PHASE_TIMEOUTS } = require('./components/Constants/timeouts');
 
 // ===== HELPER FUNCTIONS =====
 
+// Funzione per generare il mazzo di carte Risk
+// Mazzo da 41 carte: 13 INFANTRY, 13 CAVALRY, 13 ARTILLERY, 2 JOLLY
+const generateDeck = () => {
+  const deck = [];
+  
+  // Aggiungi 13 carte per ogni tipo
+  for (let i = 0; i < 13; i++) {
+    deck.push({ type: 'INFANTRY' });
+    deck.push({ type: 'CAVALRY' });
+    deck.push({ type: 'ARTILLERY' });
+  }
+  
+  // Aggiungi 2 jolly
+  deck.push({ type: 'JOLLY' });
+  deck.push({ type: 'JOLLY' });
+  
+  // Mescola il mazzo con Fisher-Yates shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  
+  return deck;
+};
+
+// Funzione per validare una combinazione di 3 carte e calcolare il bonus
+// Ritorna { valid: boolean, bonus: number }
+const validateCardCombination = (cards) => {
+  if (!cards || cards.length !== 3) {
+    return { valid: false, bonus: 0 };
+  }
+  
+  const types = cards.map(card => card.type);
+  const jollyCount = types.filter(t => t === 'JOLLY').length;
+  
+  // Caso 1: 2 jolly + qualsiasi altra carta = NON VALIDO (servono jolly + 2 UGUALI)
+  if (jollyCount === 2) {
+    return { valid: false, bonus: 0 };
+  }
+  
+  // Caso 2: 1 jolly + 2 carte uguali = 12 truppe
+  if (jollyCount === 1) {
+    const otherTypes = types.filter(t => t !== 'JOLLY');
+    if (otherTypes[0] === otherTypes[1]) {
+      return { valid: true, bonus: 12 };
+    }
+    return { valid: false, bonus: 0 };
+  }
+  
+  // Caso 3: 3 carte senza jolly
+  const infantryCount = types.filter(t => t === 'INFANTRY').length;
+  const cavalryCount = types.filter(t => t === 'CAVALRY').length;
+  const artilleryCount = types.filter(t => t === 'ARTILLERY').length;
+  
+  // 3 ARTILLERY (cannoni) = 4 truppe
+  if (artilleryCount === 3) {
+    return { valid: true, bonus: 4 };
+  }
+  
+  // 3 INFANTRY (fanti) = 6 truppe
+  if (infantryCount === 3) {
+    return { valid: true, bonus: 6 };
+  }
+  
+  // 3 CAVALRY (cavalieri) = 8 truppe
+  if (cavalryCount === 3) {
+    return { valid: true, bonus: 8 };
+  }
+  
+  // Tris misto (1 INFANTRY + 1 CAVALRY + 1 ARTILLERY) = 10 truppe
+  if (infantryCount === 1 && cavalryCount === 1 && artilleryCount === 1) {
+    return { valid: true, bonus: 10 };
+  }
+  
+  return { valid: false, bonus: 0 };
+};
+
 // Funzione per piazzare truppe casuali per un giocatore AFK
 const autoPlaceTroops = (G, ctx, playerID, count) => {
   if (count <= 0) return;
@@ -278,6 +355,7 @@ const RiskGame = {
       const playerId = String(i);
       players[playerId] = {
         secretObjective: null,
+        cards: [], // Carte del giocatore (protette da PlayerView.STRIP_SECRETS)
       };
       hasLeft[playerId] = false; // Inizializza esplicitamente a false
     }
@@ -285,8 +363,10 @@ const RiskGame = {
     return {
       troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
       owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
-      players,     // Oggetto segreto per player con obiettivi
+      players,     // Oggetto segreto per player con obiettivi e carte
       hasLeft,     // Tracking giocatori che hanno abbandonato (playerID -> false/true)
+      deck: generateDeck(), // Mazzo centrale di carte (41 carte)
+      conqueredThisTurn: {}, // Tracking per "1 carta per turno" (playerID -> boolean)
     };
   },
 
@@ -747,6 +827,29 @@ const RiskGame = {
           });
         },
         
+        // Distribuisce carta se il giocatore ha conquistato territori
+        onEnd: ({ G, ctx }) => {
+          const currentPlayer = ctx.currentPlayer;
+          
+          // Controlla se il giocatore ha conquistato territori in questo turno
+          if (G.conqueredThisTurn && G.conqueredThisTurn[currentPlayer]) {
+            // Pesca una carta dal mazzo
+            if (!G.deck || G.deck.length === 0) {
+              console.log(`🃏 [CARD] Mazzo esaurito, rigenerazione...`);
+              G.deck = generateDeck();
+            }
+            
+            const card = G.deck.pop();
+            if (!G.players[currentPlayer].cards) G.players[currentPlayer].cards = [];
+            G.players[currentPlayer].cards.push(card);
+            
+            console.log(`🃏 [CARD] Player ${currentPlayer} riceve una carta ${card.type} (totale: ${G.players[currentPlayer].cards.length})`);
+            
+            // Reset flag conquista
+            G.conqueredThisTurn[currentPlayer] = false;
+          }
+        },
+        
         // Controlla vittoria dopo ogni mossa
         onMove: ({ G, events }) => {
           checkVictoryCondition(G, events);
@@ -755,6 +858,49 @@ const RiskGame = {
         stages: {
           reinforcement: {
             moves: {
+              exchangeCards: ({ G, playerID }, cardIndices) => {
+                const currentPlayer = String(playerID);
+                
+                // Validazioni
+                if (!Array.isArray(cardIndices) || cardIndices.length !== 3) {
+                  console.warn(`❌ [INVALID CARDS] Devi selezionare esattamente 3 carte`);
+                  return;
+                }
+                
+                if (!G.players[currentPlayer].cards || G.players[currentPlayer].cards.length < 3) {
+                  console.warn(`❌ [INVALID CARDS] Player ${currentPlayer} non ha abbastanza carte`);
+                  return;
+                }
+                
+                // Controlla che gli indici siano validi
+                const maxIndex = G.players[currentPlayer].cards.length - 1;
+                if (cardIndices.some(idx => idx < 0 || idx > maxIndex)) {
+                  console.warn(`❌ [INVALID CARDS] Indici carte non validi`);
+                  return;
+                }
+                
+                // Prendi le carte selezionate
+                const selectedCards = cardIndices.map(idx => G.players[currentPlayer].cards[idx]);
+                
+                // Valida la combinazione
+                const validation = validateCardCombination(selectedCards);
+                if (!validation.valid) {
+                  console.warn(`❌ [INVALID CARDS] Combinazione non valida`);
+                  return;
+                }
+                
+                // Rimuovi le carte usate (ordina indici in ordine decrescente per evitare problemi con splice)
+                const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+                sortedIndices.forEach(idx => {
+                  G.players[currentPlayer].cards.splice(idx, 1);
+                });
+                
+                // Aggiungi truppe bonus ai rinforzi disponibili
+                G.reinforcementsToPlace[currentPlayer] += validation.bonus;
+                
+                console.log(`🃏 [CARDS EXCHANGED] Player ${currentPlayer} scambia 3 carte per +${validation.bonus} truppe (totale: ${G.reinforcementsToPlace[currentPlayer]})`);
+              },
+              
               placeReinforcement: ({ G, playerID }, countryId) => {
                 const currentPlayer = String(playerID);
                 
@@ -966,6 +1112,10 @@ const RiskGame = {
                     G.troops[to] = attackDiceCount;
                     G.troops[from] -= attackDiceCount;
                     console.log(`🏴 [CONQUERED] Player ${ctx.currentPlayer} conquista ${to}!`);
+                    
+                    // Marca che il giocatore ha conquistato in questo turno (per carta bonus)
+                    if (!G.conqueredThisTurn) G.conqueredThisTurn = {};
+                    G.conqueredThisTurn[ctx.currentPlayer] = true;
                   }
                   
                   // Salva risultato con il colore ORIGINALE del difensore

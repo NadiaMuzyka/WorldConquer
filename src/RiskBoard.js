@@ -18,7 +18,7 @@ import { Trophy } from 'lucide-react';
 import Avatar from './components/UI/Avatar';
 import Modal from './components/UI/Modal';
 import Button from './components/UI/Button';
-import ConnectionGuardian from './components/ConnectionGuardian';
+import ConnectionGuardian from './ConnectionGuardian';
 import { setUserOffline, startHeartbeat } from './firebase/presence';
 import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';

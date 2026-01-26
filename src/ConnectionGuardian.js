@@ -1,6 +1,6 @@
 // src/components/ConnectionGuardian.js
 import { useEffect, useRef } from 'react';
-import { watchHeartbeat } from '../firebase/presence';
+import { watchHeartbeat } from './firebase/presence';
 
 /**
  * ConnectionGuardian - Monitora l'heartbeat del giocatore di turno (Logica "Sceriffo")

@@ -33,6 +33,7 @@ const CreateMatchPage = () => {
    const [gameMode, setGameMode] = useState('classica');
    const [isPrivate, setIsPrivate] = useState(false);
    const [password, setPassword] = useState('');
+   const [passwordError, setPasswordError] = useState('');
    const [loading, setLoading] = useState(false);
    const [currentUser, setCurrentUser] = useState(null);
 
@@ -60,17 +61,37 @@ const CreateMatchPage = () => {
          return;
       }
 
+      // Validazione password
+      if (isPrivate) {
+         if (!password) {
+            setPasswordError('Password richiesta per partita privata');
+            setLoading(false);
+            return;
+         }
+         if (password.length < 6) {
+            setPasswordError('Password deve avere almeno 6 caratteri');
+            setLoading(false);
+            return;
+         }
+      }
+      
+      // Cancella errori precedenti
+      setPasswordError('');
+
       setLoading(true);
 
       try {
          // 1. PREPARA I DATI PER IL SERVER
          // Passiamo tutto ciò che serve a Firestore dentro 'setupData'
+         // Hash della password prima di inviarla
+         const hashedPassword = isPrivate && password ? bcrypt.hashSync(password, 10) : null;
+         
          const matchData = {
             matchName,
             playersMax,
             mode: gameMode,
             isPrivate,
-            password: isPrivate ? password : null,
+            password: hashedPassword,
             hostId: currentUser.id,
             hostName: currentUser.name,
             hostAvatar: currentUser.avatar
@@ -206,9 +227,16 @@ const CreateMatchPage = () => {
                               label="Password Richiesta"
                               placeholder="Inserisci la password..."
                               value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              defaultVisible={true}
+                              onChange={(e) => {
+                                 setPassword(e.target.value);
+                                 setPasswordError('');
+                              }}
+                              minLength={6}
+                              required={true}
                            />
+                           {passwordError && (
+                              <p className="text-red-400 text-sm font-medium mt-2">{passwordError}</p>
+                           )}
                         </div>
                      )}
 

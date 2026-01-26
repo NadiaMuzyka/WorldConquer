@@ -5,11 +5,16 @@ import bcrypt from 'bcryptjs';
 import { enterMatch } from '../../store/slices/lobbySlice';
 import { lobbyClient } from '../../client/lobbyClient';
 import Button from '../UI/Button';
+import Modal from '../UI/Modal';
+import PasswordInput from '../UI/Input/PasswordInput';
 import { FULL_MATCH_ICON, ARROW_RIGHT_ICON } from '../Constants/icons';
 
 const GameCard = ({ match, currentUser }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+  const [passwordInput, setPasswordInput] = React.useState('');
+  const [passwordError, setPasswordError] = React.useState('');
 
   // 1. Destrutturazione
   const { id, name, players, playersMax, image, isPrivate, password } = match;
@@ -33,23 +38,46 @@ const GameCard = ({ match, currentUser }) => {
     if (existingPlayer) {
       console.log("Giocatore già presente, rientro...");
       dispatch(enterMatch(id));
-      // Se Firestore ha un ID valido usiamo quello, altrimenti proviamo a indovinare o navigare
       const resumeID = existingPlayer.id && existingPlayer.id !== "unknown" ? existingPlayer.id : null;
-
-      // Se resumeID è nullo, boardgame.io potrebbe avere problemi, ma proviamo cmq a navigare
       navigate(`/game/${id}`, { state: { playerID: resumeID } });
       return;
     }
 
     // B. Controlli
     if (isFull) { alert("La partita è piena!"); return; }
+    
+    // Se partita è privata e ha password, mostra modal
     if (isPrivate && password) {
-      const inputPwd = prompt("🔒 Password:");
-      if (!inputPwd || !bcrypt.compareSync(inputPwd, password)) {
-        alert("❌ Password errata!"); return;
-      }
+      setShowPasswordModal(true);
+      return;
     }
 
+    // Se non è privata, procedi al join
+    proceedToJoin();
+  };
+
+  const handlePasswordSubmit = async () => {
+    setPasswordError('');
+
+    if (!passwordInput) {
+      setPasswordError('Inserisci la password');
+      return;
+    }
+
+    // Verifica password hashata
+    if (!bcrypt.compareSync(passwordInput, password)) {
+      setPasswordError('❌ Password errata!');
+      setPasswordInput('');
+      return;
+    }
+
+    // Password corretta, procedi al join
+    setShowPasswordModal(false);
+    setPasswordInput('');
+    proceedToJoin();
+  };
+
+  const proceedToJoin = () => {
     // C. CALCOLO POSTO LIBERO (ANTI-CONFLICT FIX)
     // ---------------------------------------------------------
     const takenSeats = (players || []).map(p => String(p.id));
@@ -86,7 +114,6 @@ const GameCard = ({ match, currentUser }) => {
     console.log("Tentativo Join sul posto:", mySeatID);
 
     // Naviga direttamente alla waiting page
-    // Il join verrà effettuato automaticamente dalla waiting page
     dispatch(enterMatch(id));
     navigate(`/waiting/${id}`, {
       state: {
@@ -98,7 +125,62 @@ const GameCard = ({ match, currentUser }) => {
 
   // --- RENDER (Uguale a prima) ---
   return (
-    <div className="relative w-full h-auto min-h-[103px] bg-[#1B2227] rounded-[8px] shadow-[0px_4px_10px_rgba(0,0,0,0.3)] p-4 flex flex-col md:flex-row items-center justify-between transition hover:bg-[#232c33] gap-4 md:gap-0">
+    <>
+      {/* Modal per password */}
+      {showPasswordModal && (
+        <Modal
+          title="🔒 Accesso Privato"
+          onClose={() => {
+            setShowPasswordModal(false);
+            setPasswordInput('');
+            setPasswordError('');
+          }}
+          size="md"
+          actionBar={
+            <div className="flex gap-3 w-full">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordInput('');
+                  setPasswordError('');
+                }}
+                className="flex-1"
+              >
+                Annulla
+              </Button>
+              <Button
+                variant="cyan"
+                onClick={handlePasswordSubmit}
+                className="flex-1"
+              >
+                Accedi
+              </Button>
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <p className="text-gray-300 text-sm">Questa partita è privata. Inserisci la password per continuare.</p>
+            <PasswordInput
+              label="Password"
+              placeholder="Inserisci password..."
+              value={passwordInput}
+              onChange={(e) => {
+                setPasswordInput(e.target.value);
+                setPasswordError('');
+              }}
+              minLength={6}
+            />
+            {passwordError && (
+              <p className="text-red-400 text-sm font-medium">{passwordError}</p>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Card */}
+      <div className="relative w-full h-auto min-h-[103px] bg-[#1B2227] rounded-[8px] shadow-[0px_4px_10px_rgba(0,0,0,0.3)] p-4 flex flex-col md:flex-row items-center justify-between transition hover:bg-[#232c33] gap-4 md:gap-0">
+        <>
       <div className="flex items-center gap-5 w-full md:w-auto">
 
         <div className="relative w-[72px] h-[72px] shrink-0">
@@ -172,7 +254,9 @@ const GameCard = ({ match, currentUser }) => {
           )}
         </Button>
       </div>
-    </div>
+      </>
+      </div>
+    </>
   );
 };
 

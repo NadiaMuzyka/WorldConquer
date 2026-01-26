@@ -6,9 +6,9 @@ import { setFilter, selectFilters } from '../../store/slices/lobbySlice';
 import { Filter } from 'lucide-react';
 
 // MUI Components
-import FilterSwitch from './Filters/FilterSwitch';
 import RangeSlider from './Filters/PlayerCountSlider';
 import FilterMode from './Filters/FilterMode';
+import FilterVisibility from './Filters/FilterVisibility';
 
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
@@ -36,6 +36,10 @@ const FilterContainer = () => {
     dispatch(setFilter({ name: 'mode', value: event.target.value }));
   };
 
+  const handleVisibilityChange = (event) => {
+    dispatch(setFilter({ name: 'visibility', value: event.target.value }));
+  };
+
   return (
     <ThemeProvider theme={darkTheme}>
       <div
@@ -54,10 +58,9 @@ const FilterContainer = () => {
         {/* --- BODY --- */}
         <div className="w-full px-4 flex flex-col gap-[16px]">
 
-          {/* 1. SEZIONE MODALITÀ */}
-          {/* Il titolo "Modalità" è ora dentro il componente FilterMode */}
+          {/* 1. SEZIONE TIPOLOGIA */}
           <div className="w-full">
-            <FilterMode value={filters.mode} onChange={handleModeChange} />
+            <FilterVisibility value={filters.visibility} onChange={handleVisibilityChange} />
           </div>
 
           <div className="w-full h-[1px] bg-[#979797] opacity-30"></div>
@@ -74,29 +77,9 @@ const FilterContainer = () => {
 
           <div className="w-full h-[1px] bg-[#979797] opacity-30"></div>
 
-          {/* 3. SEZIONE TIPOLOGIA */}
-          <div className="flex flex-col">
-            <span className={SECTION_TITLE_CLASS}>
-              Tipologia
-            </span>
-
-            <div className="flex flex-col gap-3 px-2">
-              <FilterSwitch
-                label="Partite Pubbliche"
-                checked={filters.public}
-                onChange={handleSwitchChange('public')}
-              />
-              <FilterSwitch
-                label="Partite Private"
-                checked={filters.private}
-                onChange={handleSwitchChange('private')}
-              />
-              <FilterSwitch
-                label="Create da amici"
-                checked={filters.friends}
-                onChange={handleSwitchChange('friends')}
-              />
-            </div>
+          {/* 3. SEZIONE MODALITÀ */}
+          <div className="w-full">
+            <FilterMode value={filters.mode} onChange={handleModeChange} />
           </div>
 
         </div>

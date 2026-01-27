@@ -12,6 +12,7 @@ import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 import EndGameModal from './components/UI/EndGameModal';
 import CardsModal from './components/UI/CardsModal';
+import GameChat from './components/UI/GameChat';
 import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
@@ -25,7 +26,7 @@ import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';
 
 function RiskBoardContent() {
-  const { ctx, G, moves, playerID } = useRisk();
+  const { ctx, G, moves, playerID, chatMessages, sendChatMessage } = useRisk();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { matchId } = useParams(); // Ottieni matchID dall'URL
@@ -407,14 +408,20 @@ function RiskBoardContent() {
         </Modal>
       )}
 
+      {/* GAME CHAT - A destra della schermata */}
+      <GameChat 
+        chatMessages={chatMessages || []}
+        sendChatMessage={sendChatMessage}
+      />
+
     </div>
   );
 }
 
 // Il componente principale esportato
-export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
+export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull, chatMessages, sendChatMessage }) {
   return (
-    <GameProvider G={G} ctx={ctx} moves={moves} playerID={playerID} events={events}>
+    <GameProvider G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} chatMessages={chatMessages} sendChatMessage={sendChatMessage}>
       <RiskBoardContent />
     </GameProvider>
   );

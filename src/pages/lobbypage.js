@@ -87,6 +87,31 @@ const LobbyPage = () => {
     navigate('/create');
   };
 
+  useEffect(() => {
+    // Crea o recupera il div per il banner nel body
+    let bannerDiv = document.getElementById('ad-banner-body');
+    if (!bannerDiv) {
+      bannerDiv = document.createElement('div');
+      bannerDiv.id = 'ad-banner-body';
+      bannerDiv.style.display = 'flex';
+      bannerDiv.style.justifyContent = 'center';
+      bannerDiv.style.marginBottom = '2rem';
+      bannerDiv.style.marginTop = '1rem';
+      document.body.appendChild(bannerDiv); // ora lo mettiamo in fondo al body
+    }
+    // Inserisci lo script nel div
+    const script = document.createElement('script');
+    script.src = "//ad.altervista.org/js.ad/size=728X90/?ref=" + encodeURIComponent(window.location.hostname + window.location.pathname) + "&r=" + Date.now();
+    script.async = true;
+    bannerDiv.appendChild(script);
+    return () => {
+      // Rimuovi il div e lo script quando il componente viene smontato
+      if (bannerDiv && bannerDiv.parentNode) {
+        bannerDiv.parentNode.removeChild(bannerDiv);
+      }
+    };
+  }, []);
+
   if (isLoading) {
     return <LobbyLoading message="Caricamento lobby..." />;
   }

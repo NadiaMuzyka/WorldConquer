@@ -79,7 +79,17 @@ const LobbyPage = () => {
       const search = (filters.search || '').toLowerCase();
       const matchName = (match.name || '').toLowerCase();
       const isSearchOk = matchName.includes(search) || match.matchID.toLowerCase().includes(search);
-      return isRangeOk && isAvailable && isSearchOk;
+      
+      // Filtro visibilità (public/private/all)
+      let isVisibilityOk = true;
+      if (filters.visibility === 'public') {
+        isVisibilityOk = !match.isPrivate;
+      } else if (filters.visibility === 'private') {
+        isVisibilityOk = match.isPrivate;
+      }
+      // Se visibility === 'all', non applica filtro
+      
+      return isRangeOk && isAvailable && isSearchOk && isVisibilityOk;
     });
   }, [games, filters]);
 

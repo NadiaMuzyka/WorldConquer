@@ -11,6 +11,8 @@ import BattleAnimationModal from './components/UI/BattleAnimationModal';
 import BattleResultModal from './components/UI/BattleResultModal';
 import FortifyTroopsModal from './components/UI/FortifyTroopsModal';
 import EndGameModal from './components/UI/EndGameModal';
+import CardsModal from './components/UI/CardsModal';
+import GameChat from './components/UI/GameChat';
 import PlayerBar from './components/UI/PlayerBar';
 import SetupLogAnimated from './components/UI/SetupLogAnimated';
 import Card from './components/UI/Card';
@@ -18,13 +20,13 @@ import { Trophy } from 'lucide-react';
 import Avatar from './components/UI/Avatar';
 import Modal from './components/UI/Modal';
 import Button from './components/UI/Button';
-import ConnectionGuardian from './components/ConnectionGuardian';
-import { setUserOffline } from './firebase/presence';
+import ConnectionGuardian from './ConnectionGuardian';
+import { setUserOffline, startHeartbeat } from './firebase/presence';
 import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';
 
 function RiskBoardContent() {
-  const { ctx, G, moves, playerID } = useRisk();
+  const { ctx, G, moves, playerID, chatMessages, sendChatMessage } = useRisk();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { matchId } = useParams(); // Ottieni matchID dall'URL
@@ -36,6 +38,7 @@ function RiskBoardContent() {
   const [showResultModal, setShowResultModal] = React.useState(false);
   const [showEndGameModal, setShowEndGameModal] = React.useState(false);
   const [showExitModal, setShowExitModal] = React.useState(false); // Modal uscita volontaria
+  const [showCardsModal, setShowCardsModal] = React.useState(false); // Modal carte bonus
 
   const isSetupPhase = ctx?.phase === 'SETUP_INITIAL';
   const isReinforcementPhase = ctx?.phase === 'INITIAL_REINFORCEMENT';
@@ -50,6 +53,7 @@ function RiskBoardContent() {
     winnerPlayer?.name ||
     matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
   const winnerObjective = winnerPlayer?.secretObjective;
+  const victoryType = ctx?.gameover?.victoryType || 'objective';
   const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
   const player = matchData?.players?.[playerID];
   const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(playerID) + 1}&background=random`;
@@ -76,6 +80,24 @@ function RiskBoardContent() {
     photoURL: avatarUrl
   });
 
+  // Avvia heartbeat per questo giocatore
+  React.useEffect(() => {
+    console.log(`❤️ [RISKBOARD] useEffect heartbeat - matchId: ${matchId}, playerID: ${playerID}`);
+    
+    if (!matchId || playerID === undefined || playerID === null) {
+      console.warn(`❤️ [RISKBOARD] ⚠️ Skip heartbeat - matchId: ${matchId}, playerID: ${playerID}`);
+      return;
+    }
+
+    console.log(`❤️ [RISKBOARD] ✅ Avvio heartbeat per Player ${playerID} in match ${matchId}`);
+    const stopHeartbeat = startHeartbeat(matchId, playerID);
+
+    return () => {
+      console.log(`❤️ [RISKBOARD] Cleanup heartbeat per Player ${playerID}`);
+      stopHeartbeat();
+    };
+  }, [matchId, playerID]);
+
   // Redirect automatico se il giocatore ha abbandonato (dopo refresh)
   React.useEffect(() => {
     if (G?.hasLeft?.[playerID]) {
@@ -87,6 +109,12 @@ function RiskBoardContent() {
 
   // Verifica se è il turno del giocatore corrente
   const isMyTurn = ctx?.currentPlayer === playerID;
+
+  // Il giocatore può scambiare carte solo durante il suo stage di reinforcement
+  const canExchangeCards = isMyTurn && currentStage === 'reinforcement';
+  
+  // Ottieni le carte del giocatore corrente (protette da PlayerView)
+  const playerCards = G?.players?.[playerID]?.cards || [];
 
   // Mostra modali basati sullo stato G - SOLO se è il mio turno
   const showAttackDiceModal = !isGameOver && isMyTurn && G?.attackState?.from && G?.attackState?.to && !G?.attackState?.attackDiceCount;
@@ -126,6 +154,14 @@ function RiskBoardContent() {
     // Questo avviene sia per chiusura manuale che automatica
     if (moves?.resetAttackSelection) {
       moves.resetAttackSelection();
+    }
+  };
+
+  // Gestione scambio carte
+  const handleExchangeCards = (cardIndices) => {
+    if (moves?.exchangeCards && canExchangeCards) {
+      moves.exchangeCards(cardIndices);
+      console.log('🎴 [CARDS] Scambio carte:', cardIndices);
     }
   };
 
@@ -228,6 +264,7 @@ function RiskBoardContent() {
         moves={moves} 
         playerID={playerID} 
         G={G}
+        matchID={matchId}
       />
 
       {/*Layout standard full-width per altre fasi*/}
@@ -285,10 +322,15 @@ function RiskBoardContent() {
                 <span>{ownedTerritories} TERRITORI</span>
               </div>
               <div className="w-full mt-3">
-                  <div className="bg-[#FEC417] text-[#23282E] rounded-md py-2 px-3 text-center font-bold text-lg">
-                    Carte
-                  </div>
-                </div>
+                <Button
+                  variant="yellow"
+                  size="lg"
+                  onClick={() => setShowCardsModal(true)}
+                  className="w-full"
+                >
+                  Carte ({playerCards.length})
+                </Button>
+              </div>
             </Card>
           </div>
 
@@ -297,6 +339,7 @@ function RiskBoardContent() {
               winnerID={winnerID}
               winnerName={winnerName}
               objective={winnerObjective}
+              victoryType={victoryType}
               players={matchData?.players || []}
               onTimerComplete={handleEndGameTimerComplete}
             />
@@ -306,6 +349,15 @@ function RiskBoardContent() {
       {/* MODALI */}
       {showAnimationModal && !isGameOver && (
         <BattleAnimationModal onComplete={handleAnimationComplete} />
+      )}
+
+      {showCardsModal && (
+        <CardsModal
+          onClose={() => setShowCardsModal(false)}
+          playerCards={playerCards}
+          onExchangeCards={handleExchangeCards}
+          canExchange={canExchangeCards}
+        />
       )}
       {showResultModal && !isGameOver && (
         <BattleResultModal onClose={handleResultClose} />
@@ -356,14 +408,20 @@ function RiskBoardContent() {
         </Modal>
       )}
 
+      {/* GAME CHAT - A destra della schermata */}
+      <GameChat 
+        chatMessages={chatMessages || []}
+        sendChatMessage={sendChatMessage}
+      />
+
     </div>
   );
 }
 
 // Il componente principale esportato
-export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull }) {
+export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull, chatMessages, sendChatMessage }) {
   return (
-    <GameProvider G={G} ctx={ctx} moves={moves} playerID={playerID} events={events}>
+    <GameProvider G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} chatMessages={chatMessages} sendChatMessage={sendChatMessage}>
       <RiskBoardContent />
     </GameProvider>
   );

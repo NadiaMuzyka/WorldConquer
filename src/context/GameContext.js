@@ -12,7 +12,7 @@ export const useRisk = () => {
 }
 
 // Creazione di un provider per il contesto del gioco
-export const GameProvider = ({G, ctx, moves, playerID, events, children })=> {
+export const GameProvider = ({G, ctx, moves, playerID, events, chatMessages, sendChatMessage, children })=> {
     // Qui viene passato lo stato del gioco, le metainformazioni, le mosse, l'ID del giocatore e gli eventi come valore del contesto del risiko
     // In questo modo, tutti i componenti figli avranno accesso a questi dati tramite il contesto
     // PER CHI LEGGE IL CODICE: G è lo stato del gioco, ctx sono le metainformazioni del gioco, moves sono le mosse disponibili, 
@@ -37,10 +37,12 @@ export const GameProvider = ({G, ctx, moves, playerID, events, children })=> {
             moves, 
             playerID, 
             events,
+            chatMessages,
+            sendChatMessage,
             currentPlayer: ctx?.currentPlayer,
             isMyTurn: ctx?.currentPlayer === playerID,
         };
-    }, [G, ctx, moves, playerID, events]);
+    }, [G, ctx, moves, playerID, events, chatMessages, sendChatMessage]);
 
     return (
         <RiskContext.Provider value={value}>

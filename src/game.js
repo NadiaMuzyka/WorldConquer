@@ -5,255 +5,8 @@ const { CONTINENTS_DATA } = require('./components/Constants/mapData');
 const { RISK_ADJACENCY } = require('./components/Constants/adjacency');
 const { PHASE_TIMEOUTS } = require('./components/Constants/timeouts');
 
-// ===== HELPER FUNCTIONS =====
-
-// Funzione per piazzare truppe casuali per un giocatore AFK
-const autoPlaceTroops = (G, ctx, playerID, count) => {
-  if (count <= 0) return;
-  
-  // Ottieni tutti i territori posseduti dal giocatore
-  const ownedTerritories = Object.entries(G.owners)
-    .filter(([id, owner]) => owner === playerID)
-    .map(([id]) => id);
-  
-  if (ownedTerritories.length === 0) {
-    console.warn(`⚠️ [AUTO-PLACE] Player ${playerID} non ha territori!`);
-    return;
-  }
-  
-  // Fisher-Yates shuffle manuale (ctx.random non è disponibile nel client)
-  const shuffled = [...ownedTerritories];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  
-  // Piazza le truppe senza log (solo il server determina i territori effettivi)
-  for (let i = 0; i < count; i++) {
-    const territoryIndex = i % shuffled.length;
-    const territory = shuffled[territoryIndex];
-    G.troops[territory] = (G.troops[territory] || 0) + 1;
-  }
-};
-
-// Funzione helper per gestire l'uscita di un giocatore (volontaria o disconnessione)
-// IDEMPOTENTE: Se il giocatore ha già abbandonato, non fa nulla
-const handlePlayerExit = (G, ctx, events, playerID, reason = 'leave') => {
-  // CONTROLLO IDEMPOTENZA: se il giocatore ha già abbandonato, ritorna subito
-  if (!G.hasLeft) G.hasLeft = {};
-  if (G.hasLeft[playerID] === true) {
-    console.log(`⚠️ [EXIT-SKIP] Player ${playerID} ha già abbandonato - skip duplicato`);
-    return;
-  }
-
-  console.log(`🚪 [EXIT] Player ${playerID} abbandona (reason: ${reason})`);
-  
-  // Segna il giocatore come uscito
-  G.hasLeft[playerID] = true;
-  
-  // Se è il turno del giocatore uscente, auto-completa le azioni e passa il turno
-  if (ctx.currentPlayer === playerID) {
-    console.log(`  ↳ Auto-completamento turno per player ${playerID}`);
-    
-    // Auto-piazza truppe se siamo in fase di rinforzo
-    if (ctx.phase === 'INITIAL_REINFORCEMENT') {
-      const remaining = G.reinforcementsRemaining?.[playerID] || 0;
-      const toPlace = Math.min(3, remaining);
-      if (toPlace > 0) {
-        autoPlaceTroops(G, ctx, playerID, toPlace);
-        G.reinforcementsRemaining[playerID] -= toPlace;
-        console.log(`    ↳ Auto-piazzate ${toPlace} truppe`);
-      }
-      G.turnPlacements = [];
-    } else if (ctx.phase === 'GAME') {
-      // In fase GAME, auto-piazza eventuali rinforzi rimanenti
-      const reinforcements = G.reinforcementsToPlace?.[playerID] || 0;
-      if (reinforcements > 0) {
-        autoPlaceTroops(G, ctx, playerID, reinforcements);
-        G.reinforcementsToPlace[playerID] = 0;
-        console.log(`    ↳ Auto-piazzati ${reinforcements} rinforzi`);
-      }
-    }
-    
-    console.log(`  ↳ Chiamata events.endTurn()`);
-    events.endTurn();
-  }
-};
-
-// Funzione per assegnare obiettivi segreti ai giocatori
-const assignSecretObjectives = (G, ctx) => {
-  const numPlayers = ctx.numPlayers;
-  
-  // Calcola il numero di territori richiesti in base al numero di giocatori
-  let conquerNTerritoriesCount = 12;
-  let conquerNTerritoriesDescription = '';
-  if (numPlayers === 3) {
-    conquerNTerritoriesCount = 17;
-    conquerNTerritoriesDescription = 'Conquista 17 territori a tua scelta';
-  } else if (numPlayers === 4) {
-    conquerNTerritoriesCount = 14;
-    conquerNTerritoriesDescription = 'Conquista 14 territori a tua scelta';
-  } else if (numPlayers === 5) {
-    conquerNTerritoriesCount = 12;
-    conquerNTerritoriesDescription = 'Conquista 12 territori a tua scelta';
-  } else if (numPlayers === 6) {
-    conquerNTerritoriesCount = 10;
-    conquerNTerritoriesDescription = 'Conquista 10 territori a tua scelta';
-  } else {
-    conquerNTerritoriesDescription = 'Conquista 12 territori a tua scelta';
-  }
-
-  // Lista di tutti gli obiettivi possibili
-  const allObjectives = [
-    { type: 'CONQUER_CONTINENT', continent: 'NORD_AMERICA', description: 'Conquista la totalità del Nord America' },
-    { type: 'CONQUER_TWO_CONTINENTS', continents: ['SUD_AMERICA', 'OCEANIA'], description: 'Conquista interamente Sud America e Oceania' },
-    { type: 'CONQUER_CONTINENT_PLUS', continent: 'EUROPA', extraTerritories: 3, description: 'Conquista Europa + 3 territori a tua scelta' },
-    { type: 'CONQUER_CONTINENT_PLUS', continent: 'AFRICA', extraTerritories: 3, extraContinent: 'NORD_AMERICA', description: 'Conquista Africa + 3 territori di Nord America' },
-    { type: 'CONQUER_N_IN_CONTINENT', continent: 'ASIA', count: 9, description: 'Conquista 9 territori dell\'Asia' },
-    { type: 'CONQUER_N_TERRITORIES', count: conquerNTerritoriesCount, description: conquerNTerritoriesDescription },
-  ];
-  
-  // Aggiungi obiettivi di eliminazione colore (escluso il proprio)
-  const colorObjectives = [
-    { type: 'ELIMINATE_COLOR', color: '0', colorName: 'rosse', description: 'Distruggi interamente le armate rosse' },
-    { type: 'ELIMINATE_COLOR', color: '1', colorName: 'blu', description: 'Distruggi interamente le armate blu' },
-    { type: 'ELIMINATE_COLOR', color: '2', colorName: 'verdi', description: 'Distruggi interamente le armate verdi' },
-  ];
-  
-  // Aggiungi obiettivi colore per giocatori 4, 5, 6
-  if (numPlayers >= 4) {
-    colorObjectives.push({ type: 'ELIMINATE_COLOR', color: '3', colorName: 'gialle', description: 'Distruggi interamente le armate gialle' });
-  }
-  if (numPlayers >= 5) {
-    colorObjectives.push({ type: 'ELIMINATE_COLOR', color: '4', colorName: 'viola', description: 'Distruggi interamente le armate viola' });
-  }
-  if (numPlayers === 6) {
-    colorObjectives.push({ type: 'ELIMINATE_COLOR', color: '5', colorName: 'nere', description: 'Distruggi interamente le armate nere' });
-  }
-  
-  // Combina tutti gli obiettivi
-  const availableObjectives = [...allObjectives, ...colorObjectives];
-  
-  // Shuffla gli obiettivi
-  for (let i = availableObjectives.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [availableObjectives[i], availableObjectives[j]] = [availableObjectives[j], availableObjectives[i]];
-  }
-  
-  // Assegna un obiettivo a ogni giocatore
-  for (let i = 0; i < numPlayers; i++) {
-    const playerId = String(i);
-    // Assicurati che G.players esista e abbia la chiave playerId
-    if (!G.players) G.players = {};
-    if (!G.players[playerId]) G.players[playerId] = { secretObjective: null };
-
-    // Trova un obiettivo che non sia eliminare il proprio colore
-    let objective = null;
-    for (let j = 0; j < availableObjectives.length; j++) {
-      const obj = availableObjectives[j];
-      if (obj.type === 'ELIMINATE_COLOR' && obj.color === playerId) {
-        // Skip - non può eliminare se stesso
-        continue;
-      }
-      // Assegna questo obiettivo e rimuovilo dalla lista
-      objective = obj;
-      availableObjectives.splice(j, 1);
-      break;
-    }
-    G.players[playerId].secretObjective = objective;
-    console.log(`🎯 [OBJECTIVE] Player ${playerId} riceve obiettivo: ${objective.description}`);
-  }
-};
-
-// Funzione per controllare se un giocatore ha raggiunto il suo obiettivo
-const checkVictoryCondition = (G, events) => {
-  if (!G.players) return false;
-  
-  // Controlla se tutti i giocatori hanno abbandonato
-  const totalPlayers = Object.keys(G.players).length;
-  const abandonedCount = Object.values(G.hasLeft || {}).filter(left => left === true).length;
-  
-  if (abandonedCount === totalPlayers - 1 ) {
-    console.log('🏁 [GAME END] Tutti i giocatori hanno abbandonato');
-    events.endGame({ draw: true, reason: 'Tutti i giocatori hanno abbandonato' });
-    return true;
-  }
-  
-  for (const [playerID, playerData] of Object.entries(G.players)) {
-    // Skip giocatori che hanno abbandonato
-    if (G.hasLeft?.[playerID]) continue;
-    if (!playerData.secretObjective) continue;
-    
-    const objective = playerData.secretObjective;
-    let objectiveMet = false;
-    
-    switch (objective.type) {
-      case 'CONQUER_CONTINENT': {
-        const continent = CONTINENTS_DATA[objective.continent];
-        if (continent) {
-          objectiveMet = continent.every(territory => G.owners[territory.id] === playerID);
-        }
-        break;
-      }
-      
-      case 'CONQUER_TWO_CONTINENTS': {
-        const [cont1, cont2] = objective.continents;
-        const ownsCont1 = CONTINENTS_DATA[cont1]?.every(t => G.owners[t.id] === playerID);
-        const ownsCont2 = CONTINENTS_DATA[cont2]?.every(t => G.owners[t.id] === playerID);
-        objectiveMet = ownsCont1 && ownsCont2;
-        break;
-      }
-      
-      case 'CONQUER_CONTINENT_PLUS': {
-        const continent = CONTINENTS_DATA[objective.continent];
-        const ownsContinent = continent?.every(t => G.owners[t.id] === playerID);
-        
-        if (ownsContinent) {
-          if (objective.extraContinent) {
-            const extraTerritories = CONTINENTS_DATA[objective.extraContinent]?.filter(
-              t => G.owners[t.id] === playerID
-            ).length || 0;
-            objectiveMet = extraTerritories >= objective.extraTerritories;
-          } else {
-            const totalTerritories = Object.values(G.owners).filter(
-              owner => owner === playerID
-            ).length;
-            const continentSize = continent.length;
-            objectiveMet = totalTerritories >= continentSize + objective.extraTerritories;
-          }
-        }
-        break;
-      }
-      
-      case 'CONQUER_N_IN_CONTINENT': {
-        const continent = CONTINENTS_DATA[objective.continent];
-        const ownedCount = continent?.filter(t => G.owners[t.id] === playerID).length || 0;
-        objectiveMet = ownedCount >= objective.count;
-        break;
-      }
-      
-      case 'CONQUER_N_TERRITORIES': {
-        const ownedCount = Object.values(G.owners).filter(owner => owner === playerID).length;
-        objectiveMet = ownedCount >= objective.count;
-        break;
-      }
-      
-      case 'ELIMINATE_COLOR': {
-        const colorExists = Object.values(G.owners).some(owner => owner === objective.color);
-        objectiveMet = !colorExists;
-        break;
-      }
-    }
-    
-    if (objectiveMet) {
-      console.log(`🏆 [VICTORY] Player ${playerID} ha completato il suo obiettivo!`);
-      events.endGame({ winner: playerID });
-      return true;
-    }
-  }
-  
-  return false;
-};
+// Helpers moved to src/gameHelpers.js
+const { generateDeck, validateCardCombination, autoPlaceTroops, handlePlayerExit, assignSecretObjectives, checkVictoryCondition } = require('./gameHelpers');
 
 const RiskGame = {
   name: 'risk',
@@ -268,6 +21,7 @@ const RiskGame = {
       const playerId = String(i);
       players[playerId] = {
         secretObjective: null,
+        cards: [], // Carte del giocatore (protette da PlayerView.STRIP_SECRETS)
       };
       hasLeft[playerId] = false; // Inizializza esplicitamente a false
     }
@@ -275,8 +29,10 @@ const RiskGame = {
     return {
       troops: {},  // Mappa ID_PAESE -> NUMERO TRUPPE
       owners: {},  // Mappa ID_PAESE -> PLAYER_ID ("0", "1", "2")
-      players,     // Oggetto segreto per player con obiettivi
+      players,     // Oggetto segreto per player con obiettivi e carte
       hasLeft,     // Tracking giocatori che hanno abbandonato (playerID -> false/true)
+      deck: generateDeck(), // Mazzo centrale di carte (41 carte)
+      conqueredThisTurn: {}, // Tracking per "1 carta per turno" (playerID -> boolean)
     };
   },
 
@@ -557,9 +313,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
               
               checkTimeout: ({ G, ctx, events }) => {
@@ -650,9 +409,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             }
           }
@@ -731,6 +493,29 @@ const RiskGame = {
           });
         },
         
+        // Distribuisce carta se il giocatore ha conquistato territori
+        onEnd: ({ G, ctx }) => {
+          const currentPlayer = ctx.currentPlayer;
+          
+          // Controlla se il giocatore ha conquistato territori in questo turno
+          if (G.conqueredThisTurn && G.conqueredThisTurn[currentPlayer]) {
+            // Pesca una carta dal mazzo
+            if (!G.deck || G.deck.length === 0) {
+              console.log(`🃏 [CARD] Mazzo esaurito, rigenerazione...`);
+              G.deck = generateDeck();
+            }
+            
+            const card = G.deck.pop();
+            if (!G.players[currentPlayer].cards) G.players[currentPlayer].cards = [];
+            G.players[currentPlayer].cards.push(card);
+            
+            console.log(`🃏 [CARD] Player ${currentPlayer} riceve una carta ${card.type} (totale: ${G.players[currentPlayer].cards.length})`);
+            
+            // Reset flag conquista
+            G.conqueredThisTurn[currentPlayer] = false;
+          }
+        },
+        
         // Controlla vittoria dopo ogni mossa
         onMove: ({ G, events }) => {
           checkVictoryCondition(G, events);
@@ -739,6 +524,49 @@ const RiskGame = {
         stages: {
           reinforcement: {
             moves: {
+              exchangeCards: ({ G, playerID }, cardIndices) => {
+                const currentPlayer = String(playerID);
+                
+                // Validazioni
+                if (!Array.isArray(cardIndices) || cardIndices.length !== 3) {
+                  console.warn(`❌ [INVALID CARDS] Devi selezionare esattamente 3 carte`);
+                  return;
+                }
+                
+                if (!G.players[currentPlayer].cards || G.players[currentPlayer].cards.length < 3) {
+                  console.warn(`❌ [INVALID CARDS] Player ${currentPlayer} non ha abbastanza carte`);
+                  return;
+                }
+                
+                // Controlla che gli indici siano validi
+                const maxIndex = G.players[currentPlayer].cards.length - 1;
+                if (cardIndices.some(idx => idx < 0 || idx > maxIndex)) {
+                  console.warn(`❌ [INVALID CARDS] Indici carte non validi`);
+                  return;
+                }
+                
+                // Prendi le carte selezionate
+                const selectedCards = cardIndices.map(idx => G.players[currentPlayer].cards[idx]);
+                
+                // Valida la combinazione
+                const validation = validateCardCombination(selectedCards);
+                if (!validation.valid) {
+                  console.warn(`❌ [INVALID CARDS] Combinazione non valida`);
+                  return;
+                }
+                
+                // Rimuovi le carte usate (ordina indici in ordine decrescente per evitare problemi con splice)
+                const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+                sortedIndices.forEach(idx => {
+                  G.players[currentPlayer].cards.splice(idx, 1);
+                });
+                
+                // Aggiungi truppe bonus ai rinforzi disponibili
+                G.reinforcementsToPlace[currentPlayer] += validation.bonus;
+                
+                console.log(`🃏 [CARDS EXCHANGED] Player ${currentPlayer} scambia 3 carte per +${validation.bonus} truppe (totale: ${G.reinforcementsToPlace[currentPlayer]})`);
+              },
+              
               placeReinforcement: ({ G, playerID }, countryId) => {
                 const currentPlayer = String(playerID);
                 
@@ -950,6 +778,10 @@ const RiskGame = {
                     G.troops[to] = attackDiceCount;
                     G.troops[from] -= attackDiceCount;
                     console.log(`🏴 [CONQUERED] Player ${ctx.currentPlayer} conquista ${to}!`);
+                    
+                    // Marca che il giocatore ha conquistato in questo turno (per carta bonus)
+                    if (!G.conqueredThisTurn) G.conqueredThisTurn = {};
+                    G.conqueredThisTurn[ctx.currentPlayer] = true;
                   }
                   
                   // Salva risultato con il colore ORIGINALE del difensore
@@ -1028,9 +860,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1147,9 +982,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1204,9 +1042,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1251,9 +1092,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },
@@ -1288,9 +1132,12 @@ const RiskGame = {
                 handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
               
-              reportPlayerDisconnected: ({ G, ctx, events }, targetPlayerID) => {
-                console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
-                handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+              reportPlayerDisconnected: {
+                move: ({ G, ctx, events }, targetPlayerID) => {
+                  console.log(`🔌 [DISCONNECT] Segnalata disconnessione di Player ${targetPlayerID}`);
+                  handlePlayerExit(G, ctx, events, targetPlayerID, 'disconnect');
+                },
+                client: false,
               },
             },
           },

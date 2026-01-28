@@ -3,11 +3,12 @@ import Modal from './Modal';
 import { PLAYER_COLORS } from '../Constants/colors';
 
 /**
- * EndGameModal - Mostra quando un giocatore ha vinto completando il suo obiettivo segreto
+ * EndGameModal - Mostra quando un giocatore ha vinto
  * 
  * @param {string} winnerID - ID del giocatore vincitore
  * @param {string} winnerName - Nome del vincitore
- * @param {object} objective - L'obiettivo segreto completato { type, description, ... }
+ * @param {object} objective - L'obiettivo segreto completato (se vittoria per obiettivo)
+ * @param {string} victoryType - Tipo di vittoria: 'objective' o 'lastManStanding'
  * @param {array} players - Array di tutti i giocatori dal Redux match.players
  * @param {function} onTimerComplete - Callback chiamato dopo 10 secondi
  */
@@ -15,6 +16,7 @@ export default function EndGameModal({
   winnerID, 
   winnerName, 
   objective,
+  victoryType = 'objective',
   players = [],
   onTimerComplete 
 }) {
@@ -79,11 +81,16 @@ export default function EndGameModal({
           </p>
         </div>
 
-        {/* Obiettivo completato */}
+        {/* Obiettivo completato o motivo vittoria */}
         <div className="bg-black/30 rounded-lg p-4 w-full border border-gray-700">
-          <p className="text-gray-400 text-sm uppercase mb-2">Obiettivo Completato</p>
+          <p className="text-gray-400 text-sm uppercase mb-2">
+            {victoryType === 'lastManStanding' ? 'Motivo della Vittoria' : 'Obiettivo Completato'}
+          </p>
           <p className="text-white text-base leading-relaxed">
-            {objective?.description || 'Obiettivo sconosciuto'}
+            {victoryType === 'lastManStanding' 
+              ? '🏆 Vittoria per abbandono di tutti gli avversari' 
+              : (objective?.description || 'Obiettivo sconosciuto')
+            }
           </p>
         </div>
 

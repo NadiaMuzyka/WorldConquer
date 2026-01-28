@@ -8,9 +8,8 @@ const lobbySlice = createSlice({
     status: 'idle',
     filters: {
       playerRange: [3, 6],
-      mode: 'tutte', 
-      public: true, 
-      private: false,      
+      mode: 'tutte',
+      visibility: 'all', // 'all', 'public', 'private'
       friends: false,       
     }
   },
@@ -28,8 +27,7 @@ const lobbySlice = createSlice({
       state.filters = {
         playerRange: [3, 6],
         mode: 'tutte',
-        public: true, 
-        private: false,
+        visibility: 'all',
         friends: false
       };
     },

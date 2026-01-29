@@ -2,7 +2,10 @@
 const { Server, Origins } = require('boardgame.io/server');
 const { RiskGame } = require('./src/game');
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
+// Prova prima il percorso specifico di Render, se non esiste usa quello locale
+const serviceAccount = process.env.RENDER 
+  ? require('/etc/secrets/serviceAccountKey.json') 
+  : require('./serviceAccountKey.json');
 const FirebaseAdapter = require('./FirebaseAdapter'); // <--- Importiamo la classe
 const cors = require('@koa/cors');
 
@@ -126,6 +129,8 @@ server.app.use(async (ctx, next) => {
   }
 });
 
-server.run(8000, () => {
-  console.log("🚀 SERVER RISIKO ATTIVO (Modular Adapter + Join Validation)");
+// Deve essere server.run e non server.listen (visto che usi boardgame.io)
+const PORT = process.env.PORT || 8000;
+server.run(PORT, () => {
+  console.log(`🚀 SERVER ATTIVO sulla porta ${PORT}`);
 });

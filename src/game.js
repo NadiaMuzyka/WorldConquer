@@ -518,7 +518,14 @@ const RiskGame = {
         
         // Controlla vittoria dopo ogni mossa
         onMove: ({ G, events }) => {
-          checkVictoryCondition(G, events);
+          try {
+            const victoryTriggered = checkVictoryCondition(G, events);
+            if (victoryTriggered) {
+              console.log('✅ [VICTORY HANDLER] Victory condition triggered successfully and endGame called');
+            }
+          } catch (error) {
+            console.error('❌ [VICTORY ERROR] Error in checkVictoryCondition:', error);
+          }
         },
         
         stages: {

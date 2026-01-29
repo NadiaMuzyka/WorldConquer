@@ -62,8 +62,11 @@ const validateJoinMiddleware = async (ctx, next) => {
 const server = Server({
   games: [RiskGame],
   
-  // Per produzione sostituisci con il dominio reale o process.env.ORIGINS
-  origins: [Origins.LOCALHOST], 
+  // MODIFICA QUI:
+  origins: [
+    Origins.LOCALHOST, 
+    "https://worldconquer-static.onrender.com" // <--- Sostituisci con l'URL del tuo sito React
+  ], 
 
   // Passiamo le istanze al costruttore dell'Adapter
   db: new FirebaseAdapter(rtdb, firestore),

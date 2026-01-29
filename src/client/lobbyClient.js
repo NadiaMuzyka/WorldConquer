@@ -1,7 +1,8 @@
 import { LobbyClient } from 'boardgame.io/client';
 
+// Inserisci qui l'URL del tuo Web Service su Render
 export const lobbyClient = new LobbyClient({ 
-  server: '' 
+  server: 'https://worldconquergame.onrender.com' 
 });
 
 /**

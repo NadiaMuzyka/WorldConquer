@@ -6,9 +6,8 @@ import { RiskBoard } from '../RiskBoard';
 const RiskClient = Client({
   game: RiskGame,
   board: RiskBoard,
-  // Configura l'indirizzo del server per ricevere gli eventi 'sync' e 'update' in tempo reale
-  multiplayer: SocketIO({ server: 'http://localhost:8000' }),
-  debug: true,
+  multiplayer: SocketIO({ server: 'https://worldconquergame.onrender.com' }),
+  debug: false, // Disattiviamo il debug per la versione online
 });
 
 export default RiskClient;

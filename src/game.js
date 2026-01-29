@@ -149,7 +149,7 @@ const RiskGame = {
         
         // Calcola le truppe iniziali in base al numero di giocatori
         const totalTroops = {
-          3: 15, 4: 30, 5: 25, 6: 20, //RICORDATI DI RIMETTERE 35 TRUPPE PER 3 GIOCATORI
+          3: 35, 4: 30, 5: 25, 6: 20, 
         };
 
         const troopsPerPlayer = totalTroops[ctx.numPlayers] || 20;

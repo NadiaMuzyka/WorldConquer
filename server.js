@@ -65,7 +65,8 @@ const server = Server({
   // MODIFICA QUI:
   origins: [
     Origins.LOCALHOST, 
-    "https://worldconquer-static.onrender.com" // <--- Sostituisci con l'URL del tuo sito React
+    //"https://worldconquer-static.onrender.com", // <--- Sostituisci con l'URL del tuo sito React
+    "https://worldconquer.onrender.com"
   ], 
 
   // Passiamo le istanze al costruttore dell'Adapter

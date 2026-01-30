@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, LogOut, Loader2, BarChart2 } from 'lucide-react';
+import { User, LogOut, Loader2, BarChart2, BookOpen } from 'lucide-react';
 import DropdownMenuItem from '../UI/DropdownItem';
 import Avatar from '../UI/Avatar';
 
@@ -78,6 +78,17 @@ const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onStats
             variant="default"
             onClick={() => {
               if (onStatsClick) onStatsClick();
+              setIsOpen(false);
+            }}
+          />
+
+          {/* Menu Item: Regole */}
+          <DropdownMenuItem
+            icon={BookOpen}
+            label="Regole"
+            variant="default"
+            onClick={() => {
+              window.location.href = '/rules';
               setIsOpen(false);
             }}
           />

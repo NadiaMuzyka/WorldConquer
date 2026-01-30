@@ -19,7 +19,7 @@
 
 **WorldConquer** è un'**applicazione web multiplayer real-time** che porta il classico gioco da tavolo **RISK** direttamente nel tuo browser. Sfida i tuoi amici o giocatori da tutto il mondo in epiche battaglie strategiche per la conquista del pianeta!
 
-Sviluppata da tre studenti della **Magistrale in Ingegneria Informatica** con l'obiettivo di creare un'esperienza di gioco fluida, moderna e completamente accessibile da qualsiasi dispositivo.
+Sviluppata da tre studenti della **Magistrale in Ingegneria Informatica** dell'Università dell'Aquila con l'obiettivo di creare un'esperienza di gioco fluida, moderna e fruibile.
 
 ### 👥 Per chi è WorldConquer?
 
@@ -41,7 +41,7 @@ L'intera applicazione è costruita con **React 18**, garantendo un'interfaccia u
 Il codice è **organizzato in componenti riutilizzabili**, facilitando manutenzione, testing e futuri aggiornamenti. Ogni elemento dell'interfaccia è un componente indipendente che può essere facilmente modificato o esteso.
 
 #### **Design Moderno con Tailwind CSS**
-Abbiamo adottato **Tailwind CSS** per creare un'interfaccia **pulita, elegante e responsive**. Il design si adatta perfettamente a desktop, tablet e mobile, garantendo un'esperienza ottimale su qualsiasi schermo.
+Abbiamo adottato **Tailwind CSS** per creare un'interfaccia **pulita, elegante e responsive**. 
 
 ### 🎮 Esperienza di Gioco Superiore
 
@@ -76,7 +76,6 @@ Abbiamo adottato **Tailwind CSS** per creare un'interfaccia **pulita, elegante e
 
 ### 🎨 UX/UI di Qualità
 
-- **Responsive Design** - Funziona perfettamente su desktop, tablet e mobile
 - **Avatar Personalizzabili** - Ogni giocatore può scegliere o generare il proprio avatar
 - **Indicatori Visivi Chiari** - Colori distintivi per ogni giocatore, indicatori di turno, timer visibili
 - **Feedback Visivo Immediato** - Ogni azione produce un feedback visivo chiaro (hover, click, selezioni)
@@ -141,13 +140,13 @@ WorldConquer segue le **regole classiche di RISK**:
 
 ---
 
-## 🛠️ Stack Tecnologico
+## 🛠️ Tecnologie Utilizzate
 
 ### Frontend
 - **React 18** - Libreria UI moderna e performante
 - **Redux Toolkit** - State management centralizzato
-- **React Router 6** - Routing dichiarativo
-- **Tailwind CSS** - Utility-first CSS framework
+- **React Router 6 (Data Mode)** - Routing dichiarativo
+- **Tailwind CSS** - CSS framework
 - **Lucide React** - Icone moderne e leggere
 - **Boardgame.io Client** - Client multiplayer
 
@@ -165,7 +164,6 @@ WorldConquer segue le **regole classiche di RISK**:
 
 ### DevOps & Hosting
 - **Render** - Hosting server backend
-- **Firebase Hosting** - Hosting frontend statico
 - **Git** - Version control
 
 ---
@@ -208,7 +206,7 @@ Questo progetto è stato sviluppato come parte di un progetto universitario. Se 
 
 ## 👨‍💻 Team di Sviluppo
 
-Sviluppato con ❤️ da tre studenti della **Magistrale in Ingegneria Informatica**
+Sviluppato da tre studenti della **Magistrale in Ingegneria Informatica**
 
 ---
 
@@ -218,14 +216,7 @@ Questo progetto è distribuito sotto licenza MIT. Vedi il file `LICENSE` per mag
 
 ---
 
-## 🙏 Ringraziamenti
 
-- [Boardgame.io](https://boardgame.io/) per il fantastico framework multiplayer
-- [Firebase](https://firebase.google.com/) per l'infrastruttura backend
-- [Tailwind CSS](https://tailwindcss.com/) per il sistema di design
-- La community open-source per le innumerevoli librerie utilizzate
-
----
 
 <div align="center">
 

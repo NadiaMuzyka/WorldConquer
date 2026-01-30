@@ -66,7 +66,7 @@ const server = Server({
   origins: [
     Origins.LOCALHOST, 
     "https://worldconquer.onrender.com",
-    "https://worldconquer-static.onrender.com"
+    "https://worldconquergame.onrender.com" 
   ], 
 
   // Passiamo le istanze al costruttore dell'Adapter

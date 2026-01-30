@@ -268,10 +268,12 @@ const checkVictoryCondition = (G, events) => {
 
     if (objectiveMet) {
       console.log(`🏆 [VICTORY] Player ${playerID} ha completato il suo obiettivo!`);
+      // Convert objective Proxy to plain object to avoid socket.io serialization errors
+      const plainObjective = JSON.parse(JSON.stringify(objective));
       events.endGame({ 
         winner: playerID, 
         victoryType: 'objective',
-        objectiveCompleted: objective 
+        objectiveCompleted: plainObjective
       });
       return true;
     }

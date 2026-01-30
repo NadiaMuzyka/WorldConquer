@@ -149,7 +149,7 @@ const RiskGame = {
         
         // Calcola le truppe iniziali in base al numero di giocatori
         const totalTroops = {
-          3: 15, 4: 30, 5: 25, 6: 20, //RICORDATI DI RIMETTERE 35 TRUPPE PER 3 GIOCATORI
+          3: 35, 4: 30, 5: 25, 6: 20, 
         };
 
         const troopsPerPlayer = totalTroops[ctx.numPlayers] || 20;
@@ -518,7 +518,14 @@ const RiskGame = {
         
         // Controlla vittoria dopo ogni mossa
         onMove: ({ G, events }) => {
-          checkVictoryCondition(G, events);
+          try {
+            const victoryTriggered = checkVictoryCondition(G, events);
+            if (victoryTriggered) {
+              console.log('✅ [VICTORY HANDLER] Victory condition triggered successfully and endGame called');
+            }
+          } catch (error) {
+            console.error('❌ [VICTORY ERROR] Error in checkVictoryCondition:', error);
+          }
         },
         
         stages: {

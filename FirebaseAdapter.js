@@ -172,11 +172,12 @@ class FirebaseAdapter {
   async setMetadata(matchID, metadata) {
     // Non scrivere su RTDB se la partita è FINISHED (è già stata cancellata)
     const cachedStatus = this.statusCache.get(matchID);
-    if (cachedStatus !== 'FINISHED') {
-      await this.rtdb.ref(`matches/${matchID}/metadata`).set(metadata);
-    } else {
-      console.log(`[ADAPTER] Skip RTDB write for FINISHED match ${matchID}`);
+    if (cachedStatus === 'FINISHED') {
+      console.log(`[ADAPTER] Skip metadata update for FINISHED match ${matchID}`);
+      return; // Early return to avoid any RTDB/Firestore operations
     }
+    
+    await this.rtdb.ref(`matches/${matchID}/metadata`).set(metadata);
 
     // Filtra solo i giocatori che hanno un nome (esclude i posti prenotati vuoti)
     const playersRaw = Object.values(metadata.players || {});
@@ -266,12 +267,17 @@ class FirebaseAdapter {
 
   // --- LETTURE ---
   async getState(matchID) {
+    // Check cache first - if finished, don't even try to read from RTDB
+    const cachedStatus = this.statusCache.get(matchID);
+    if (cachedStatus === 'FINISHED') {
+      return undefined;
+    }
+    
     const s = await this.rtdb.ref(`matches/${matchID}/state`).once('value');
     const val = s.val();
     
     // FIX: Return undefined if state doesn't exist
     if (!val) {
-      console.warn(`[ADAPTER] State not found for match ${matchID}`);
       return undefined;
     }
     
@@ -285,12 +291,17 @@ class FirebaseAdapter {
   }
 
   async getMetadata(matchID) {
+    // Check cache first - if finished, don't even try to read from RTDB
+    const cachedStatus = this.statusCache.get(matchID);
+    if (cachedStatus === 'FINISHED') {
+      return undefined;
+    }
+    
     const s = await this.rtdb.ref(`matches/${matchID}/metadata`).once('value');
     const metadata = s.val();
     
     // FIX: Return undefined if metadata doesn't exist (boardgame.io expects undefined, not null)
     if (!metadata) {
-      console.warn(`[ADAPTER] Metadata not found for match ${matchID}`);
       return undefined;
     }
     

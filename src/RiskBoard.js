@@ -169,7 +169,11 @@ function RiskBoardContent() {
   React.useEffect(() => {
     if (ctx?.gameover) {
       console.log('🏆 [ENDGAME] Partita terminata! Vincitore:', ctx.gameover);
+      console.log('🏆 [ENDGAME] ctx.gameover data:', JSON.stringify(ctx.gameover, null, 2));
+      console.log('🏆 [ENDGAME] Setting showEndGameModal to true');
       setShowEndGameModal(true);
+    } else {
+      console.log('ℹ️ [ENDGAME MONITOR] ctx.gameover is falsy:', ctx?.gameover);
     }
   }, [ctx?.gameover]);
 

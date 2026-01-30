@@ -212,7 +212,7 @@ Sviluppato da tre studenti della **Magistrale in Ingegneria Informatica**
 
 ## 📄 Licenza
 
-Questo progetto è distribuito sotto licenza MIT. Vedi il file `LICENSE` per maggiori dettagli.
+Questo progetto è distribuito sotto licenza GNU Affero General Public License v3. Vedi il file `LICENSE` per maggiori dettagli.
 
 ---
 

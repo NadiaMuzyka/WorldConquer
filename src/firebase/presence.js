@@ -12,38 +12,9 @@ const rtdb = getDatabase(app);
  * @returns {Function} Funzione di cleanup che ferma l'heartbeat
  */
 export const startHeartbeat = (matchID, playerID) => {
-  if (!matchID || playerID === undefined || playerID === null) {
-    console.error('❤️ [HEARTBEAT] matchID o playerID mancante');
-    return () => {};
-  }
-
-  const heartbeatRef = ref(rtdb, `heartbeats/${matchID}/${playerID}`);
-  
-  // Funzione per aggiornare l'heartbeat
-  const sendHeartbeat = () => {
-    set(heartbeatRef, {
-      timestamp: Date.now(),
-      playerID: String(playerID)
-    }).catch(err => {
-      console.error(`❤️ [HEARTBEAT] Errore invio ping Player ${playerID}:`, err);
-    });
-  };
-
-  // Invia subito il primo heartbeat
-  sendHeartbeat();
-  console.log(`❤️ [HEARTBEAT] ✅ Avviato per Player ${playerID} in match ${matchID}`);
-
-  // Imposta onDisconnect per pulizia automatica
-  onDisconnect(heartbeatRef).remove();
-
-  // Invia heartbeat ogni 5 secondi
-  const intervalId = setInterval(sendHeartbeat, 5000);
-
-  // Funzione di cleanup
-  return () => {
-    clearInterval(intervalId);
-    set(heartbeatRef, null);
-  };
+  console.log(`❤️ [HEARTBEAT] 🛑 Sistema di monitoraggio disattivato temporaneamente`);
+  // Ritorna una funzione di cleanup vuota
+  return () => {};
 };
 
 /**
@@ -54,63 +25,8 @@ export const startHeartbeat = (matchID, playerID) => {
  * @returns {Function} Funzione per rimuovere il polling
  */
 export const watchHeartbeat = (matchID, playerID, callback) => {
-  if (!matchID || playerID === undefined || playerID === null) {
-    console.error('❤️ [HEARTBEAT-WATCH] matchID o playerID mancante');
-    return () => {};
-  }
-
-  const heartbeatRef = ref(rtdb, `heartbeats/${matchID}/${playerID}`);
-  
-  console.log(`❤️ [HEARTBEAT-WATCH] 👁️ Monitoring Player ${playerID} in match ${matchID}`);
-
-  // Funzione per controllare l'heartbeat
-  const checkHeartbeat = async () => {
-    try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 5000)
-      );
-      
-      const snapshot = await Promise.race([get(heartbeatRef), timeoutPromise]);
-      const data = snapshot.val();
-      
-      console.log(`❤️ [HEARTBEAT-WATCH] 📩 Poll Player ${playerID}:`, data);
-      
-      if (!data || !data.timestamp) {
-        // Nessun heartbeat → considera offline
-        console.log(`❤️ [HEARTBEAT-WATCH] ⚰️ Player ${playerID} - NESSUN HEARTBEAT`);
-        callback({
-          isAlive: false,
-          lastSeen: null,
-          playerID: String(playerID)
-        });
-        return;
-      }
-
-      const now = Date.now();
-      const age = now - data.timestamp;
-      const isAlive = age < 8000; // Considerato vivo se heartbeat < 8s
-
-      callback({
-        isAlive,
-        lastSeen: data.timestamp,
-        age,
-        playerID: String(playerID)
-      });
-    } catch (error) {
-      console.error(`❤️ [HEARTBEAT-WATCH] Errore lettura Player ${playerID}:`, error.message);
-    }
-  };
-
-  // Controlla subito
-  checkHeartbeat();
-
-  // Poll ogni 5 secondi
-  const intervalId = setInterval(checkHeartbeat, 5000);
-
-  // Funzione di cleanup
-  return () => {
-    clearInterval(intervalId);
-  };
+  // Disattivato temporaneamente per prevenire i kick causati dagli errori Firebase
+  return () => {};
 };
 
 /**

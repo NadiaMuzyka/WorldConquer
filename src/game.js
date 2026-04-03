@@ -123,7 +123,11 @@ const RiskGame = {
                 }
                 
                 events.endPhase();
-              }
+              },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
+              },
             }
           },
         }
@@ -670,6 +674,10 @@ const RiskGame = {
                 
                 G.turnStartTime = Date.now();
                 events.setActivePlayers({ all: 'attack' });
+              },
+              
+              leaveMatch: ({ G, ctx, playerID, events }) => {
+                handlePlayerExit(G, ctx, events, playerID, 'leave');
               },
             },
           },

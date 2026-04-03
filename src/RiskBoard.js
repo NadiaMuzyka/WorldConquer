@@ -21,7 +21,7 @@ import Avatar from './components/UI/Avatar';
 import Modal from './components/UI/Modal';
 import Button from './components/UI/Button';
 import ConnectionGuardian from './ConnectionGuardian';
-import { setUserOffline, startHeartbeat } from './firebase/presence';
+import { setUserOffline } from './firebase/presence';
 import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';
 
@@ -80,23 +80,7 @@ function RiskBoardContent() {
     photoURL: avatarUrl
   });
 
-  // Avvia heartbeat per questo giocatore
-  React.useEffect(() => {
-    console.log(`❤️ [RISKBOARD] useEffect heartbeat - matchId: ${matchId}, playerID: ${playerID}`);
-    
-    if (!matchId || playerID === undefined || playerID === null) {
-      console.warn(`❤️ [RISKBOARD] ⚠️ Skip heartbeat - matchId: ${matchId}, playerID: ${playerID}`);
-      return;
-    }
-
-    console.log(`❤️ [RISKBOARD] ✅ Avvio heartbeat per Player ${playerID} in match ${matchId}`);
-    const stopHeartbeat = startHeartbeat(matchId, playerID);
-
-    return () => {
-      console.log(`❤️ [RISKBOARD] Cleanup heartbeat per Player ${playerID}`);
-      stopHeartbeat();
-    };
-  }, [matchId, playerID]);
+  // L'avvio dell'heartbeat è stato rimosso per usare l'architettura nativa di boardgame.io
 
   // Redirect automatico se il giocatore ha abbandonato (dopo refresh)
   React.useEffect(() => {
@@ -269,6 +253,7 @@ function RiskBoardContent() {
         playerID={playerID} 
         G={G}
         matchID={matchId}
+        matchData={matchData}
       />
 
       {/*Layout standard full-width per altre fasi*/}

@@ -1,24 +1,20 @@
 // src/components/ConnectionGuardian.js
 import { useEffect, useRef } from 'react';
-import { watchHeartbeat } from './firebase/presence';
 
 /**
- * ConnectionGuardian - Monitora l'heartbeat del giocatore di turno (Logica "Sceriffo")
+ * ConnectionGuardian - Monitora la connessione del giocatore di turno (Logica "Sceriffo")
  * 
- * Sistema di monitoraggio distribuito dove SOLO il giocatore successivo nella sequenza
- * di gioco sorveglia quello corrente.
- * 
- * Usa un sistema di heartbeat (ping ogni 3s) per rilevare disconnessioni.
- * Se l'heartbeat è più vecchio di 7 secondi, considera il giocatore disconnesso
- * e chiama moves.reportPlayerDisconnected.
+ * Legge la flag isConnected broadcastata nativamente da boardgame.io.
+ * Se isConnected è false per più di 45 secondi, chiama reportPlayerDisconnected.
  * 
  * @param {Object} props.ctx - Contesto boardgame.io (playOrder, playOrderPos, currentPlayer)
  * @param {Object} props.moves - Moves boardgame.io (per reportPlayerDisconnected)
  * @param {string} props.playerID - ID del giocatore corrente (per determinare se sono il guardiano)
  * @param {Object} props.G - Game state (per accedere a hasLeft)
  * @param {string} props.matchID - ID della partita
+ * @param {Object} props.matchData - Metadata della lobby con le flag isConnected
  */
-const ConnectionGuardian = ({ ctx, moves, playerID, G, matchID }) => {
+const ConnectionGuardian = ({ ctx, moves, playerID, G, matchID, matchData }) => {
   const disconnectTimerRef = useRef(null);
   
   useEffect(() => {
@@ -60,42 +56,39 @@ const ConnectionGuardian = ({ ctx, moves, playerID, G, matchID }) => {
       return;
     }
 
-    // Callback per gestire i cambiamenti di heartbeat
-    const handleHeartbeatChange = ({ isAlive, age }) => {
-      if (!isAlive) {
-        // Il giocatore non invia più heartbeat - avvia timer se non già attivo
-        if (!disconnectTimerRef.current) {
-          console.log(`⚠️ Player ${currentPlayerID} non risponde - Timer 3s avviato`);
-          
-          disconnectTimerRef.current = setTimeout(() => {
-            if (G?.hasLeft?.[currentPlayerID] !== true) {
-              console.log(`❌ Player ${currentPlayerID} disconnesso - Rimozione dalla partita`);
-              moves.reportPlayerDisconnected(currentPlayerID);
-            }
-            disconnectTimerRef.current = null;
-          }, 5000);
-        }
-      } else {
-        // Il giocatore è vivo - cancella il timer
-        if (disconnectTimerRef.current) {
-          clearTimeout(disconnectTimerRef.current);
+    // Trova il giocatore corrente nei metadati di boardgame.io
+    const currentPlayerData = matchData?.players?.find(p => String(p.id) === String(currentPlayerID));
+    
+    // Se isConnected === false (vero e proprio drop di rete)
+    if (currentPlayerData && currentPlayerData.isConnected === false) {
+      if (!disconnectTimerRef.current) {
+        console.log(`⚠️ Player ${currentPlayerID} ha chiuso la connessione - Timer 45s di tolleranza avviato!`);
+        
+        disconnectTimerRef.current = setTimeout(() => {
+          if (G?.hasLeft?.[currentPlayerID] !== true) {
+            console.log(`❌ Player ${currentPlayerID} disconnessione accertata - Espulsione dalla partita`);
+            moves.reportPlayerDisconnected(currentPlayerID);
+          }
           disconnectTimerRef.current = null;
-        }
+        }, 45000); // 45 secondi di tolleranza
       }
-    };
-
-    // Avvia il listener di heartbeat
-    const unsubscribe = watchHeartbeat(matchID, currentPlayerID, handleHeartbeatChange);
+    } else {
+      // Se è online o torna online prima che finisca il timer, resetta il kick
+      if (disconnectTimerRef.current) {
+        console.log(`✅ Player ${currentPlayerID} tornato online - Timeout ConnectionGuardian cancellato`);
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
+    }
 
     // Cleanup
     return () => {
-      if (unsubscribe) unsubscribe();
       if (disconnectTimerRef.current) {
         clearTimeout(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
       }
     };
-  }, [ctx?.currentPlayer, matchID, moves, playerID, G?.hasLeft]);
+  }, [ctx?.currentPlayer, matchID, moves, playerID, G?.hasLeft, matchData]);
 
   return null;
 };

@@ -25,7 +25,7 @@ import { setUserOffline } from './firebase/presence';
 import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';
 
-function RiskBoardContent() {
+function RiskBoardContent({ bgioMatchData }) {
   const { ctx, G, moves, playerID, chatMessages, sendChatMessage } = useRisk();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -80,7 +80,8 @@ function RiskBoardContent() {
     photoURL: avatarUrl
   });
 
-  // L'avvio dell'heartbeat è stato rimosso per usare l'architettura nativa di boardgame.io
+  // NOTA: Il vecchio sistema di heartbeat Firebase è stato rimosso.
+  // Il ConnectionGuardian v2 usa isConnected nativo di boardgame.io.
 
   // Redirect automatico se il giocatore ha abbandonato (dopo refresh)
   React.useEffect(() => {
@@ -246,14 +247,13 @@ function RiskBoardContent() {
         />
       </div>
 
-      {/* CONNECTION GUARDIAN - Monitora disconnessioni giocatori */}
+      {/* CONNECTION GUARDIAN v2 - Monitora disconnessioni via isConnected nativo */}
       <ConnectionGuardian 
         ctx={ctx} 
         moves={moves} 
         playerID={playerID} 
         G={G}
-        matchID={matchId}
-        matchData={matchData}
+        matchData={bgioMatchData}
       />
 
       {/*Layout standard full-width per altre fasi*/}
@@ -408,10 +408,10 @@ function RiskBoardContent() {
 }
 
 // Il componente principale esportato
-export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull, chatMessages, sendChatMessage }) {
+export function RiskBoard({ G, ctx, moves, playerID, events, isLobbyFull, chatMessages, sendChatMessage, matchData }) {
   return (
     <GameProvider G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} chatMessages={chatMessages} sendChatMessage={sendChatMessage}>
-      <RiskBoardContent />
+      <RiskBoardContent bgioMatchData={matchData} />
     </GameProvider>
   );
 }

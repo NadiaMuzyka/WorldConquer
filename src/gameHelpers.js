@@ -79,7 +79,10 @@ const autoPlaceTroops = (G, ctx, playerID, count) => {
 };
 
 // Funzione helper per gestire l'uscita di un giocatore (volontaria o disconnessione)
-const handlePlayerExit = (G, ctx, events, playerID, reason = 'leave') => {
+// NOTA: Non chiama events.endTurn()/endGame() direttamente — setta flag in G.
+// Questo perché boardgame.io ignora silenziosamente gli eventi chiamati da non-currentPlayer.
+// I flag vengono consumati da turn.endIf (per endTurn) e onMove/checkVictoryCondition (per endGame).
+const handlePlayerExit = (G, ctx, playerID, reason = 'leave') => {
   if (!G.hasLeft) G.hasLeft = {};
   if (G.hasLeft[playerID] === true) {
     console.log(`⚠️ [EXIT-SKIP] Player ${playerID} ha già abbandonato - skip duplicato`);
@@ -89,6 +92,7 @@ const handlePlayerExit = (G, ctx, events, playerID, reason = 'leave') => {
   console.log(`🚪 [EXIT] Player ${playerID} abbandona (reason: ${reason})`);
   G.hasLeft[playerID] = true;
 
+  // Auto-completamento turno se è il currentPlayer
   if (ctx.currentPlayer === playerID) {
     console.log(`  ↳ Auto-completamento turno per player ${playerID}`);
     if (ctx.phase === 'INITIAL_REINFORCEMENT') {
@@ -108,10 +112,11 @@ const handlePlayerExit = (G, ctx, events, playerID, reason = 'leave') => {
         console.log(`    ↳ Auto-piazzati ${reinforcements} rinforzi`);
       }
     }
-
-    console.log(`  ↳ Chiamata events.endTurn()`);
-    events.endTurn();
   }
+
+  // Setta il flag per forzare endTurn — turn.endIf lo gestirà
+  console.log(`  ↳ Setting G.forceEndTurn = true (turn.endIf gestirà endTurn)`);
+  G.forceEndTurn = true;
 };
 
 // Funzione per assegnare obiettivi segreti ai giocatori

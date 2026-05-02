@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRisk } from '../../context/GameContext';
 import { PHASE_TIMEOUTS } from '../Constants/timeouts';
 
@@ -6,8 +6,12 @@ const Timer = () => {
   const { G, ctx, moves, playerID } = useRisk();
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [duration, setDuration] = useState(0);
+  const timeoutCalledRef = useRef(false);
   
   useEffect(() => {
+    // Reset della guardia ad ogni cambio di turno/stage
+    timeoutCalledRef.current = false;
+    
     // Determina la durata del timeout in base allo stage del CURRENTPLAYER (non il mio)
     let currentDuration = 0;
     const currentPlayerStage = ctx?.activePlayers?.[ctx?.currentPlayer];
@@ -47,15 +51,15 @@ const Timer = () => {
       const remaining = calculateTimeRemaining();
       setTimeRemaining(remaining);
       
-      // SOLO I RIVALI possono chiamare checkTimeout (non il currentPlayer)
-      const isRival = ctx?.currentPlayer !== playerID;
-      
-      if (remaining === 0 && moves?.checkTimeout && isRival) {
-        console.log(`⏰ [TIMER RIVAL] Tempo scaduto, chiamata checkTimeout per Player ${ctx.currentPlayer}`);
+      // Quando il tempo scade, CHIUNQUE può chiamare checkTimeout
+      // (sia il currentPlayer dal suo stage, sia i rivali dal monitoring)
+      // Il server accetterà la mossa perché viene dallo stage corretto del chiamante
+      if (remaining === 0 && moves?.checkTimeout && !timeoutCalledRef.current) {
+        timeoutCalledRef.current = true;
+        const isRival = ctx?.currentPlayer !== playerID;
+        console.log(`⏰ [TIMER] Tempo scaduto! Player ${playerID} chiama checkTimeout (${isRival ? 'come rivale' : 'come currentPlayer'})`);
         moves.checkTimeout();
         clearInterval(interval);
-      } else if (remaining === 0 && !isRival) {
-        console.log(`⏰ [TIMER] Tempo scaduto ma sono io di turno (Player ${ctx.currentPlayer}), aspetto che un rivale chiami timeout`);
       }
     }, 1000);
     

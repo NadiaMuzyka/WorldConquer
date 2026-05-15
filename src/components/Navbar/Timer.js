@@ -53,11 +53,27 @@ const Timer = () => {
       
       // Quando il tempo scade, CHIUNQUE può chiamare checkTimeout
       // (sia il currentPlayer dal suo stage, sia i rivali dal monitoring)
-      // Il server accetterà la mossa perché viene dallo stage corretto del chiamante
       if (remaining === 0 && moves?.checkTimeout && !timeoutCalledRef.current) {
+        // Verifica che il giocatore sia in uno stage valido prima di chiamare
+        const myStage = ctx?.activePlayers?.[playerID];
+        if (!myStage) {
+          // Non siamo in nessuno stage — aspettiamo il prossimo tick
+          // (può succedere durante transizioni rapide via turn.endIf)
+          console.log(`⏰ [TIMER] Tempo scaduto ma Player ${playerID} non è in nessuno stage — riprovo...`);
+          return;
+        }
+        
+        // Verifica che non siamo un giocatore uscito
+        if (G?.hasLeft?.[playerID]) {
+          console.log(`⏰ [TIMER] Player ${playerID} ha abbandonato — skip checkTimeout`);
+          timeoutCalledRef.current = true;
+          clearInterval(interval);
+          return;
+        }
+        
         timeoutCalledRef.current = true;
         const isRival = ctx?.currentPlayer !== playerID;
-        console.log(`⏰ [TIMER] Tempo scaduto! Player ${playerID} chiama checkTimeout (${isRival ? 'come rivale' : 'come currentPlayer'})`);
+        console.log(`⏰ [TIMER] Tempo scaduto! Player ${playerID} chiama checkTimeout (${isRival ? 'come rivale' : 'come currentPlayer'}, stage: ${myStage})`);
         moves.checkTimeout();
         clearInterval(interval);
       }

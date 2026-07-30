@@ -179,7 +179,7 @@ const GameCard = ({ match, currentUser }) => {
       )}
 
       {/* Card */}
-      <div className="relative w-full h-auto min-h-[103px] bg-[#1B2227] rounded-[8px] shadow-[0px_4px_10px_rgba(0,0,0,0.3)] p-4 flex flex-col md:flex-row items-center justify-between transition hover:bg-[#232c33] gap-4 md:gap-0">
+      <div className="relative w-full h-auto min-h-[103px] bg-[#1B2227] rounded-[8px] shadow-[0px_4px_10px_rgba(0,0,0,0.3)] p-4 flex flex-col md:flex-row items-center justify-between transition hover:bg-[#2A3439] gap-4 md:gap-0">
         <>
       <div className="flex items-center gap-5 w-full md:w-auto">
 
@@ -188,7 +188,7 @@ const GameCard = ({ match, currentUser }) => {
           <img
             src={image || "https://api.dicebear.com/7.x/shapes/svg?seed=" + id}
             alt="Game"
-            className="w-full h-full rounded-full object-cover border-4 border-[#F00A0A]"
+            className="w-full h-full rounded-full object-cover border-4 border-[#38C7D7]"
           />
           {/*Mostro lucchetto */}
           {isPrivate && (

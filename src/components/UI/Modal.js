@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { X } from 'lucide-react';
 
 function Modal({ 
     onClose, 
@@ -61,8 +62,8 @@ function Modal({
                     <div className="flex items-center justify-between px-7 py-4 border-b border-gray-700">
                         {title && <h3 className="text-lg font-bold">{title}</h3>}
                         {!preventClose && (
-                            <button onClick={onClose} className="text-gray-400 hover:text-white">
-                                ✕
+                            <button aria-label="Chiudi" onClick={onClose} className="text-gray-400 hover:text-white">
+                                <X className="w-5 h-5" />
                             </button>
                         )}
                     </div>

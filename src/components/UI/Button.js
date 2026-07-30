@@ -16,7 +16,13 @@ const VARIANTS = {
   ghost: "bg-transparent text-gray-400 hover:text-white",
 
   // 5. Stile disabilitato (Grigio)
-  gray: "bg-gray-600 text-gray-400 border border-transparent cursor-not-allowed"
+  gray: "bg-gray-600 text-gray-400 border border-transparent cursor-not-allowed",
+
+  // 6. Primary (alias of cyan)
+  primary: "bg-[#38C7D7] text-[#192832] hover:bg-[#2EB0BF] border border-transparent",
+
+  // 7. Secondary (alias of outline)
+  secondary: "bg-transparent border border-gray-500 text-white hover:border-white hover:bg-white/10"
 };
 
 // DEFINIZIONE DELLE DIMENSIONI
@@ -48,7 +54,7 @@ export const Button = ({
 }) => {
   
   // Stili base comuni a tutti (Arrotondato, Flex, Font)
-  const baseStyles = "rounded-full font-bold transition-all duration-200 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "rounded-full font-bold transition-all duration-200 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38C7D7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#173C55]";
 
   // Composizione finale delle classi
   const finalClass = `

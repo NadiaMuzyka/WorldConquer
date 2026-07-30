@@ -16,10 +16,13 @@ export const LoginPage = ({ error: errorProp = "" }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(errorProp);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsLoggingIn(true);
         const result = await login(email, password);
+        setIsLoggingIn(false);
         if (!result.success) {
             setError(result.error);
         } else {
@@ -29,9 +32,11 @@ export const LoginPage = ({ error: errorProp = "" }) => {
     };
 
     const handleGoogleLogin = async () => {
+        setIsLoggingIn(true);
         const result = await loginWithGoogle();
         if (!result.success) {
             setError(result.error);
+            setIsLoggingIn(false);
             return;
         }
         
@@ -54,6 +59,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
             // Dati presenti - vai alla lobby
             navigate('/lobby');
         }
+        setIsLoggingIn(false);
     };
 
     return (
@@ -87,8 +93,9 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 variant="cyan"
                 size="lg"
                 className="w-full mt-5"
+                disabled={isLoggingIn}
             >
-                Accedi
+                {isLoggingIn ? "Accesso..." : "Accedi"}
             </Button>
 
             <div className="relative my-4">
@@ -105,9 +112,10 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 onClick={handleGoogleLogin}
                 className="w-full bg-white text-gray-700 hover:bg-gray-100 border-transparent gap-2 whitespace-nowrap"
                 size="lg"
+                disabled={isLoggingIn}
             >
                 <GoogleLogo />
-                Accedi con Google
+                {isLoggingIn ? "Accesso in corso..." : "Accedi con Google"}
             </Button>
 
             {/* Link alla Registrazione */}

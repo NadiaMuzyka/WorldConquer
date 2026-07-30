@@ -2,6 +2,7 @@ import React from 'react';
 import { useRouteError, useNavigate, isRouteErrorResponse } from 'react-router-dom';
 import { Home, ArrowLeft, AlertTriangle } from 'lucide-react';
 import Button from '../components/UI/Button';
+import PageContainer from '../components/UI/PageContainer';
 
 /**
  * Pagina di errore per React Router
@@ -35,8 +36,8 @@ const ErrorPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#1A1F25] to-[#2C333A] flex items-center justify-center p-4">
-            <div className="max-w-2xl w-full bg-[#2C333A] rounded-2xl shadow-2xl border border-gray-700 p-8 md:p-12">
+        <PageContainer centered={true}>
+            <div className="max-w-2xl w-full bg-[#2C333A] rounded-2xl shadow-2xl border border-gray-700 p-8 md:p-12 z-10">
 
                 {/* Icon */}
                 <div className="flex justify-center mb-6">
@@ -95,7 +96,7 @@ const ErrorPage = () => {
                     </Button>
                 </div>
             </div>
-        </div>
+        </PageContainer>
     );
 };
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Users, Plus } from 'lucide-react';
+import { Users, Plus, Filter } from 'lucide-react';
 
 // Components
 import FilterContainer from '../components/Lobby/FilterContainer';
@@ -11,6 +11,7 @@ import PageContainer from '../components/UI/PageContainer';
 import GameContainer from '../components/Lobby/GameContainer';
 import SearchBox from '../components/Lobby/SearchBox';
 import LobbyLoading from './LobbyLoading';
+import BottomDrawer from '../components/UI/BottomDrawer';
 
 // Firebase & Redux
 import { collection, query, onSnapshot } from 'firebase/firestore';
@@ -24,21 +25,16 @@ const LobbyPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [currentUser, setCurrentUser] = React.useState(null);
+  const { currentUser, status: userStatus } = useSelector(state => state.user);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // Carica i dati utente all'avvio
-  React.useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const user = await getGameUser();
-        setCurrentUser(user);
-      } catch (error) {
-        // getGameUser già gestisce il redirect al login
-      }
-    };
-    loadUser();
-  }, []);
+  // Redirigi se non loggato e non in caricamento
+  useEffect(() => {
+    if (userStatus === 'unauthenticated') {
+      navigate('/login');
+    }
+  }, [userStatus, navigate]);
 
   // --- 1. ASCOLTA FIREBASE (Lettura Dati) ---
   useEffect(() => {
@@ -97,32 +93,7 @@ const LobbyPage = () => {
     navigate('/create');
   };
 
-  useEffect(() => {
-    // Crea o recupera il div per il banner nel body
-    let bannerDiv = document.getElementById('ad-banner-body');
-    if (!bannerDiv) {
-      bannerDiv = document.createElement('div');
-      bannerDiv.id = 'ad-banner-body';
-      bannerDiv.style.display = 'flex';
-      bannerDiv.style.justifyContent = 'center';
-      bannerDiv.style.marginBottom = '2rem';
-      bannerDiv.style.marginTop = '1rem';
-      document.body.appendChild(bannerDiv); // ora lo mettiamo in fondo al body
-    }
-    // Inserisci lo script nel div
-    const script = document.createElement('script');
-    script.src = "//ad.altervista.org/js.ad/size=728X90/?ref=" + encodeURIComponent(window.location.hostname + window.location.pathname) + "&r=" + Date.now();
-    script.async = true;
-    bannerDiv.appendChild(script);
-    return () => {
-      // Rimuovi il div e lo script quando il componente viene smontato
-      if (bannerDiv && bannerDiv.parentNode) {
-        bannerDiv.parentNode.removeChild(bannerDiv);
-      }
-    };
-  }, []);
-
-  if (isLoading) {
+  if (isLoading || userStatus === 'loading') {
     return <LobbyLoading message="Caricamento lobby..." />;
   }
 
@@ -138,27 +109,34 @@ const LobbyPage = () => {
           <FilterContainer />
         </aside>
         {/* COLONNA CENTRALE: LISTA PARTITE */}
-        <main className="flex-1 min-w-0 max-w-[1400px]">
+        <main className="flex-1 min-w-0 max-w-[1400px] flex flex-col">
+          <div className="flex xl:hidden justify-start items-center mb-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsMobileFiltersOpen(true)}
+              className="gap-2 bg-[#1B2227] border-gray-600 text-white"
+            >
+              <Filter size={18} />
+              Filtri
+            </Button>
+          </div>
+          <SearchBox />
           <GameContainer
             matches={filteredGames}
             currentUser={currentUser}
           />
         </main>
-        {/* COLONNA DX: SIDEBAR & CREATE */}
-        <aside className="hidden xl:flex flex-col w-[323px] shrink-0 gap-5 sticky top-[90px]">
-          <SearchBox />
-          <div className="bg-[#1B2227] rounded-lg shadow-md p-4 flex flex-col h-[500px]">
-            <div className="flex items-center gap-2 mb-4 border-b border-gray-600 pb-2">
-              <Users className="w-6 h-6 text-white" />
-              <span className="text-xl font-bold text-white">Amici Online</span>
-            </div>
-            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm border-2 border-dashed border-gray-600 rounded-lg">
-              Nessun amico online
-            </div>
-          </div>
-        </aside>
+        
       </div>
       </PageContainer>
+      
+      <BottomDrawer
+        isOpen={isMobileFiltersOpen}
+        onClose={() => setIsMobileFiltersOpen(false)}
+        title="Filtri Partita"
+      >
+        <FilterContainer />
+      </BottomDrawer>
     </>
   );
 };

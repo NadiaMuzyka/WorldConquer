@@ -5,7 +5,7 @@ import PhaseInfo from './PhaseInfo'; // Assicurati che il file esista (step prec
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../firebase/auth';
 import auth from '../../firebase/auth';
-import { getUserData } from '../../firebase/db';
+import { useSelector } from 'react-redux';
 import ProfileDropdown from './ProfileDropdown';
 import Logo from '../UI/Logo';
 import Button from '../UI/Button';
@@ -26,47 +26,10 @@ export const Navbar = ({
 }) => {
 
   const navigate = useNavigate();
-  const AVATAR_CACHE_KEY = 'user_avatar_url';
+  const { currentUser, status: userStatus } = useSelector(state => state.user || { currentUser: null, status: 'loading' });
 
-  // Inizializza con l'avatar dalla cache se disponibile
-  const [avatarUrl, setAvatarUrl] = useState(() => {
-    if (userAvatar) return userAvatar;
-    const cached = localStorage.getItem(AVATAR_CACHE_KEY);
-    return cached || null;
-  });
-  const [isLoading, setIsLoading] = useState(!userAvatar && !localStorage.getItem(AVATAR_CACHE_KEY));
-
-  // Aggiorna l'avatar quando il prop cambia
-  useEffect(() => {
-    if (userAvatar) {
-      setAvatarUrl(userAvatar);
-      localStorage.setItem(AVATAR_CACHE_KEY, userAvatar);
-      setIsLoading(false);
-    }
-  }, [userAvatar]);
-
-  // Carica l'avatar dal database solo se non è stato passato come prop
-  useEffect(() => {
-    const loadUserAvatar = async () => {
-      if (userAvatar) {
-        return; // Usa il prop, non caricare dal DB
-      }
-
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const result = await getUserData(currentUser.uid);
-        if (result.success && result.data.photoURL) {
-          setAvatarUrl(result.data.photoURL);
-          localStorage.setItem(AVATAR_CACHE_KEY, result.data.photoURL);
-        }
-      }
-      setIsLoading(false);
-    };
-
-    loadUserAvatar();
-  }, [userAvatar]);
-
-  const displayAvatar = avatarUrl;
+  const displayAvatar = userAvatar || currentUser?.avatar || null;
+  const isLoading = userStatus === 'loading' && !userAvatar;
 
   // --- LOGICA SMART ---
   // Se è presente la prop 'phase', forza la modalità GAME
@@ -159,6 +122,7 @@ export const Navbar = ({
             isLoading={isLoading}
             onProfileClick={() => navigate('/profile')}
             onStatsClick={() => navigate('/stats')}
+            onRulesClick={() => navigate('/rules')}
             onLogoutClick={handleLogout}
           />
         </div>

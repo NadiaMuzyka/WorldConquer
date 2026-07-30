@@ -13,29 +13,14 @@ const SearchBox = () => {
   };
 
   return (
-    // CARD ESTERNA: Più ariosa con py-4 e gap-3
-    <div className="
-      w-[323px] 
-      bg-[#1B2227] 
-      rounded-[12px] 
-      shadow-[0px_4px_10px_rgba(0,0,0,0.3)] 
-      flex flex-col
-      pb-4
-      shrink-0
-    ">
-      
-      {/* Header: Icona + Scritta CERCA */}
-      <div className="w-full px-4 pt-4">
-        <div className="flex items-center gap-2 mb-4 border-b border-gray-600 pb-2">
-          <Search size={24} color="white" />
-          <span className="text-xl font-bold text-white">
-            Cerca
-          </span>
-        </div>
+    <div className="w-full bg-[#1B2227] rounded-[12px] shadow-sm p-4 flex flex-col md:flex-row items-center gap-4 mb-6">
+      <div className="flex items-center gap-2 w-full md:w-auto">
+        <Search size={20} color="white" />
+        <span className="text-lg font-bold text-white whitespace-nowrap">
+          Cerca Partita
+        </span>
       </div>
-
-      {/* Input Field: Spazio laterale (px-5) per non toccare i bordi */}
-      <div className="w-full px-4">
+      <div className="flex-1 w-full">
         <TextInput
           variant="light" 
           placeholder="Inserisci nome o codice..."

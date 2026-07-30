@@ -11,7 +11,7 @@ import Avatar from '../UI/Avatar';
  * @param {Function} props.onProfileClick - Callback per il click su "Profilo"
  * @param {Function} props.onLogoutClick - Callback per il click su "Logout"
  */
-const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onStatsClick, onLogoutClick }) => {
+const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onStatsClick, onRulesClick, onLogoutClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -88,7 +88,7 @@ const ProfileDropdown = ({ avatarUrl, isLoading = false, onProfileClick, onStats
             label="Regole"
             variant="default"
             onClick={() => {
-              window.location.href = '/rules';
+              if (onRulesClick) onRulesClick();
               setIsOpen(false);
             }}
           />

@@ -22,10 +22,13 @@ import { lobbyClient } from '../client/lobbyClient';
 import { getGameUser } from '../utils/getUser';
 import { auth } from '../firebase/firebaseConfig';
 import { enterMatch } from '../store/slices/lobbySlice'; // <--- 2. IMPORT AZIONE
+import { useSelector } from 'react-redux';
 
 const CreateMatchPage = () => {
    const navigate = useNavigate();
    const dispatch = useDispatch(); // <--- 3. HOOK
+
+   const { currentUser, status: userStatus } = useSelector(state => state.user);
 
    // --- STATI DEL FORM ---
    const [matchName, setMatchName] = useState('');
@@ -35,22 +38,13 @@ const CreateMatchPage = () => {
    const [password, setPassword] = useState('');
    const [passwordError, setPasswordError] = useState('');
    const [loading, setLoading] = useState(false);
-   const [currentUser, setCurrentUser] = useState(null);
 
-   const firebaseUser = auth.currentUser;
-
-   // Carica i dati utente all'avvio
+   // Redirigi se non loggato
    React.useEffect(() => {
-      const loadUser = async () => {
-         try {
-            const user = await getGameUser();
-            setCurrentUser(user);
-         } catch (error) {
-            // getGameUser già gestisce il redirect al login
-         }
-      };
-      loadUser();
-   }, []);
+      if (userStatus === 'unauthenticated') {
+         navigate('/login');
+      }
+   }, [userStatus, navigate]);
 
    // --- LOGICA DI CREAZIONE ---
    const handleSubmit = async (e) => {

@@ -25,14 +25,14 @@ import { setUserOffline } from './firebase/presence';
 import { useUserPresence } from './hooks/useUserPresence';
 import { getGameUser } from './utils/getUser';
 
-function RiskBoardContent({ bgioMatchData }) {
+export function RiskBoardContent({ bgioMatchData, isMock = false }) {
   const { ctx, G, moves, playerID, chatMessages, sendChatMessage } = useRisk();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { matchId } = useParams(); // Ottieni matchID dall'URL
 
-  // Redux: ottieni i dati del match per recuperare i giocatori
-  const matchData = useSelector((state) => state.match?.data);
+  // Redux: ottieni i dati del match per recuperare i giocatori (fallback su bgioMatchData se in mock)
+  const matchData = useSelector((state) => state.match?.data) || bgioMatchData;
 
   const [showAnimationModal, setShowAnimationModal] = React.useState(false);
   const [showResultModal, setShowResultModal] = React.useState(false);
@@ -52,7 +52,11 @@ function RiskBoardContent({ bgioMatchData }) {
   const winnerName =
     winnerPlayer?.name ||
     matchData?.players?.find((p) => String(p.id) === winnerID)?.name;
-  const winnerObjective = winnerPlayer?.secretObjective;
+  // NOTA: non si può leggere winnerPlayer?.secretObjective — PlayerView.STRIP_SECRETS
+  // rimuove da G.players ogni entry che non sia la propria, quindi sarebbe undefined
+  // per chiunque tranne il vincitore stesso. Il backend manda già l'obiettivo completo
+  // (non protetto) dentro ctx.gameover.
+  const winnerObjective = ctx?.gameover?.objectiveCompleted;
   const victoryType = ctx?.gameover?.victoryType || 'objective';
   const currentStage = ctx.activePlayers?.[ctx?.currentPlayer];
   const player = matchData?.players?.[playerID];
@@ -65,15 +69,16 @@ function RiskBoardContent({ bgioMatchData }) {
   // Stato per l'utente autenticato
   const [currentUser, setCurrentUser] = React.useState(null);
 
-  // Ascolta lo stato di autenticazione
+  // Ascolta lo stato di autenticazione (salta se mock)
   React.useEffect(() => {
+    if (isMock) return;
     const user = getGameUser();
     console.log('🛡️ [AUTH] Utente recuperato:', user?.uid || 'null');
     setCurrentUser(user);
-  }, []);
+  }, [isMock]);
 
-  // Inizializza Firebase Presence usando l'hook dedicato
-  useUserPresence(currentUser, {
+  // Inizializza Firebase Presence usando l'hook dedicato (disabilitato se mock)
+  useUserPresence(isMock ? null : currentUser, {
     currentMatchId: matchId,
     playerID: playerID,
     username: nickname,
@@ -108,6 +113,10 @@ function RiskBoardContent({ bgioMatchData }) {
   // Gestione dei modal di battaglia
   React.useEffect(() => {
     const hasBattleResult = G?.battleResult !== null && G?.battleResult !== undefined;
+    // isMyTurn copre solo l'attaccante: senza questo, il difensore (e chiunque altro)
+    // non vede mai i dadi/l'esito e il suo territorio cambia proprietario senza spiegazione.
+    const isDefender = hasBattleResult && G.battleResult.originalDefenderOwner === playerID;
+    const isInvolved = isMyTurn || isDefender;
 
     if (isGameOver) {
       setShowAnimationModal(false);
@@ -115,7 +124,7 @@ function RiskBoardContent({ bgioMatchData }) {
       return;
     }
 
-    if (isMyTurn && hasBattleResult) {
+    if (isInvolved && hasBattleResult) {
       // Se c'è un battleResult, mostra prima l'animazione
       setShowAnimationModal(true);
       setShowResultModal(false);
@@ -124,7 +133,7 @@ function RiskBoardContent({ bgioMatchData }) {
       setShowAnimationModal(false);
       setShowResultModal(false);
     }
-  }, [isMyTurn, G?.battleResult, isGameOver]);
+  }, [isMyTurn, playerID, G?.battleResult, isGameOver]);
 
   // Gestione del completamento dell'animazione
   const handleAnimationComplete = () => {
@@ -135,9 +144,11 @@ function RiskBoardContent({ bgioMatchData }) {
   // Gestione della chiusura del risultato
   const handleResultClose = () => {
     setShowResultModal(false);
-    // Reset IMMEDIATO del battleResult chiamando la mossa del server
-    // Questo avviene sia per chiusura manuale che automatica
-    if (moves?.resetAttackSelection) {
+    // Solo l'attaccante può resettare lo stato (è l'unico nello stage 'attack' —
+    // per il difensore, che vede il modal in sola lettura, questa mossa verrebbe
+    // comunque rifiutata dal server). Il suo modal si chiude da solo non appena
+    // l'attaccante resetta G.battleResult.
+    if (isMyTurn && moves?.resetAttackSelection) {
       moves.resetAttackSelection();
     }
   };
@@ -256,72 +267,39 @@ function RiskBoardContent({ bgioMatchData }) {
         matchData={bgioMatchData}
       />
 
-      {/*Layout standard full-width per altre fasi*/}
-      <div className="w-full flex justify-center items-center z-15 h-[calc(100vh-180px)] mt-20">
-        <div className="w-full h-full lg:max-w-[65%] mx-auto flex items-center justify-center p-4 mt-6">
-          <ZoomableMapContainer>
-            <RiskMap />
-          </ZoomableMapContainer>
-        </div>
+      {/* MAPPA A SCHERMO INTERO */}
+      <div className="absolute inset-0 z-0">
+        <ZoomableMapContainer>
+          <RiskMap />
+        </ZoomableMapContainer>
+      </div>
 
-        {/* BARRA SOTTO DEL GIOCATORE */}
-        <PlayerBar />
+      {/* BARRA SOTTO DEL GIOCATORE (Nuovo Control Panel in basso a destra) */}
+        <PlayerBar 
+          secretObjective={secretObjective}
+          playerCards={playerCards}
+          onShowCards={() => setShowCardsModal(true)}
+        />
 
         {isSetupPhase && <SetupLogAnimated />}
 
-          {/* Card obiettivo segreto: in basso a sinistra, fuori dalla fase di setup */}
-          {!isSetupPhase && secretObjective && (
-            <div className="fixed left-8 bottom-3 z-30">
-              <Card className="w-auto h-[98px] flex flex-col justify-center bg-[#1B2227] border-l-4 border-[#FEC417] shadow-lg py-0">
-                <div className="flex items-center gap-3">
-                  <Trophy className="w-8 h-8 text-[#FEC417]" />
-                  <span className="text-lg font-bold text-[#FEC417]">IL TUO OBIETTIVO</span>
-                </div>
-                <div className="mt-3 text-base text-white whitespace-nowrap">{secretObjective}</div>
-              </Card>
-            </div>
-          )}
 
-          {/* MESSAGGIO UTENTE IN ALTO */}
+
+          {/* MESSAGGIO ISTRUZIONI (HUD BOTTOM CENTER) */}
           {(isMyTurn || isSetupPhase) && (
-            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30">
-              <Card className="w-[420px] bg-[#FEC417] shadow-lg py-2 px-4 text-center mt-2">
-                <span className="text-base font-bold text-[#1B2227]">
-                  {isSetupPhase && 'Ti sono stati assegnati i seguenti territori'}
-                  {isReinforcementPhase && 'Posiziona le tue truppe iniziali'}
-                  {isGamePhase && currentStage === 'reinforcement' &&  'Posiziona le tue truppe di rinforzo'}
-                  {isGamePhase && currentStage === 'attack' &&  'Attacca i territori avversari'}
-                  {isGamePhase && currentStage === 'strategicMovement' &&  'Sposta le tue truppe'}
+            <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-none origin-bottom w-[90%] md:w-auto flex justify-center scale-[0.70] md:scale-75 lg:scale-75 xl:scale-[0.85] 2xl:scale-100 min-[1920px]:scale-125">
+              <div className="px-6 py-2 rounded-full backdrop-blur-md bg-[#FEC417]/95 border border-white/20 shadow-[0_4px_24px_rgba(254,196,23,0.4)] text-center">
+                <span className="text-sm md:text-base font-extrabold text-gray-900 tracking-wide uppercase">
+                  {isSetupPhase && 'Territori iniziali assegnati. Preparati!'}
+                  {isReinforcementPhase && 'Piazza le tue truppe iniziali'}
+                  {isGamePhase && currentStage === 'reinforcement' &&  'Piazza truppe sui tuoi territori'}
+                  {isGamePhase && currentStage === 'attack' &&  'Clicca su un tuo territorio per attaccare da lì'}
+                  {isGamePhase && currentStage === 'strategicMovement' &&  'Sposta truppe tra territori adiacenti'}
                   {!isSetupPhase && !isReinforcementPhase && !isGamePhase && 'In attesa...'}
                 </span>
-              </Card>
+              </div>
             </div>
           )}
-
-          {/* CARD INFO UTENTE IN ALTO A SINISTRA */}
-          <div className="fixed left-8 bottom-20 z-30">
-            <Card className="w-[260px] min-h-[280px] flex flex-col items-center bg-[#1B2227] shadow-lg py-10 p-5 mb-12">
-              {/* Avatar placeholder */}
-              <div className="mb-2">
-                <Avatar src={avatarUrl} size='md' />
-              </div>
-              <div className="text-white text-base font-semibold mb-1">{"@" + nickname}</div>
-              <div className="flex justify-between w-full text-white text-sm mb-2 mt-5">
-                <span>{totalTroops} TRUPPE TOTALI</span>
-                <span>{ownedTerritories} TERRITORI</span>
-              </div>
-              <div className="w-full mt-3">
-                <Button
-                  variant="yellow"
-                  size="lg"
-                  onClick={() => setShowCardsModal(true)}
-                  className="w-full"
-                >
-                  Carte ({playerCards.length})
-                </Button>
-              </div>
-            </Card>
-          </div>
 
           {showEndGameModal && isGameOver && (
             <EndGameModal
@@ -333,7 +311,6 @@ function RiskBoardContent({ bgioMatchData }) {
               onTimerComplete={handleEndGameTimerComplete}
             />
           )}
-        </div>
 
       {/* MODALI */}
       {showAnimationModal && !isGameOver && (

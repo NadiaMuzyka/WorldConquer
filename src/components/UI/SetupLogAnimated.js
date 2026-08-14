@@ -17,7 +17,7 @@ const getTerritoryName = (countryId) => {
 
 export default function SetupLogAnimated() {
     const dispatch = useDispatch();
-    const { G, playerID } = useRisk();
+    const { G, ctx, playerID } = useRisk();
     const visibleCount = useSelector(state => state.setupAnimation.visibleCount);
     const finished = useSelector(state => state.setupAnimation.finished);
 
@@ -40,11 +40,13 @@ export default function SetupLogAnimated() {
     }, [visibleCount, finished, myTerritories.length, dispatch]);
 
     // Reset all'inizio fase SOLO se siamo in fase di setup
+    // NOTA: ctx è un valore fratello di G (non annidato dentro G) — G?.ctx?.phase
+    // era sempre undefined e questo reset non scattava mai tra una partita e l'altra.
     useEffect(() => {
-        if (G?.ctx?.phase === 'SETUP_INITIAL') {
+        if (ctx?.phase === 'SETUP_INITIAL') {
             dispatch(resetVisible());
         }
-    }, [G?.setupAssignmentOrder, playerID, dispatch, G?.ctx?.phase]);
+    }, [G?.setupAssignmentOrder, playerID, dispatch, ctx?.phase]);
 
 
     // Mostra solo l'ultimo territorio animato

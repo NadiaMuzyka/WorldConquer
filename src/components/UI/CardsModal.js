@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import Modal from './Modal';
 import RiskCard from './RiskCard';
-import { Button } from './Button';
+import Button from './Button';
 import { GiMountedKnight, GiFieldGun, GiPikeman, GiCardJoker } from 'react-icons/gi';
+import { X, Sparkles } from 'lucide-react';
 
 const CardsModal = ({ 
   onClose, 
@@ -15,10 +15,8 @@ const CardsModal = ({
   // Gestisce la selezione/deselezione delle carte
   const handleCardClick = (index) => {
     if (selectedIndices.includes(index)) {
-      // Deseleziona
       setSelectedIndices(selectedIndices.filter(i => i !== index));
     } else {
-      // Seleziona solo se non abbiamo già 3 carte
       if (selectedIndices.length < 3) {
         setSelectedIndices([...selectedIndices, index]);
       }
@@ -80,7 +78,7 @@ const CardsModal = ({
   };
 
   // Icone per la legenda
-  const CardIcon = ({ type, size = 'text-4xl' }) => {
+  const CardIcon = ({ type, size = 'text-2xl' }) => {
     const iconProps = { className: size };
     switch (type) {
       case 'INFANTRY':
@@ -97,131 +95,128 @@ const CardsModal = ({
   };
 
   return (
-    <Modal
-      title="Le Tue Carte"
-      size="full"
-      onClose={onClose}
-      actionBar={
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400">
-            {validation.message}
-          </span>
-          <Button
-            variant={validation.valid && canExchange ? 'cyan' : 'gray'}
-            onClick={handleExchange}
-            disabled={!validation.valid || !canExchange}
-            size="md"
-          >
-            Scambia Carte
-          </Button>
-          <Button variant="outline" onClick={onClose} size="md">
-            Chiudi
-          </Button>
-        </div>
-      }
-    >
-      <div className="flex gap-8 h-full">
-        {/* SEZIONE SINISTRA: Carte del giocatore (50%) */}
-        <div className="w-1/2 flex flex-col">
-          <h3 className="text-2xl font-bold text-white mb-6">
-            Carte Possedute ({playerCards.length})
-          </h3>
-          
-          {playerCards.length === 0 ? (
-            <div className="flex items-center justify-center flex-1 text-gray-400 text-lg">
-              Non hai ancora carte. Conquista un territorio per riceverne una!
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto pr-4">
-              {playerCards.map((card, index) => (
-                <div key={index} className="flex justify-center">
-                  <RiskCard
-                    type={card.type}
-                    isSelected={selectedIndices.includes(index)}
-                    onClick={() => handleCardClick(index)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+    <div className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-auto">
+      {/* Sfondo semitrasparente leggero per continuare a vedere la mappa sopra */}
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
+        onClick={onClose}
+      />
 
-        {/* SEZIONE DESTRA: Legenda (50%) */}
-        <div className="w-1/2 bg-slate-800/50 rounded-lg p-8 border border-slate-700 flex flex-col justify-center">
-          <h3 className="text-2xl font-bold text-white mb-8 text-center">
-            Combinazioni Valide
-          </h3>
-          
-          <div className="space-y-5">
-            {/* 3 Cannoni */}
-            <div className="flex items-center justify-between bg-slate-700/80 p-5 rounded-lg hover:bg-slate-700 transition">
-              <div className="flex items-center gap-3">
-                <CardIcon type="ARTILLERY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="ARTILLERY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="ARTILLERY" size="text-5xl" />
-              </div>
-              <span className="text-yellow-400 font-bold text-5xl">+4</span>
-            </div>
-
-            {/* 3 Fanti */}
-            <div className="flex items-center justify-between bg-slate-700/80 p-5 rounded-lg hover:bg-slate-700 transition">
-              <div className="flex items-center gap-3">
-                <CardIcon type="INFANTRY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="INFANTRY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="INFANTRY" size="text-5xl" />
-              </div>
-              <span className="text-yellow-400 font-bold text-5xl">+6</span>
-            </div>
-
-            {/* 3 Cavalieri */}
-            <div className="flex items-center justify-between bg-slate-700/80 p-5 rounded-lg hover:bg-slate-700 transition">
-              <div className="flex items-center gap-3">
-                <CardIcon type="CAVALRY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="CAVALRY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="CAVALRY" size="text-5xl" />
-              </div>
-              <span className="text-yellow-400 font-bold text-5xl">+8</span>
-            </div>
-
-            {/* Tris Misto */}
-            <div className="flex items-center justify-between bg-slate-700/80 p-5 rounded-lg hover:bg-slate-700 transition">
-              <div className="flex items-center gap-3">
-                <CardIcon type="INFANTRY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="CAVALRY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <CardIcon type="ARTILLERY" size="text-5xl" />
-              </div>
-              <span className="text-yellow-400 font-bold text-5xl">+10</span>
-            </div>
-
-            {/* Jolly + 2 Uguali */}
-            <div className="flex items-center justify-between bg-slate-700/80 p-5 rounded-lg hover:bg-slate-700 transition">
-              <div className="flex items-center gap-3">
-                <CardIcon type="JOLLY" size="text-5xl" />
-                <span className="text-white text-2xl font-bold">+</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-white text-sm font-bold bg-slate-600 px-2 py-1 rounded">2x carte uguali</span>
-                </div>
-              </div>
-              <span className="text-yellow-400 font-bold text-5xl">+12</span>
-            </div>
+      {/* Drawer compatto a comparsa dal basso */}
+      <div className="relative w-full max-h-[75vh] bg-[#0b1622]/85 backdrop-blur-2xl border-t border-white/20 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 z-10">
+        
+        {/* Header Drawer */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-extrabold text-white tracking-wide">
+              Le Tue Carte ({playerCards.length})
+            </h3>
+            {validation.valid && (
+              <span className="px-3 py-1 rounded-full bg-[#FEC417] text-gray-900 font-extrabold text-xs flex items-center gap-1 shadow-md animate-pulse">
+                <Sparkles className="w-3.5 h-3.5" />
+                {validation.message}
+              </span>
+            )}
           </div>
 
-          {!canExchange && (
-            <div className="mt-8 bg-yellow-900/30 border border-yellow-700 rounded p-4 text-sm text-yellow-300">
-              ⚠️ Puoi scambiare carte solo durante la tua fase di rinforzo
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <Button
+              variant={validation.valid && canExchange ? 'yellow' : 'outline'}
+              onClick={handleExchange}
+              disabled={!validation.valid || !canExchange}
+              className={`h-9 px-5 text-xs font-bold uppercase rounded-xl transition-all ${
+                validation.valid && canExchange 
+                  ? '!bg-[#FEC417] !text-gray-900 shadow-[0_0_15px_rgba(254,196,23,0.5)]' 
+                  : 'opacity-50 cursor-not-allowed border-white/20 text-gray-400'
+              }`}
+            >
+              Scambia Carte
+            </Button>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
+
+        {/* Body contenuto */}
+        <div className="p-6 overflow-y-auto flex flex-col md:flex-row gap-6 max-h-[calc(75vh-80px)]">
+          {/* Sezione Carte possedute (Orizzontale / Grid) */}
+          <div className="flex-1 flex flex-col">
+            {playerCards.length === 0 ? (
+              <div className="flex items-center justify-center py-12 text-gray-400 text-base bg-white/5 rounded-2xl border border-white/10">
+                Non hai ancora carte. Conquista almeno un territorio per riceverne una a fine turno!
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-4 justify-start items-center">
+                {playerCards.map((card, index) => (
+                  <div key={index} className="transition-transform duration-200 hover:scale-105">
+                    <RiskCard
+                      type={card.type}
+                      isSelected={selectedIndices.includes(index)}
+                      onClick={() => handleCardClick(index)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!canExchange && playerCards.length >= 3 && (
+              <p className="mt-3 text-xs text-yellow-400/80 italic">
+                * Puoi effettuare lo scambio solo all'inizio della tua fase di rinforzo.
+              </p>
+            )}
+          </div>
+
+          {/* Legenda Combinazioni (Compatta) */}
+          <div className="w-full md:w-80 bg-black/40 rounded-2xl p-4 border border-white/10 flex flex-col gap-2 flex-shrink-0">
+            <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-1 text-center">
+              Combinazioni Valide
+            </h4>
+            
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-xl border border-white/5">
+                <div className="flex items-center gap-1.5 text-gray-200">
+                  <CardIcon type="ARTILLERY" /> + <CardIcon type="ARTILLERY" /> + <CardIcon type="ARTILLERY" />
+                </div>
+                <span className="text-[#FEC417] font-bold text-sm">+4 truppe</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-xl border border-white/5">
+                <div className="flex items-center gap-1.5 text-gray-200">
+                  <CardIcon type="INFANTRY" /> + <CardIcon type="INFANTRY" /> + <CardIcon type="INFANTRY" />
+                </div>
+                <span className="text-[#FEC417] font-bold text-sm">+6 truppe</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-xl border border-white/5">
+                <div className="flex items-center gap-1.5 text-gray-200">
+                  <CardIcon type="CAVALRY" /> + <CardIcon type="CAVALRY" /> + <CardIcon type="CAVALRY" />
+                </div>
+                <span className="text-[#FEC417] font-bold text-sm">+8 truppe</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-xl border border-white/5">
+                <div className="flex items-center gap-1.5 text-gray-200">
+                  <CardIcon type="INFANTRY" /> + <CardIcon type="CAVALRY" /> + <CardIcon type="ARTILLERY" />
+                </div>
+                <span className="text-[#FEC417] font-bold text-sm">+10 truppe</span>
+              </div>
+
+              <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-xl border border-white/5">
+                <div className="flex items-center gap-1.5 text-gray-200">
+                  <CardIcon type="JOLLY" /> + <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded">2x uguali</span>
+                </div>
+                <span className="text-[#FEC417] font-bold text-sm">+12 truppe</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </Modal>
+    </div>
   );
 };
 

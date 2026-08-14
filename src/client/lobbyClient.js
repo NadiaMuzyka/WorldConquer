@@ -8,17 +8,17 @@ export const lobbyClient = new LobbyClient({
 /**
  * Gestisce il join alla partita con retry automatici e verifica
  */
-export const joinGameWithRetry = async (matchId, playerID, playerName, avatar, retryCount = 0) => {
+export const joinGameWithRetry = async (matchId, playerID, playerName, avatar, uid = null, retryCount = 0) => {
   const MAX_RETRIES = 3;
-  
+
   try {
     console.log(`[LOBBY_CLIENT] Tentativo join match ${matchId} come ${playerName} (${playerID}) - Retry ${retryCount}/${MAX_RETRIES}`);
-    
+
     // 1. Esegui il join
     const { playerCredentials } = await lobbyClient.joinMatch('risk', matchId, {
       playerID: String(playerID),
       playerName: playerName,
-      data: { avatar: avatar }
+      data: { avatar: avatar, uid: uid }
     });
 
     // 2. Verifica che il server abbia registrato il giocatore
@@ -72,7 +72,7 @@ export const joinGameWithRetry = async (matchId, playerID, playerName, avatar, r
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Riprova ricorsivamente
-      return joinGameWithRetry(matchId, playerID, playerName, avatar, retryCount + 1);
+      return joinGameWithRetry(matchId, playerID, playerName, avatar, uid, retryCount + 1);
     }
     
     throw error;

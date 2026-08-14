@@ -15,6 +15,7 @@ import ErrorPage from "./pages/errorpage";
 import ProfilePage from "./pages/profilepage";
 import StatsPage from "./pages/statspage";
 import RulesPage from "./pages/RulesPage";
+import MockGamePage from "./pages/mockgamepage";
 
 // Loader for the root route ("/")
 export async function lobbyAuthLoader() {
@@ -55,6 +56,11 @@ const router = createBrowserRouter([
   {
     path: "/profile",
     element: <ProfilePage />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/mock-game",
+    element: <MockGamePage />,
     errorElement: <ErrorPage />,
   },
   {

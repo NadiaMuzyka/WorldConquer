@@ -52,6 +52,7 @@ class FirebaseAdapter {
                 password: setupData.password || null,
                 players: [{
                     id: setupData.hostId || "host",
+                    uid: setupData.hostId || null,
                     name: setupData.hostName || "Host",
                     avatar: setupData.hostAvatar || "",
                     isHost: true
@@ -185,6 +186,7 @@ class FirebaseAdapter {
         .filter(p => p && p.name) 
         .map(p => ({
             id: p.id,
+            uid: p.data?.uid || null,
             name: p.name,
             avatar: p.data?.avatar || "",
         }));

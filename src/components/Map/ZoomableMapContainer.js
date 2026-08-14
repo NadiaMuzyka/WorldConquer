@@ -24,6 +24,28 @@ export default function ZoomableMapContainer({ children, minZoom = 1, maxZoom = 
     return { minX: -maxPanX, maxX: maxPanX, minY: -maxPanY, maxY: maxPanY };
   }, [zoom]);
 
+  const onWheel = useCallback((e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      setZoom(z => Math.min(maxZoom, z + 0.15));
+    } else {
+      setZoom(z => {
+        const newZoom = Math.max(minZoom, z - 0.15);
+        if (newZoom === 1) setPan({ x: 0, y: 0 });
+        return newZoom;
+      });
+    }
+  }, [maxZoom, minZoom]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      const handleWheel = (e) => onWheel(e);
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }
+  }, [onWheel]);
+
   const onMouseMove = useCallback((e) => {
     if (!isDragging.current) return;
 
@@ -86,39 +108,6 @@ export default function ZoomableMapContainer({ children, minZoom = 1, maxZoom = 
       ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-[#173C55] select-none touch-none"
     >
-      {/* UI Pulsanti Zoom */}
-      <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-black/30 rounded-lg p-2 shadow-lg pointer-events-auto">
-        <Button
-          onClick={handleZoomIn}
-          variant={zoom < maxZoom ? 'cyan' : 'gray'}
-          size="xs"
-          className="!w-8 !h-8 p-0"
-          disabled={zoom >= maxZoom}
-          aria-label="Zoom in"
-        >
-          <Plus size={16} />
-        </Button>
-        <Button
-          onClick={handleZoomOut}
-          variant={zoom > minZoom ? 'cyan' : 'gray'}
-          size="xs"
-          className="!w-8 !h-8 p-0"
-          disabled={zoom <= minZoom}
-          aria-label="Zoom out"
-        >
-          <Minus size={16} />
-        </Button>
-        <Button
-          onClick={handleReset}
-          variant={zoom !== initialZoom || pan.x !== 0 || pan.y !== 0 ? 'cyan' : 'gray'}
-          size="xs"
-          className="!w-8 !h-8 p-0"
-          disabled={zoom === initialZoom && pan.x === 0 && pan.y === 0}
-          aria-label="Reset zoom"
-        >
-          <RefreshCw size={16} />
-        </Button>
-      </div>
 
       {/* Container della Mappa */}
       <div 

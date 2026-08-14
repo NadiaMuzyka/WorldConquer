@@ -1,6 +1,6 @@
 
 // src/firebase/db.js
-import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
+import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, runTransaction } from "firebase/firestore";
 import { app, auth } from "./firebaseConfig";
 import { onAuthStateChanged, deleteUser } from "firebase/auth";
 
@@ -174,6 +174,68 @@ export const updateCurrentUserAvatar = async (photoURL) => {
       error: 'Errore durante l\'aggiornamento dell\'avatar',
       errorCode: error.code
     };
+  }
+};
+
+  // ===========================================================================
+  // UNICITÀ NICKNAME
+  // ===========================================================================
+// I nickname devono essere unici: la collezione "usernames" fa da indice
+// (doc id = nickname normalizzato -> { uid }), scritta in transazione insieme
+// al rilascio del vecchio nickname in caso di rinomina.
+
+const normalizeNickname = (nickname) => (nickname || '').trim().toLowerCase();
+
+/**
+ * Controlla se un nickname è libero (o già assegnato a excludeUid)
+ * @param {string} nickname
+ * @param {string|null} excludeUid - considera libero se assegnato a questo uid
+ */
+export const isNicknameAvailable = async (nickname, excludeUid = null) => {
+  try {
+    const key = normalizeNickname(nickname);
+    if (!key) return { success: true, available: false };
+    const snap = await getDoc(doc(db, "usernames", key));
+    if (!snap.exists()) return { success: true, available: true };
+    return { success: true, available: snap.data()?.uid === excludeUid };
+  } catch (error) {
+    console.error('Error checking nickname availability:', error);
+    return { success: false, available: false, error: 'Errore durante il controllo del nickname' };
+  }
+};
+
+/**
+ * Assegna atomicamente un nickname a un utente, rilasciando quello precedente.
+ * Fallisce se il nickname è già assegnato a un altro utente.
+ * @param {string} uid
+ * @param {string} nickname - nuovo nickname
+ * @param {string|null} previousNickname - nickname precedente da rilasciare, se diverso
+ */
+export const reserveNickname = async (uid, nickname, previousNickname = null) => {
+  try {
+    const key = normalizeNickname(nickname);
+    const prevKey = previousNickname ? normalizeNickname(previousNickname) : null;
+    if (!key) return { success: false, error: 'Nickname non valido' };
+    if (key === prevKey) return { success: true };
+
+    const ref = doc(db, "usernames", key);
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(ref);
+      if (snap.exists() && snap.data()?.uid !== uid) {
+        throw new Error('NICKNAME_TAKEN');
+      }
+      transaction.set(ref, { uid });
+      if (prevKey) {
+        transaction.delete(doc(db, "usernames", prevKey));
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    if (error.message === 'NICKNAME_TAKEN') {
+      return { success: false, error: 'Questo nickname è già in uso, scegline un altro' };
+    }
+    console.error('Error reserving nickname:', error);
+    return { success: false, error: 'Errore durante l\'assegnazione del nickname' };
   }
 };
 
@@ -440,10 +502,14 @@ export const deleteUserAccount = async () => {
 
 /**
  * Recupera tutte le partite FINISHED dove l'utente ha partecipato
+ * Il match primario è per uid (stabile anche se l'utente cambia nickname);
+ * il confronto per nickname resta solo come fallback per le partite più vecchie
+ * salvate prima che i record giocatore includessero l'uid.
  * @param {string} uid - ID Firebase dell'utente
+ * @param {string} [nickname] - nickname attuale, usato solo come fallback
  * @returns {Promise<Array>} Lista partite
  */
-export const getUserFinishedMatches = async (uid) => {
+export const getUserFinishedMatches = async (uid, nickname = null) => {
   try {
     const matchesCol = collection(db, "matches");
     // Prende solo le partite FINISHED
@@ -452,7 +518,9 @@ export const getUserFinishedMatches = async (uid) => {
     // Filtra solo quelle dove l'utente è tra i players
     const matches = querySnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(match => Array.isArray(match.players) && match.players.some(p => p && (p.uid === uid || p.id === uid || p.name === uid)));
+      .filter(match => Array.isArray(match.players) && match.players.some(p =>
+        p && (p.uid === uid || (!p.uid && nickname && p.name === nickname))
+      ));
     return matches;
   } catch (error) {
     console.error('Errore getUserFinishedMatches:', error);

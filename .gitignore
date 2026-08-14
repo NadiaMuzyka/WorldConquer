@@ -27,3 +27,5 @@ yarn-error.log*
 
 # firebase keys for Boardgame
 serviceAccountKey.json
+
+CLAUDE.md

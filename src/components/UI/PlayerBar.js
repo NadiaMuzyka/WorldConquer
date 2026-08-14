@@ -4,11 +4,10 @@ import { useRisk } from '../../context/GameContext';
 import { PLAYER_COLORS } from '../Constants/colors';
 import Button from './Button';
 import { skipAnimation } from '../../store/slices/setupAnimationSlice';
-import Card from './Card';
 import Avatar from './Avatar';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Trophy } from 'lucide-react';
 
-export default function PlayerBar() {
+export default function PlayerBar({ secretObjective, playerCards = [], onShowCards }) {
     const { G, ctx, moves, playerID } = useRisk();
     const dispatch = useDispatch();
     const matchData = useSelector((state) => state.match?.data);
@@ -123,108 +122,139 @@ export default function PlayerBar() {
     };
 
     return (
-        <Card
-            className="fixed bottom-3 left-1/2 -translate-x-1/2 z-20 w-auto h-auto shadow-lg"
-            padding="none"
+        <div
+            className="fixed left-4 bottom-4 md:left-6 md:bottom-6 lg:left-8 lg:bottom-8 z-20 flex flex-col items-center gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-[#0b1622]/60 border border-white/20 rounded-3xl p-5 max-w-[calc(100vw-2rem)] overflow-hidden origin-bottom-left scale-[0.70] md:scale-75 lg:scale-75 xl:scale-[0.85] 2xl:scale-100 min-[1920px]:scale-125 transition-all duration-300"
         >
-            <div className="flex items-center gap-20 h-full px-10 py-3">
-                {/* Avatars dei giocatori */}
-                <div className="flex items-center gap-4">
+            {/* 1. SEZIONE INFO GIOCATORI */}
+            <div className="flex flex-col gap-3 border-b border-white/10 pb-5 w-full">
+                <div className="text-sm text-gray-200 font-extrabold uppercase tracking-widest mb-1 text-center drop-shadow-md">Giocatori</div>
+                <div className="flex gap-5 justify-center">
                     {players.map((id, index) => {
-                        // Trova il player corrispondente a questo ID in matchData
                         const player = matchData?.players?.find(p => p.id === parseInt(id));
                         const avatarUrl = player?.photoURL || player?.avatar || `https://ui-avatars.com/api/?name=P${parseInt(id) + 1}&background=random`;
                         const nickname = player?.name || `Player${parseInt(id) + 1}`;
+                        // G.hasLeft significa "uscito volontariamente, AFK o disconnesso" —
+                        // non esiste alcuna funzione bot nel gioco, quindi il badge non deve dire "Bot".
+                        const hasLeftGame = G.hasLeft?.[id] === true;
                         
-                        // Verifica se il player ha abbandonato (G.hasLeft = true)
-                        const isBot = G.hasLeft?.[id] === true;
+                        // Calcola truppe e territori
+                        const pTerritories = Object.values(G.owners || {}).filter(owner => owner === id).length;
+                        const pTroops = Object.entries(G.owners || {}).filter(([key, owner]) => owner === id).map(([key]) => key).reduce((sum, territory) => sum + (G.troops?.[territory] ?? 0), 0);
                         
+                        const isThisTurn = ctx.currentPlayer === id;
+                        const isMe = id === playerID;
+
                         return (
-                            <div key={index} className="relative">
-                                <Avatar
-                                    src={avatarUrl}
-                                    alt={`Player ${parseInt(id) + 1}`}
-                                    type="setupbar"
-                                    id={id}
-                                    playerID={playerID}
-                                    ready={G.playersReady?.[id]}
-                                    nickname={nickname}
-                                    showHourglass={isSetup || (!isSetup && id === String(currentPlayer))}
-                                />
-                                
-                                {/* Badge ABBANDONATO */}
-                                {isBot && (
-                                    <div className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#1B2227] shadow-lg uppercase">
-                                        ❌ Abbandonato
+                            <div key={index} className="flex flex-col items-center">
+                                <div className={`relative rounded-full p-1 transition-all ${isThisTurn ? 'bg-[#38C7D7] shadow-[0_0_15px_rgba(56,199,215,0.5)]' : 'bg-transparent'}`}>
+                                    <Avatar
+                                        src={avatarUrl}
+                                        alt={`Player ${parseInt(id) + 1}`}
+                                        type="setupbar"
+                                        id={id}
+                                        playerID={playerID}
+                                        ready={G.playersReady?.[id]}
+                                        nickname={nickname}
+                                        showHourglass={isSetup || (!isSetup && id === String(currentPlayer))}
+                                    />
+                                    {hasLeftGame && (
+                                        <div className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg uppercase border border-white">
+                                            Uscito
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-1 text-center">
+                                    <div className="text-xs font-bold text-white flex justify-center gap-1">
+                                        <span className="text-[#38C7D7]">{pTroops} ⚔️</span>
+                                        <span className="text-[#FEC417]">{pTerritories} 🚩</span>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         );
                     })}
                 </div>
+            </div>
 
-                {/* Bottone o messaggio condizionale in base alla fase */}
-                <div className="flex items-center">
-                    {isSetup ? (
-                        !isReady ? (
-                            isAnimating ? (
-                                <Button
-                                    onClick={handleSkipAnimation}
-                                    variant="cyan"
-                                    size={null}
-                                    className="!h-[44px] w-[220px] rounded-[25px] font-bold text-base tracking-wide px-6"
-                                >
-                                    SALTA ANIMAZIONE
-                                </Button>
-                            ) : (
-                                <Button
-                                    onClick={handleStartGame}
-                                    variant="cyan"
-                                    size={null}
-                                    className="!h-[44px] w-[180px] rounded-[25px] font-bold text-xl tracking-wide px-6 flex items-center justify-center gap-2"
-                                >
-                                    AVANTI
-                                    <ArrowRight />
-                                </Button>
-                            )
-                        ) : (
-                            <div className="text-center w-[180px]">
-                                <div className="text-cyan-400 font-semibold mb-2">
-                                    {allReady ? 'PARTENZA...' : 'Attesa degli altri ...'}
-                                </div>
-                                {!allReady && (
-                                    <div className="flex justify-center">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    ) : (
-                        // GAME: Bottone stage-specific o messaggio turno
-                        showButton ? (
+            {/* 2. SEZIONE PERSONALE (Carte e Obiettivo) */}
+            <div className="flex flex-col justify-center items-center gap-4 border-b border-white/10 pb-5 w-full min-w-[150px]">
+                <Button
+                    variant="yellow"
+                    size="md"
+                    onClick={onShowCards}
+                    className="w-full h-10 text-sm font-extrabold rounded-xl bg-[#FEC417] text-gray-900 hover:bg-[#e0ad15] shadow-lg border-0"
+                >
+                    Carte ({playerCards?.length || 0})
+                </Button>
+                
+                {secretObjective && !isSetup && (
+                    <div className="flex items-center gap-3 w-full justify-center px-2">
+                        <Trophy className="w-8 h-8 text-[#FEC417] flex-shrink-0 drop-shadow-md" />
+                        <div className="text-sm text-gray-100 font-bold leading-snug line-clamp-3 w-48 text-left drop-shadow-md">
+                            {secretObjective}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* 3. SEZIONE AZIONE PRINCIPALE */}
+            <div className="flex items-center justify-center w-full min-w-[200px] pt-1">
+                {isSetup ? (
+                    !isReady ? (
+                        isAnimating ? (
                             <Button
-                                onClick={handleButtonClick}
+                                onClick={handleSkipAnimation}
                                 variant="cyan"
                                 size={null}
-                                disabled={!buttonEnabled}
-                                className="!h-[44px] w-[240px] rounded-[25px] font-bold text-base tracking-wide px-6 flex items-center justify-center gap-2"
+                                className="!h-[50px] w-full rounded-xl font-black text-sm tracking-wide px-4 uppercase shadow-[0_0_20px_rgba(56,199,215,0.4)]"
                             >
-                                {buttonText}
-                                {buttonEnabled && <ArrowRight />}
+                                Salta Animazione
                             </Button>
                         ) : (
-                            <div className="text-center w-[240px]">
-                                <div className="text-cyan-400 font-semibold mb-2">
-                                    Turno di {matchData?.players?.[parseInt(currentPlayer)]?.name || `Player ${parseInt(currentPlayer) + 1}`}
-                                </div>
-                                <div className="flex justify-center">
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
-                                </div>
-                            </div>
+                            <Button
+                                onClick={handleStartGame}
+                                variant="cyan"
+                                size={null}
+                                className="!h-[50px] w-full rounded-xl font-black text-lg tracking-wide px-4 flex items-center justify-center gap-2 uppercase shadow-[0_0_20px_rgba(56,199,215,0.4)]"
+                            >
+                                AVANTI <ArrowRight />
+                            </Button>
                         )
-                    )}
-                </div>
+                    ) : (
+                        <div className="text-center w-full">
+                            <div className="text-[#38C7D7] font-bold text-sm uppercase tracking-wide">
+                                {allReady ? 'PARTENZA...' : 'Attesa altri giocatori...'}
+                            </div>
+                            {!allReady && (
+                                <div className="mt-2 flex justify-center">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#38C7D7]"></div>
+                                </div>
+                            )}
+                        </div>
+                    )
+                ) : (
+                    // GAME MODE
+                    showButton ? (
+                        <Button
+                            onClick={handleButtonClick}
+                            variant="cyan"
+                            size={null}
+                            disabled={!buttonEnabled}
+                            className={`!h-[56px] w-[220px] rounded-xl font-black text-sm tracking-wide px-4 flex items-center justify-center gap-2 uppercase transition-all duration-300 ${buttonEnabled ? 'shadow-[0_0_20px_rgba(56,199,215,0.4)] scale-100 opacity-100' : 'opacity-50 grayscale scale-95'}`}
+                        >
+                            {buttonText} {buttonEnabled && <ArrowRight className="w-5 h-5" />}
+                        </Button>
+                    ) : (
+                        <div className="text-center w-[220px]">
+                            <div className="text-[#38C7D7] font-bold text-sm uppercase tracking-wide">
+                                Turno di {matchData?.players?.[parseInt(currentPlayer)]?.name || `Player ${parseInt(currentPlayer) + 1}`}
+                            </div>
+                            <div className="mt-2 flex justify-center">
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#38C7D7]"></div>
+                            </div>
+                        </div>
+                    )
+                )}
             </div>
-        </Card>
+        </div>
     );
 }

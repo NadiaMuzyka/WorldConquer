@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Calendar, AtSign, Shuffle, Trash2 } from 'lucide-react';
-import { getCurrentUserProfile, updateCurrentUserProfile, updateCurrentUserAvatar, deleteUserAccount } from '../firebase/db';
+import { getCurrentUserProfile, updateCurrentUserProfile, updateCurrentUserAvatar, deleteUserAccount, reserveNickname } from '../firebase/db';
 import { auth } from '../firebase/firebaseConfig';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { logout } from '../firebase/auth';
@@ -133,6 +133,17 @@ const ProfilePage = () => {
         setLoading(true);
 
         try {
+            const nicknameChanged = formData.nickname.trim() !== userData.nickname;
+
+            if (nicknameChanged) {
+                const reservation = await reserveNickname(auth.currentUser.uid, formData.nickname.trim(), userData.nickname);
+                if (!reservation.success) {
+                    setError(reservation.error || 'Questo nickname è già in uso, scegline un altro');
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // Se il nickname è cambiato, aggiorna anche l'avatar
             let updates = {
                 firstName: formData.firstName.trim(),
@@ -141,7 +152,7 @@ const ProfilePage = () => {
                 birthDate: formData.birthDate
             };
 
-            if (formData.nickname.trim() !== userData.nickname) {
+            if (nicknameChanged) {
                 updates.photoURL = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.nickname.trim())}`;
             }
 

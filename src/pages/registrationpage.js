@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { register } from '../firebase/auth';
-import { saveUserData } from '../firebase/db';
+import { saveUserData, isNicknameAvailable, reserveNickname } from '../firebase/db';
 import { useNavigate } from 'react-router-dom';
 import { Mail, User, AtSign } from 'lucide-react';
 import Button from '../components/UI/Button';
@@ -87,6 +87,16 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
         setLoading(true);
 
         try {
+            // Controllo preventivo (best-effort, non atomico): evita nella maggior parte
+            // dei casi di creare un account Firebase Auth per poi scoprire che il
+            // nickname è già occupato. La verifica definitiva è reserveNickname più sotto.
+            const availability = await isNicknameAvailable(formData.nickname);
+            if (!availability.available) {
+                setError(availability.error || 'Questo nickname è già in uso, scegline un altro');
+                setLoading(false);
+                return;
+            }
+
             let userId;
 
             if (isCompleteProfile) {
@@ -101,13 +111,25 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
             } else {
                 // Modalità registrazione normale - crea nuovo utente
                 const authResult = await register(formData.email, formData.password);
-                
+
                 if (!authResult.success) {
                     setError(authResult.error);
                     setLoading(false);
                     return;
                 }
                 userId = authResult.user.uid;
+            }
+
+            // Assegnazione atomica del nickname: chiude la finestra di race del controllo
+            // preventivo qui sopra. In modalità registrazione normale questo fallimento
+            // è raro (richiede che qualcun altro prenda lo stesso nickname nella finestra
+            // tra il controllo e questo punto) ma se accade l'account Firebase Auth resta
+            // creato senza profilo Firestore corrispondente.
+            const reservation = await reserveNickname(userId, formData.nickname);
+            if (!reservation.success) {
+                setError(reservation.error || 'Questo nickname è già in uso, scegline un altro');
+                setLoading(false);
+                return;
             }
 
             // Salva i dati aggiuntivi su Firestore

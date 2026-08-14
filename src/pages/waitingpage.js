@@ -76,10 +76,11 @@ const WaitingPage = () => {
         console.log(`[WAITING] Cleanup sessionStorage prima del join`);
 
         const { playerCredentials } = await joinGameWithRetry(
-            matchId, 
-            playerID, 
-            currentUser.name, 
-            currentUser.avatar
+            matchId,
+            playerID,
+            currentUser.name,
+            currentUser.avatar,
+            currentUser.id
         );
         
         hasJoinedRef.current = true;

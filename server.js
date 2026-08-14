@@ -103,6 +103,7 @@ server.app.use(async (ctx, next) => {
             .filter(p => p && p.name)
             .map(p => ({
               id: p.id,
+              uid: p.data?.uid || null,
               name: p.name,
               avatar: p.data?.avatar || "",
               isHost: p.id === 0 // Il primo player è l'host

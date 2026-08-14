@@ -44,13 +44,13 @@ const StatsPage = () => {
       setLoading(true);
       const userProfile = await getCurrentUserProfile();
       if (!userProfile.success) return;
-      const userMatches = await getUserFinishedMatches(userProfile.data.nickname || userProfile.data.uid);
+      const userMatches = await getUserFinishedMatches(userProfile.data.uid, userProfile.data.nickname);
 
       // Statistiche utente
       const gamesPlayed = userMatches.length;
       const gamesWon = userMatches.filter(m => {
         const winner = m.winner;
-        const idx = m.players.findIndex(p => p && (p.name === userProfile.data.nickname));
+        const idx = m.players.findIndex(p => p && (p.uid === userProfile.data.uid || (!p.uid && p.name === userProfile.data.nickname)));
         return String(winner) === String(idx);
       }).length;
       const winRate = gamesPlayed ? Math.round((gamesWon / gamesPlayed) * 100) : 0;

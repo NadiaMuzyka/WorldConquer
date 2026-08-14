@@ -190,7 +190,7 @@ const faqs = [
 const FAQAccordion = () => {
   const [open, setOpen] = useState(null);
   return (
-    <section className="mt-20">
+    <section>
       <div className="flex items-center gap-3 mb-6">
         <span className="rounded-full p-2 bg-gradient-to-br from-[#ffd700] to-[#38C7D7] shadow-lg">
           <HelpCircle className="w-7 h-7 text-white drop-shadow" />

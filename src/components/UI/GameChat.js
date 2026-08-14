@@ -46,10 +46,21 @@ const GameChat = ({ chatMessages = [], sendChatMessage }) => {
     if (newMessage.trim() && sendChatMessage) {
       sendChatMessage({
         message: newMessage,
-        sender: playerName,
+        sender: playerID,
         timestamp: Date.now()
       });
       setNewMessage('');
+      scrollToBottom();
+    }
+  };
+
+  const handleQuickEmoji = (emoji) => {
+    if (sendChatMessage) {
+      sendChatMessage({
+        message: emoji,
+        sender: playerID,
+        timestamp: Date.now()
+      });
       scrollToBottom();
     }
   };
@@ -66,7 +77,7 @@ const GameChat = ({ chatMessages = [], sendChatMessage }) => {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="fixed right-4 bottom-8 z-20 flex items-center gap-3 px-6 py-4 bg-[#1B2227] rounded-lg shadow-lg hover:bg-[#2A3439] transition-all border border-gray-600 text-white font-bold text-base"
+        className="fixed right-4 bottom-4 md:right-6 md:bottom-6 lg:right-8 lg:bottom-8 z-30 flex items-center gap-3 px-6 py-4 bg-[#0b1622]/40 backdrop-blur-2xl border border-white/20 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:bg-[#0b1622]/60 transition-all duration-300 text-white font-bold text-base origin-bottom-right scale-[0.70] md:scale-75 lg:scale-75 xl:scale-[0.85] 2xl:scale-100 min-[1920px]:scale-125"
         title="Apri chat"
       >
         <IoIosChatboxes size={24} className="text-[#38C7D7]" />
@@ -78,10 +89,10 @@ const GameChat = ({ chatMessages = [], sendChatMessage }) => {
   // Se chat è chiusa ma ci sono messaggi non letti, mostra pallino con conteggio
   if (!isExpanded && unreadCount > 0) {
     return (
-      <div className="fixed right-4 bottom-8 z-20 flex items-center gap-3">
+      <div className="fixed right-4 bottom-4 md:right-6 md:bottom-6 lg:right-8 lg:bottom-8 z-30 flex items-center gap-3 origin-bottom-right scale-[0.70] md:scale-75 lg:scale-75 xl:scale-[0.85] 2xl:scale-100 min-[1920px]:scale-125">
         <button
           onClick={handleNotificationClick}
-          className="flex items-center gap-3 px-6 py-4 bg-[#1B2227] rounded-lg shadow-lg hover:bg-[#2A3439] transition-all border border-gray-600 text-white font-bold text-base"
+          className="flex items-center gap-3 px-6 py-4 bg-[#0b1622]/40 backdrop-blur-2xl border border-white/20 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:bg-[#0b1622]/60 transition-all duration-300 text-white font-bold text-base"
           title={`${unreadCount} nuovi messaggi`}
         >
           <IoIosChatboxes size={24} className="text-[#38C7D7]" />
@@ -96,9 +107,9 @@ const GameChat = ({ chatMessages = [], sendChatMessage }) => {
 
   // Chat espansa
   return (
-    <div className="fixed right-4 bottom-8 z-20 w-80 max-h-96 bg-[#1B2227] rounded-lg shadow-2xl border border-gray-600 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-2">
+    <div className="fixed right-4 bottom-4 md:right-6 md:bottom-6 lg:right-8 lg:bottom-8 z-30 w-[300px] md:w-[350px] max-h-96 backdrop-blur-2xl bg-[#0b1622]/40 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/20 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-2 origin-bottom-right scale-[0.70] md:scale-75 lg:scale-75 xl:scale-[0.85] 2xl:scale-100 min-[1920px]:scale-125 transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between bg-[#2A3439] px-4 py-3 border-b border-gray-600">
+      <div className="flex items-center justify-between bg-white/5 px-4 py-3 border-b border-white/10">
         <h3 className="text-white font-bold text-sm flex items-center gap-2">
           <IoIosChatboxes size={18} className="text-[#38C7D7]" />
           Chat Partita
@@ -113,30 +124,34 @@ const GameChat = ({ chatMessages = [], sendChatMessage }) => {
       </div>
 
       {/* Messaggi */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-[#1B2227]">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-transparent max-h-[220px]">
         {chatMessages.length === 0 ? (
-          <div className="text-gray-500 text-xs text-center py-6">
+          <div className="text-gray-400 text-xs text-center py-8 bg-white/5 rounded-xl border border-white/5 my-2">
             Nessun messaggio ancora. Inizia una conversazione! 💭
           </div>
         ) : (
           chatMessages.map((msg, index) => {
-            const isOwnMessage = msg.sender === playerID;
+            const isOwnMessage = String(msg.sender) === String(playerID) || msg.sender === playerName || msg.sender === 'Tu';
             const senderName = getSenderName(msg.sender);
-            const payload = typeof msg.payload === 'string' ? msg.payload : msg.payload?.message || '';
+            const payload = typeof msg.payload === 'string' ? msg.payload : msg.payload?.message || msg.message || '';
+            const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
             return (
               <div
                 key={msg.id || index}
                 className={`flex flex-col gap-1 ${isOwnMessage ? 'items-end' : 'items-start'}`}
               >
-                <span className={`text-xs font-semibold ${isOwnMessage ? 'text-[#38C7D7]' : 'text-[#FEC417]'}`}>
-                  {senderName}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] font-bold ${isOwnMessage ? 'text-[#38C7D7]' : 'text-[#FEC417]'}`}>
+                    {senderName}
+                  </span>
+                  {timeStr && <span className="text-[9px] text-gray-400">{timeStr}</span>}
+                </div>
                 <div
-                  className={`px-3 py-2 rounded-lg max-w-xs text-sm break-words ${
+                  className={`px-3 py-1.5 rounded-2xl max-w-[240px] text-xs leading-relaxed break-words shadow-sm ${
                     isOwnMessage
-                      ? 'bg-[#38C7D7] text-[#1B2227] rounded-br-none'
-                      : 'bg-[#2A3439] text-white rounded-bl-none'
+                      ? 'bg-[#38C7D7] text-gray-900 font-semibold rounded-br-none'
+                      : 'bg-white/15 backdrop-blur border border-white/10 text-gray-100 rounded-bl-none'
                   }`}
                 >
                   {payload}
@@ -148,19 +163,33 @@ const GameChat = ({ chatMessages = [], sendChatMessage }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Quick Emojis Bar */}
+      <div className="flex items-center justify-around px-2 py-1 bg-black/40 border-t border-white/5 text-sm">
+        {['👍', '⚔️', '🚩', '😂', '🎯'].map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => handleQuickEmoji(emoji)}
+            className="hover:scale-125 transition-transform p-1"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+
       {/* Input */}
-      <form onSubmit={handleSendMessage} className="border-t border-gray-600 bg-[#2A3439] p-3 flex gap-2">
+      <form onSubmit={handleSendMessage} className="border-t border-white/10 bg-black/30 p-2.5 flex gap-2">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Scrivi un messaggio..."
-          className="flex-1 bg-[#1B2227] text-white text-sm px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-[#38C7D7] focus:ring-1 focus:ring-[#38C7D7]"
+          className="flex-1 bg-white/10 text-white text-xs px-3 py-2 rounded-xl border border-white/10 focus:outline-none focus:border-[#38C7D7] focus:ring-1 focus:ring-[#38C7D7] placeholder-gray-400"
         />
         <button
           type="submit"
           disabled={!newMessage.trim()}
-          className="bg-[#38C7D7] text-[#1B2227] px-3 py-2 rounded font-bold text-sm hover:bg-[#2aa5b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          className="bg-[#38C7D7] text-gray-900 px-3 py-2 rounded-xl font-extrabold text-xs hover:bg-[#2aa5b3] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center shadow-md"
         >
           <Send size={14} />
         </button>

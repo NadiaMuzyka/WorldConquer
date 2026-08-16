@@ -34,7 +34,12 @@ const GameCard = ({ match, currentUser }) => {
     }
 
     // A. Rientro veloce (Sei già in partita?)
-    const existingPlayer = (players || []).find(p => p.name === currentUser.name);
+    // Confronto per uid (stabile) invece che per nome: due account non possono
+    // avere lo stesso uid, mentre il nome mostrato può coincidere per errore
+    // (es. sessione Firebase condivisa tra tab dello stesso browser).
+    const existingPlayer = (players || []).find(p =>
+      currentUser.id && p.uid ? p.uid === currentUser.id : p.name === currentUser.name
+    );
     if (existingPlayer) {
       console.log("Giocatore già presente, rientro...");
       dispatch(enterMatch(id));

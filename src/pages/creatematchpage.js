@@ -111,7 +111,7 @@ const CreateMatchPage = () => {
 
       } catch (error) {
          console.error("Errore creazione:", error);
-         alert("Impossibile contattare il server (porta 8000).");
+         alert("Impossibile contattare il server. Controlla la connessione e riprova.");
          setLoading(false);
       }
    };

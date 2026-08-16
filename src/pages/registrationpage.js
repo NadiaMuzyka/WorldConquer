@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { register } from '../firebase/auth';
 import { saveUserData, isNicknameAvailable, reserveNickname } from '../firebase/db';
 import { useNavigate } from 'react-router-dom';
@@ -10,9 +11,13 @@ import DateInput from '../components/UI/Input/DateInput';
 import Form from '../components/UI/Form';
 import PageContainer from '../components/UI/PageContainer';
 import auth from '../firebase/auth';
+import { setUser } from '../store/slices/userSlice';
+
+const MIN_REGISTRATION_AGE = 13;
 
 export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail = null }) => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     
     // Verifica autenticazione se in modalità complete profile
     useEffect(() => {
@@ -50,6 +55,20 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
         // Validazione campi comuni
         if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.nickname.trim() || !formData.birthDate) {
             setError('Tutti i campi obbligatori devono essere compilati');
+            return false;
+        }
+
+        // Validazione età minima (rispecchia il controllo mostrato da DateInput,
+        // che da solo è solo visivo e non blocca il submit)
+        const birthDate = new Date(formData.birthDate);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age < MIN_REGISTRATION_AGE) {
+            setError(`Devi avere almeno ${MIN_REGISTRATION_AGE} anni per registrarti`);
             return false;
         }
 
@@ -149,6 +168,22 @@ export const RegistrationPage = ({ isCompleteProfile = false, currentUserEmail =
                 setLoading(false);
                 return;
             }
+
+            // Popola subito lo stato Redux dell'utente, senza aspettare il listener
+            // onAuthStateChanged in index.js (che fa la stessa cosa in modo asincrono).
+            // Senza questo, LobbyPage reindirizza a /login perché userStatus è ancora
+            // "unauthenticated" quando arriva la navigate qui sotto (stessa race
+            // risolta in loginpage.js con syncUserToStore).
+            const isGoogleUser = isCompleteProfile
+                ? auth.currentUser.providerData.some(p => p.providerId === 'google.com')
+                : false;
+            dispatch(setUser({
+                id: userId,
+                isGoogleUser,
+                name: userData.nickname,
+                avatar: userData.photoURL,
+                ...userData
+            }));
 
             // Successo! Redirect alla lobby
             navigate('/lobby');

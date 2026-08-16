@@ -81,11 +81,13 @@ const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+    loader: lobbyAuthLoader,
     errorElement: <ErrorPage />,
   },
   {
     path: "/register",
     element: <RegistrationPage />,
+    loader: lobbyAuthLoader,
     errorElement: <ErrorPage />,
   },
   {

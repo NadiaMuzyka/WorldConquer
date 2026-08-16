@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { login, loginWithGoogle } from '../firebase/auth';
 import { getUserData } from '../firebase/db';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { Mail } from 'lucide-react';
 import Button from '../components/UI/Button';
 import GoogleLogo from '../components/Constants/GoogleLogo';
@@ -9,29 +10,60 @@ import TextInput from '../components/UI/Input/TextInput';
 import PasswordInput from '../components/UI/Input/PasswordInput';
 import Form from '../components/UI/Form';
 import PageContainer from '../components/UI/PageContainer';
+import { setUser } from '../store/slices/userSlice';
 
 export const LoginPage = ({ error: errorProp = "" }) => {
 
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(errorProp);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    // Distingue quale bottone ha avviato il login, così il testo "in corso..."
+    // non compare anche sull'altro metodo di accesso non selezionato.
+    const [loginMethod, setLoginMethod] = useState(null); // 'email' | 'google'
+
+    // Popola subito lo stato Redux dell'utente e lo restituisce, senza aspettare
+    // il listener onAuthStateChanged in index.js (che fa la stessa cosa in modo
+    // asincrono). Necessario perché LobbyPage/CreateMatchPage reindirizzano a
+    // /login se userStatus è ancora "unauthenticated" al mount: senza questo,
+    // se lo stato precedente era "unauthenticated" (es. dopo un logout), la
+    // navigazione a /lobby subito dopo il login vince la corsa contro il
+    // listener e la pagina rimbalza immediatamente indietro al login.
+    const syncUserToStore = async (firebaseUser) => {
+        const isGoogleUser = firebaseUser.providerData.some(p => p.providerId === 'google.com');
+        const result = await getUserData(firebaseUser.uid);
+        if (!result.success) return false;
+        dispatch(setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            isGoogleUser,
+            name: result.data.nickname || firebaseUser.email.split('@')[0],
+            avatar: result.data.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
+            ...result.data
+        }));
+        return true;
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setLoginMethod('email');
         setIsLoggingIn(true);
         const result = await login(email, password);
-        setIsLoggingIn(false);
         if (!result.success) {
             setError(result.error);
-        } else {
-            setError("");
-            navigate('/lobby');
+            setIsLoggingIn(false);
+            return;
         }
+        setError("");
+        await syncUserToStore(result.user);
+        setIsLoggingIn(false);
+        navigate('/lobby');
     };
 
     const handleGoogleLogin = async () => {
+        setLoginMethod('google');
         setIsLoggingIn(true);
         const result = await loginWithGoogle();
         if (!result.success) {
@@ -39,20 +71,21 @@ export const LoginPage = ({ error: errorProp = "" }) => {
             setIsLoggingIn(false);
             return;
         }
-        
+
         setError("");
-        
+
         // Se è un nuovo utente, controlla se ha già completato il profilo
         if (result.isNewUser) {
             // Nuovo utente Google - deve completare il profilo
+            setIsLoggingIn(false);
             navigate('/complete-profile');
             return;
         }
-        
+
         // Utente esistente - controlla se ha i dati in Firestore
-        const userData = await getUserData(result.user.uid);
-        
-        if (!userData.success || !userData.data) {
+        const synced = await syncUserToStore(result.user);
+
+        if (!synced) {
             // Dati non trovati - deve completare il profilo
             navigate('/complete-profile');
         } else {
@@ -95,7 +128,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 className="w-full mt-5"
                 disabled={isLoggingIn}
             >
-                {isLoggingIn ? "Accesso..." : "Accedi"}
+                {isLoggingIn && loginMethod === 'email' ? "Accesso..." : "Accedi"}
             </Button>
 
             <div className="relative my-4">
@@ -115,7 +148,7 @@ export const LoginPage = ({ error: errorProp = "" }) => {
                 disabled={isLoggingIn}
             >
                 <GoogleLogo />
-                {isLoggingIn ? "Accesso in corso..." : "Accedi con Google"}
+                {isLoggingIn && loginMethod === 'google' ? "Accesso in corso..." : "Accedi con Google"}
             </Button>
 
             {/* Link alla Registrazione */}

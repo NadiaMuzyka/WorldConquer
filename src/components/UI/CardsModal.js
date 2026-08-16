@@ -163,9 +163,11 @@ const CardsModal = ({
               </div>
             )}
 
-            {!canExchange && playerCards.length >= 3 && (
+            {playerCards.length >= 3 && !(validation.valid && canExchange) && (
               <p className="mt-3 text-xs text-yellow-400/80 italic">
-                * Puoi effettuare lo scambio solo all'inizio della tua fase di rinforzo.
+                * {!validation.valid
+                  ? validation.message
+                  : "Puoi effettuare lo scambio solo all'inizio della tua fase di rinforzo."}
               </p>
             )}
           </div>

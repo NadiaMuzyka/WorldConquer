@@ -38,6 +38,10 @@ const CreateMatchPage = () => {
    const [password, setPassword] = useState('');
    const [passwordError, setPasswordError] = useState('');
    const [loading, setLoading] = useState(false);
+   // Il backend Render (piano gratuito) va in sleep dopo inattività e può
+   // impiegare fino a ~30-40s a risvegliarsi sulla prima richiesta: senza
+   // questo messaggio l'attesa sembra un'app bloccata invece di un cold start.
+   const [slowServer, setSlowServer] = useState(false);
 
    // Redirigi se non loggato
    React.useEffect(() => {
@@ -73,6 +77,8 @@ const CreateMatchPage = () => {
       setPasswordError('');
 
       setLoading(true);
+      setSlowServer(false);
+      const slowServerTimer = setTimeout(() => setSlowServer(true), 6000);
 
       try {
          // 1. PREPARA I DATI PER IL SERVER
@@ -98,6 +104,7 @@ const CreateMatchPage = () => {
          });
 
          console.log(`Partita ${matchID} creata dal server.`);
+         clearTimeout(slowServerTimer);
 
          // 3. NAVIGAZIONE ALLA WAITING PAGE
          // L'host entra nella waiting page come player 0
@@ -110,9 +117,11 @@ const CreateMatchPage = () => {
          });
 
       } catch (error) {
+         clearTimeout(slowServerTimer);
          console.error("Errore creazione:", error);
          alert("Impossibile contattare il server. Controlla la connessione e riprova.");
          setLoading(false);
+         setSlowServer(false);
       }
    };
 
@@ -244,6 +253,11 @@ const CreateMatchPage = () => {
                         >
                            {loading ? "Creazione in corso..." : "Crea Partita"}
                         </Button>
+                        {loading && slowServer && (
+                           <p className="text-center text-sm text-gray-400 mt-3">
+                              Il server si sta avviando dopo un periodo di inattività: può volerci fino a circa 30-40 secondi. Attendi, non ricaricare la pagina.
+                           </p>
+                        )}
                      </div>
 
                   </div>
